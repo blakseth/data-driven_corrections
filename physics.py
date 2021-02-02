@@ -49,7 +49,7 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_source, dt, 
     alpha_half_int[0] = alpha_nodes[0]
     alpha_half_int[-1] = alpha_nodes[-1]
 
-    sigma = get_source(nodes) / (rho * cV_nodes)
+    sigma = get_source(nodes[1:-1]) / (rho * cV_nodes[1:-1])
 
     if T0 is not None:
         T = T0[1:-1]
@@ -57,6 +57,10 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_source, dt, 
         T = np.zeros(nodes.shape[0] - 2)
     else:
         raise Exception("Missing initial condition.")
+
+    print("Alpha:", alpha_nodes)
+    print("Alpha face:", alpha_half_int)
+    print("Sigma:", sigma)
 
     if steady:
         # Define coefficient matrix of linear system.
@@ -124,7 +128,7 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
     alpha_half_int[0] = alpha_nodes[0]
     alpha_half_int[-1] = alpha_nodes[-1]
 
-    sigma = get_source(nodes) / (rho * cV_nodes)
+    sigma = get_source(nodes[1:-1]) / (rho * cV_nodes[1:-1])
 
     A = None
     b = None
