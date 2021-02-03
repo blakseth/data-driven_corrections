@@ -77,7 +77,9 @@ def verify(N, dt):
 
 def main():
     # Stop grid refinement when relative difference between current and previous solution is less than tol.
-    tol = 1e-5
+    tol = 1e-7
+
+    max_sequential_temporal_updates = np.inf
 
     # Initialize
     N_old     = config.N_coarse
@@ -131,8 +133,19 @@ def main():
                 T_old     = T_new
                 space_was_refined = True
 
+        if not space_was_refined:
+            cont_refine = False
+            continue
         time_was_refined = False
-        while refine_time:
+        sequential_temporal_udpates = 0
+        while refine_time and sequential_temporal_udpates < max_sequential_temporal_updates:
+            N_new = N_old
+            dx_new = (config.x_b - config.x_a) / N_new
+            faces_new = np.linspace(config.x_a, config.x_b, num=N_new + 1, endpoint=True)
+            nodes_new = np.zeros(N_new + 2)
+            nodes_new[0] = config.x_a
+            nodes_new[1:-1] = faces_new[:-1] + dx_new / 2
+            nodes_new[-1] = config.x_b
             dt_new = dt_old / 2.0
 
             T_new = physics.simulate(nodes_new, faces_new,
@@ -160,19 +173,22 @@ def main():
                 dt_old = dt_new
                 T_old  = T_new
                 time_was_refined = True
+                sequential_temporal_udpates += 1
 
-        if not time_was_refined and not space_was_refined:
+        if not time_was_refined:
             cont_refine = False
+        else:
+            refine_space = True
 
     print("Coarsest satisfactory grid discretization is defined by")
     print("N_fine:", N_old)
     print("dt:", dt_old)
 
-    verify(int(N_old), dt_old)
+    #verify(int(N_old), dt_old)
 
-    plt.figure()
-    plt.plot(nodes_old, T_old)
-    plt.show()
+    #plt.figure()
+    #plt.plot(nodes_old, T_old)
+    #plt.show()
 
 ########################################################################################################################
 
