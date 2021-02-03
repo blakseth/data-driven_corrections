@@ -12,14 +12,15 @@ Creating training, validation and test datasets for ML correction of 1D heat con
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 import torch
 import torch.utils.data
-import physics
 
 ########################################################################################################################
 # File imports.
 
 import config
+import physics
 import util
 
 ########################################################################################################################
@@ -36,21 +37,159 @@ def create_datasets():
     Purpose: Create datasets for supervised learning of data-driven correction models for the 1D heat equation.
     :return: dataset_train, dataset_val, dataset_test
     """
-    # Load reference data.
+    # Load pickled simulation data, or create and pickle new data if none exists already.
+    pickle_filepath = os.path.join(datasets_location, data_tag + ".pkl")
+    if os.path.exists(pickle_filepath):
+        simulation_data = pickle.load(open(pickle_filepath, "rb"))
+    else:
+        # Perform coarse-scale simulation
+        N_t_coarse = int(1/config.dt_coarse) + 1
+        unc_Ts    = np.zeros((N_t_coarse, config.N_coarse + 2))
+        unc_Ts[0] = config.get_T0(config.nodes_coarse)
+        for i in range(1, N_t_coarse):
+            unc_Ts[i] = physics.simulate(
+                config.nodes_coarse, config.faces_coarse,
+                unc_Ts[i-1], config.T_a, config.T_b,
+                config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
+                config.dt_coarse, config.dt_coarse, False
+            )
 
-    # Load uncorrected data.
+        # Perform fine-scale simulation
+        N_t_fine = int(1 / config.dt_fine) + 1
+        ref_Ts = np.zeros((N_t_fine, config.N_fine + 2))
+        ref_Ts[0] = config.get_T0(config.nodes_fine)
+        for i in range(1, N_t_fine):
+            ref_Ts[i] = physics.simulate(
+                config.nodes_fine, config.faces_fine,
+                ref_Ts[i - 1], config.T_a, config.T_b,
+                config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
+                config.dt_fine, config.dt_fine, False
+            )
 
-    # Normalize data.
+        # Calculate correction source terms
+        sources = np.zeros((N_t_coarse, config.N_coarse))
+        for i in range(1, N_t_coarse):
+            sources[i] = physics.get_corrective_src_term(
+                config.nodes_coarse, config.nodes_fine,
+                ref_Ts[int(i*config.dt_coarse/config.dt_fine)], ref_Ts[int((i-1)*config.dt_coarse/config.dt_fine)],
+                config.T_a, config.T_b,
+                config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
+                config.dt_coarse, False
+            )
+
+        # Store data
+        simulation_data = {}
+        simulation_data['ref'] = ref_Ts
+        simulation_data['unc'] = unc_Ts
+        simulation_data['src'] = sources
+        pickle.dump(simulation_data, open(pickle_filepath, "wb"))
 
     # Split data into training, validation and test set.
+    train_unc = simulation_data['unc'][:config.N_train_examples]
+    train_ref = simulation_data['ref'][:config.N_train_examples]
+    train_src = simulation_data['src'][:config.N_train_examples]
+
+    val_unc   = simulation_data['unc'][config.N_train_examples:config.N_train_examples + config.N_val_examples]
+    val_ref   = simulation_data['ref'][config.N_train_examples:config.N_train_examples + config.N_val_examples]
+    val_src   = simulation_data['src'][config.N_train_examples:config.N_train_examples + config.N_val_examples]
+
+    test_unc  = simulation_data['unc'][config.N_train_examples + config.N_val_examples:]
+    test_ref  = simulation_data['val'][config.N_train_examples + config.N_val_examples:]
+    test_src  = simulation_data['src'][config.N_train_examples + config.N_val_examples:]
+
+    # Calculate statistical properties of training data.
+    train_unc_mean = np.mean(train_unc)
+    train_ref_mean = np.mean(train_ref)
+    train_src_mean = np.mean(train_src)
+
+    train_unc_std  = np.std(train_unc)
+    train_ref_std  = np.std(train_ref)
+    train_src_std  = np.std(train_src)
 
     # Augment training data.
+    if "aug" in data_tag:
+        # Shift augmentation.
+
+        train_unc_orig = train_unc
+        train_ref_orig = train_ref
+        train_src_orig = train_src
+        for i in range(config.N_shift_steps):
+            # Uncorrected temperature
+            train_unc_aug = train_unc_orig + (i + 1) * config.shift_step_size
+            train_unc = np.concatenate((train_unc, train_unc_aug), axis=0)
+
+            # Reference temperature
+            train_ref_aug = train_ref_orig + (i + 1) * config.shift_step_size
+            train_ref = np.concatenate((train_ref, train_ref_aug), axis=0)
+
+            # Correction source term
+            train_src = np.concatenate((train_src, train_src_orig), axis=0)
+
+        # Mirror augmentation.
+
+        # Uncorrected temperature
+        train_unc_mirror = np.flip(train_unc, axis=1)
+        train_unc = np.concatenate((train_unc, train_unc_mirror), axis=0)
+
+        # Reference temperature
+        train_ref_mirror = np.flip(train_ref, axis=1)
+        train_ref = np.concatenate((train_ref, train_ref_mirror), axis=0)
+        # Correction source term
+        train_src_mirror = -np.flip(train_src, axis=1)
+        train_src = np.concatenate((train_src, train_src_mirror), axis=0)
+
+    # Calculate statistical properties of training data.
+    train_unc_mean = np.mean(train_unc)
+    train_ref_mean = np.mean(train_ref)
+    train_src_mean = np.mean(train_src)
+
+    train_unc_std  = np.std(train_unc)
+    train_ref_std  = np.std(train_ref)
+    train_src_std  = np.std(train_src)
+
+    stats = np.asarray([
+        train_unc_mean,
+        train_ref_mean,
+        train_src_mean,
+        train_unc_std,
+        train_ref_std,
+        train_src_std
+    ])
+
+    # z_normalize data.
+    train_unc_normalized = util.z_normalize(train_unc, train_unc_mean, train_unc_std)
+    val_unc_normalized   = util.z_normalize(val_unc,   train_unc_mean, train_unc_std)
+    test_unc_normalized  = util.z_normalize(test_unc,  train_unc_mean, train_unc_std)
+
+    train_ref_normalized = util.z_normalize(train_ref, train_ref_mean, train_ref_std)
+    val_ref_normalized   = util.z_normalize(val_ref,   train_ref_mean, train_ref_std)
+    test_ref_normalized  = util.z_normalize(test_ref,  train_ref_mean, train_ref_std)
+
+    train_src_normalized = util.z_normalize(train_src, train_src_mean, train_src_std)
+    val_src_normalized   = util.z_normalize(val_src,   train_src_mean, train_src_std)
+    test_src_normalized  = util.z_normalize(test_src,  train_src_mean, train_src_std)
 
     # Convert data from Numpy array to Torch tensor.
+    train_unc_tensor = torch.from_numpy(train_unc_normalized)
+    train_ref_tensor = torch.from_numpy(train_ref_normalized)
+    train_src_tensor = torch.from_numpy(train_src_normalized)
+
+    val_unc_tensor   = torch.from_numpy(val_unc_normalized)
+    val_ref_tensor   = torch.from_numpy(val_ref_normalized)
+    val_src_tensor   = torch.from_numpy(val_src_normalized)
+
+    test_unc_tensor  = torch.from_numpy(test_unc_normalized)
+    test_ref_tensor  = torch.from_numpy(test_ref_normalized)
+    test_src_tensor  = torch.from_numpy(test_src_normalized)
+
+    stats_tensor     = torch.from_numpy(stats)
 
     # Create datasets.
+    dataset_train = torch.utils.data.TensorDataset(train_unc_tensor, train_ref_tensor, train_src_tensor, stats_tensor)
+    dataset_val   = torch.utils.data.TensorDataset(val_unc_tensor, val_ref_tensor, val_src_tensor, stats_tensor)
+    dataset_test  = torch.utils.data.TensorDataset(test_unc_tensor, test_ref_tensor, test_src_tensor, stats_tensor)
 
-    return
+    return dataset_train, dataset_val, dataset_test
 
 ########################################################################################################################
 # Writing and loading datasets to/from disk.
