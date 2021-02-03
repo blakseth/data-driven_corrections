@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Run configuration.
 
 run_name = "my_run"
-domain   = 1
+system   = 2
 data_tag = "my_data"
 
 ensemble_size = 10
@@ -51,26 +51,31 @@ cp_save_dir  = os.path.join(cp_main_dir, run_name)
 ########################################################################################################################
 # Domain configuration.
 
+t_end     = 5.0
 x_a       = 0.0
 x_b       = 1.0
 A         = 1.0
-k_ref     = 2500
-cV_ref    = 200
-rho       = 200
-q_hat_ref = 2
 
-if domain == 1:
+if system == 1:
+    k_ref = 2500.0
+    cV_ref = 200.0
+    rho = 1000.0
+    q_hat_ref = 100000.0
     def get_k(x):
         return k_ref * (1 + 2*x + np.sin(3*np.pi*x) + 0.8*np.cos(20*np.pi*x))
     def get_cV(x):
         return cV_ref * np.ones_like(x)
     def get_q_hat(x):
-        return q_hat_ref * np.exp(-100*(x - 0.5)**2)
-elif domain == 2:
+        return q_hat_ref * np.exp(-100*(x - 0.5*(x_b - x_a))**2)
+elif system == 2:
+    k_ref = 2000.0
+    cV_ref = 500.0
+    rho = 1000.0
+    q_hat_ref = 0.0
     def get_k(x):
         return 0.5 * k_ref * np.exp(2*x)
     def get_cV(x):
-        return cV_ref * (1 + np.heaviside(x + 0.5, 0.5))
+        return cV_ref * (1 + 4*np.heaviside(x + 0.5*(x_b - x_a), 0.5))
     def get_q_hat(x):
         return q_hat_ref * np.ones_like(x)
 else:
@@ -101,3 +106,6 @@ nodes_fine[-1] = x_b
 # Temporal discretization.
 dt_fine   = 1.0
 dt_coarse = 1.0
+
+########################################################################################################################
+# Data configuration.
