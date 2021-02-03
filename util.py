@@ -37,13 +37,17 @@ def unnormalize(x_normalized, x_min, x_max):
     """
     return 0.5*(x_normalized + 1)*(x_max - x_min) + x_min
 
-def z_normalize(x):
+def z_normalize(x, mean, std):
     """
     :param x: Numpy array containing data points.
+    :param mean: Pre-calculated mean to be used for normalization.
+    :param std: Pre-calculated standard deviation to be used for normalization.
     :return: Z-scores of the data points in x.
     """
-    mean = np.mean(x)
-    std  = np.std(x)
+    if mean is None:
+        mean = np.mean(x)
+    if std is None:
+        std  = np.std(x)
     return (x - mean) / std
 
 def z_unnormalize(x_normalized, mean, std):
