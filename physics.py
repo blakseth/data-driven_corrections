@@ -58,10 +58,6 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_source, dt, 
     else:
         raise Exception("Missing initial condition.")
 
-    print("Alpha:", alpha_nodes)
-    print("Alpha face:", alpha_half_int)
-    print("Sigma:", sigma)
-
     if steady:
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
