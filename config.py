@@ -30,8 +30,8 @@ data_tag = "my_data"
 
 ensemble_size = 10
 
-do_train = True
-do_test  = True
+do_train = False
+do_test  = False
 
 load_model_from_save      = False
 resume_training_from_save = False
@@ -61,23 +61,31 @@ if system == 1:
     cV_ref = 200.0
     rho = 1000.0
     q_hat_ref = 100000.0
+    T_a = 200
+    T_b = 300
     def get_k(x):
         return k_ref * (1 + 2*x + np.sin(3*np.pi*x) + 0.8*np.cos(20*np.pi*x))
     def get_cV(x):
         return cV_ref * np.ones_like(x)
     def get_q_hat(x):
         return q_hat_ref * np.exp(-100*(x - 0.5*(x_b - x_a))**2)
+    def get_T0(x):
+        return 200 + 100*x + 100*np.sin(2*np.pi*x)
 elif system == 2:
     k_ref = 2000.0
     cV_ref = 500.0
     rho = 1000.0
     q_hat_ref = 0.0
+    T_a = 1000
+    T_b = 250
     def get_k(x):
         return 0.5 * k_ref * np.exp(2*x)
     def get_cV(x):
         return cV_ref * (1 + 4*np.heaviside(x + 0.5*(x_b - x_a), 0.5))
     def get_q_hat(x):
         return q_hat_ref * np.ones_like(x)
+    def get_T0(x):
+        return 1000/((x+1)**2) + 50*np.sin(4*np.pi*x)
 else:
     raise Exception("Invalid domain selection.")
 
@@ -86,7 +94,7 @@ else:
 # Discretization.
 
 # Coarse spatial discretization.
-N_coarse = 25
+N_coarse = 20
 dx_coarse = (x_b - x_a) / N_coarse
 faces_coarse = np.linspace(x_a, x_b, num=N_coarse + 1, endpoint=True)
 nodes_coarse = np.zeros(N_coarse + 2)
@@ -104,8 +112,8 @@ nodes_fine[1:-1] = faces_fine[:-1] + dx_fine / 2
 nodes_fine[-1] = x_b
 
 # Temporal discretization.
-dt_fine   = 1.0
-dt_coarse = 1.0
+dt_fine   = 0.0001
+dt_coarse = 0.001
 
 ########################################################################################################################
 # Data configuration.
