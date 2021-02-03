@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Run configuration.
 
 run_name = "my_run"
-system   = 2
+system   = 1
 data_tag = "my_data"
 
 ensemble_size = 10
@@ -114,6 +114,17 @@ nodes_fine[-1] = x_b
 # Temporal discretization.
 dt_fine   = 0.0001
 dt_coarse = 0.001
+N_fine    = t_end * int(1/dt_fine)
+N_coarse    = t_end * int(1/dt_coarse)
 
 ########################################################################################################################
 # Data configuration.
+
+# Dataset sizes (unaugmented).
+N_train_examples = int(0.7*N_coarse)
+N_val_examples   = int(0.1*N_coarse)
+N_test_examples  = int(0.2*N_coarse)
+
+# Parameters for shift data augmentation.
+N_shift_steps   = 5
+shift_step_size = 100
