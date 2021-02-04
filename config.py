@@ -132,3 +132,10 @@ N_shift_steps   = 5
 shift_step_size = 100
 
 ########################################################################################################################
+# Model configuration.
+
+act_type = 'lrelu'
+act_param = 0.01
+
+use_dropout = False
+dropout_prop = 0.1
