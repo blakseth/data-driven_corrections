@@ -20,20 +20,20 @@ import config
 # MyModel.
 
 class Hidden_layer_with_act(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, input_size, output_size):
         super(Hidden_layer_with_act, self).__init__()
-        self.layer = torch.nn.Linear(config.hidden_size, config.hidden_size)
+        self.layer = torch.nn.Linear(input_size, output_size)
         self.activation = None
         self.dropout = torch.nn.Dropout(0.0)
         if config.act_type == 'lrelu':
-            self.activation = torch.nn.LeakyReLU(0.2)
+            self.activation = torch.nn.LeakyReLU(config.act_param)
         if config.use_dropout:
-            self.dropout = torch.nn.Dropout(0.1)
+            self.dropout = torch.nn.Dropout(config.dropout_prop)
 
     def forward(self, x):
         return self.dropout(self.activation(self.layer(x)))
 
-class MyModel:
+class DenseGlobalModel:
     def __init__(self):
         # Defining network architecture.
         first_layer = torch.nn.Linear(config.input_size, config.hidden_size)
