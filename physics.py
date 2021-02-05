@@ -31,10 +31,11 @@ def tdma(low_diag, main_diag, high_diag, rhs, N):
 ########################################################################################################################
 # Physics simulation.
 
-def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_source, dt, t_end, steady):
+def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_src, dt, t_end, steady):
     assert steady or T0.shape[0] == nodes.shape[0]
     assert faces.shape[0] == nodes.shape[0] - 1
     assert steady or T0 is not None
+    assert corr_src.shape[0] == nodes.shape[0] - 2
 
     N = faces.shape[0] - 1
 
@@ -49,7 +50,7 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_source, dt, 
     alpha_half_int[0] = alpha_nodes[0]
     alpha_half_int[-1] = alpha_nodes[-1]
 
-    sigma = get_source(nodes[1:-1]) / (rho * cV_nodes[1:-1])
+    sigma = get_src(nodes[1:-1]) / (rho * cV_nodes[1:-1]) + corr_src
 
     if T0 is not None:
         T = T0[1:-1]
