@@ -131,7 +131,9 @@ def create_new_model():
     if config.model_name == 'GlobalDense':
         return Model('DenseModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
     elif config.model_name == 'CNNModule':
-        return Model('DenseModule')
+        return Model('CNNModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
+    elif config.model_name == 'LocalDense':
+        return Model('EnsembleDenseModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
     else:
         raise Exception("Invalid model selection.")
 
