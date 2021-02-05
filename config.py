@@ -33,7 +33,6 @@ model_types = [
     'GlobalDense',
     'GlobalCNN',
     'LocalDense',
-    'LocalCNN'
 ]
 model_name = model_types[model_key]
 
