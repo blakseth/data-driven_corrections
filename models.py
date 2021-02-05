@@ -85,6 +85,7 @@ class EnsembleDenseModule(torch.nn.Module):
 
     def forward(self, x):
         # TODO: Is it possible to make this more efficient?
+        # TODO: This probably does not work for batch_size > 1.
         output = torch.zeros_like(x)
         for i in range(1, len(self.local_networks)):
             output[i] = self.local_networks[i](x[i-1:i+2]) # Pass elements i-1, i and i+1 of x.

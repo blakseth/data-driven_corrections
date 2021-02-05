@@ -28,6 +28,7 @@ run_name = "dataset_test1"
 system   = 1
 data_tag = "dataset_test1"
 model_key = 0
+model_is_hybrid = True
 
 model_types = [
     'GlobalDense',
@@ -154,3 +155,16 @@ act_param = 0.01
 
 use_dropout = False
 dropout_prop = 0.1
+
+########################################################################################################################
+# Training configuration.
+
+num_train_it = 10000
+
+print_train_loss_period = 100    # Number of training iterations per print of training losses.
+save_model_period       = 50000  # Number of training iterations per model save.
+validation_period       = 100    # Number of training iterations per validation.
+
+batch_size_train = 16
+batch_size_val   = N_val_examples
+batch_size_test  = N_test_examples
