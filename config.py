@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name = "dataset_test1"
+run_name = "train_test2_hybrid"
 system   = 1
-data_tag = "dataset_test1"
+data_tag = "system1"
 model_key = 0
 model_is_hybrid = True
 
@@ -39,9 +39,9 @@ model_name = model_types[model_key]
 
 augment_training_data = False
 
-ensemble_size = 10
+ensemble_size = 1
 
-do_train = False
+do_train = True
 do_test  = False
 
 load_model_from_save      = False
@@ -62,7 +62,7 @@ cp_save_dir  = os.path.join(cp_main_dir, run_name)
 ########################################################################################################################
 # Domain configuration.
 
-t_end     = 0.1
+t_end     = 5.0
 x_a       = 0.0
 x_b       = 1.0
 A         = 1.0
@@ -107,7 +107,7 @@ else:
 # Coarse spatial discretization.
 N_coarse = 20
 dx_coarse = (x_b - x_a) / N_coarse
-faces_coarse = np.linspace(x_a, x_b, num=N_coarse + 1, endpoint=True)
+faces_coarse = np.linspace(x_a, x_b, num = N_coarse + 1, endpoint=True)
 nodes_coarse = np.zeros(N_coarse + 2)
 nodes_coarse[0] = x_a
 nodes_coarse[1:-1] = faces_coarse[:-1] + dx_coarse / 2
@@ -116,7 +116,7 @@ nodes_coarse[-1] = x_b
 # Fine spatial discretization.
 N_fine = 4860
 dx_fine = (x_b - x_a) / N_fine
-faces_fine = np.linspace(x_a, x_b, num=N_fine + 1, endpoint=True)
+faces_fine = np.linspace(x_a, x_b, num = N_fine + 1, endpoint=True)
 nodes_fine = np.zeros(N_fine + 2)
 nodes_fine[0] = x_a
 nodes_fine[1:-1] = faces_fine[:-1] + dx_fine / 2
@@ -143,12 +143,12 @@ shift_step_size = 100
 ########################################################################################################################
 # Model configuration.
 
-num_layers = 4
+num_layers = 3
 
 loss_func = 'MSE'
 
-learning_rate = 1e-4
 optimizer = 'adam'
+learning_rate = 1e-4
 
 act_type = 'lrelu'
 act_param = 0.01
@@ -159,7 +159,7 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-num_train_it = 10000
+max_train_it = 10000
 
 print_train_loss_period = 100    # Number of training iterations per print of training losses.
 save_model_period       = 50000  # Number of training iterations per model save.
@@ -168,3 +168,5 @@ validation_period       = 100    # Number of training iterations per validation.
 batch_size_train = 16
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
+
+overfit_limit = 5

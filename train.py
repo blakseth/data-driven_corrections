@@ -42,13 +42,13 @@ def train(model, num):
     )
 
     it_per_epoch = len(dataloader_train)
-    num_epochs = config.num_train_it // it_per_epoch + 1
+    num_epochs = config.max_train_it // it_per_epoch + 1
 
     it = 0
 
     for epoch in range(num_epochs):
         for i, data in enumerate(dataloader_train):
-            if it >= config.num_train_it:
+            if it >= config.max_train_it:
                 break
 
             model.net.train()
@@ -61,9 +61,18 @@ def train(model, num):
             out_data = model.net(unc_data) # out = output (corrected profile or predicted correction source term).
 
             if config.model_is_hybrid:
-                loss = model.loss_fn(out_data, src_data)
+                loss = model.loss(out_data, src_data)
             else:
-                loss = model.loss_fn(out_data, ref_data)
+                loss = model.loss(out_data, ref_data[:, 1:-1])
+
+            """
+            if it == config.num_train_it:
+                print("unc_data:", unc_data)
+                print("ref_data:", ref_data)
+                print("src_data:", src_data)
+                print("out_data:", out_data)
+                print("loss:", loss)
+            """
 
             if it % config.print_train_loss_period == 0:
                 print(it, loss.item())
@@ -85,9 +94,9 @@ def train(model, num):
                         src_data_val = val_data[2]
                         out_data_val = model.net(unc_data_val)
                         if config.model_is_hybrid:
-                            val_loss = model.loss_fn(out_data_val, src_data_val)
+                            val_loss = model.loss(out_data_val, src_data_val)
                         else:
-                            val_loss = model.loss_fn(out_data_val, ref_data_val)
+                            val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
                         model.val_losses.append(val_loss.item())
                         model.val_iterations.append(it)
 

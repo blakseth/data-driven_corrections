@@ -108,7 +108,7 @@ class Model:
 
         # Defining loss function.
         if config.loss_func == 'MSE':
-            self.loss_func = torch.nn.MSELoss(reduction='mean')
+            self.loss = torch.nn.MSELoss(reduction='mean')
         else:
             raise Exception("Invalid loss function selection.")
 

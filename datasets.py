@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy_indexed as npi
 import os
-import pickle
+import joblib
 import torch
 import torch.utils.data
 
@@ -39,9 +39,9 @@ def create_datasets():
     :return: dataset_train, dataset_val, dataset_test
     """
     # Load pickled simulation data, or create and pickle new data if none exists already.
-    pickle_filepath = os.path.join(datasets_location, data_tag + ".pkl")
-    if os.path.exists(pickle_filepath) and False:
-        simulation_data = pickle.load(open(pickle_filepath, "rb"))
+    save_filepath = os.path.join(datasets_location, data_tag + ".sav")
+    if os.path.exists(save_filepath):
+        simulation_data = joblib.load(save_filepath)
     else:
         # Perform coarse-scale simulation.
         unc_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
@@ -96,7 +96,7 @@ def create_datasets():
 
         # Store data
         simulation_data['src'] = [sources]
-        pickle.dump(simulation_data, open(pickle_filepath, "wb"))
+        joblib.dump(simulation_data, save_filepath)
 
     # Downsample fine-scale data.
     ref_Ts_downsampled = np.zeros((config.Nt_coarse, config.N_coarse + 2))
