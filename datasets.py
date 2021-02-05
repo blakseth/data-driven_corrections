@@ -50,7 +50,8 @@ def create_datasets():
             unc_Ts[i] = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 unc_Ts[i-1], config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
+                config.get_k, config.get_cV, config.rho, config.A,
+                config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, config.dt_coarse, False
             )
 
@@ -61,7 +62,8 @@ def create_datasets():
             ref_Ts[i] = physics.simulate(
                 config.nodes_fine, config.faces_fine,
                 ref_Ts[i - 1], config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
+                config.get_k, config.get_cV, config.rho, config.A,
+                config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
                 config.dt_fine, config.dt_fine, False
             )
 
@@ -91,13 +93,6 @@ def create_datasets():
                 config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
                 config.dt_coarse, False
             )
-            corrected = physics.simulate(config.nodes_coarse, config.faces_coarse,
-                                         ref_Ts_downsampled[i-1], config.T_a, config.T_b,
-                                         config.get_k, config.get_cV, config.rho, config.A,
-                                         lambda x: config.get_q_hat(x) + sources[i],
-                                         config.dt_coarse, config.dt_coarse, False)
-            print("Corrected:", corrected)
-            print("Reference:", ref_Ts_downsampled[i])
 
         # Store data
         simulation_data['src'] = [sources]
@@ -131,8 +126,6 @@ def create_datasets():
     test_unc  = simulation_data['unc'][0][config.N_train_examples + config.N_val_examples:,:]
     test_ref  = simulation_data['ref'][0][config.N_train_examples + config.N_val_examples:,:]
     test_src  = simulation_data['src'][0][config.N_train_examples + config.N_val_examples:,:]
-
-    print("First correction source term of training set:", train_src[0])
 
     assert train_unc.shape[0] == config.N_train_examples
     assert train_ref.shape[0] == config.N_train_examples
