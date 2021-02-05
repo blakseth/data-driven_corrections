@@ -1,7 +1,7 @@
 """
 train.py
 
-Written by Sindre Stenen Blakseth, 20201.
+Written by Sindre Stenen Blakseth, 2021.
 
 Script for training models for data-driven corrections of the 1D heat equation.
 """
@@ -46,9 +46,12 @@ def train(model, num):
 
     it = 0
 
+    lowest_val_los = np.inf
+    val_epoch_since_improvement = 0
+
     for epoch in range(num_epochs):
         for i, data in enumerate(dataloader_train):
-            if it >= config.max_train_it:
+            if it >= config.max_train_it or val_epoch_since_improvement >= config.overfit_limit:
                 break
 
             model.net.train()
@@ -99,6 +102,11 @@ def train(model, num):
                             val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
                         model.val_losses.append(val_loss.item())
                         model.val_iterations.append(it)
+                        if val_loss < lowest_val_los:
+                            lowest_val_los = val_loss
+                            val_epoch_since_improvement = 0
+                        else:
+                            val_epoch_since_improvement += 1
 
     fig1, ax1 = plt.subplots()
     ax1.set_title("Training and Validation Loss, Model " + str(num))

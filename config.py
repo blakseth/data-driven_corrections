@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name = "train_test2_hybrid"
+run_name = "train_test6_hybrid"
 system   = 1
 data_tag = "system1"
 model_key = 0
@@ -148,7 +148,7 @@ num_layers = 3
 loss_func = 'MSE'
 
 optimizer = 'adam'
-learning_rate = 1e-4
+learning_rate = 1e-5
 
 act_type = 'lrelu'
 act_param = 0.01
@@ -159,7 +159,7 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = 10000
+max_train_it = 100000
 
 print_train_loss_period = 100    # Number of training iterations per print of training losses.
 save_model_period       = 50000  # Number of training iterations per model save.
@@ -169,4 +169,4 @@ batch_size_train = 16
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 
-overfit_limit = 5
+overfit_limit = 10
