@@ -176,6 +176,7 @@ def create_datasets():
         # Reference temperature
         train_ref_mirror = np.flip(train_ref, axis=1)
         train_ref = np.concatenate((train_ref, train_ref_mirror), axis=0)
+
         # Correction source term
         train_src_mirror = -np.flip(train_src, axis=1)
         train_src = np.concatenate((train_src, train_src_mirror), axis=0)
