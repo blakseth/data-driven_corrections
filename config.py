@@ -27,6 +27,15 @@ torch.backends.cudnn.benchmark = False
 run_name = "dataset_test1"
 system   = 1
 data_tag = "dataset_test1"
+model_key = 0
+
+model_types = [
+    'GlobalDense',
+    'GlobalCNN',
+    'LocalDense',
+    'LocalCNN'
+]
+model_name = model_types[model_key]
 
 augment_training_data = False
 
@@ -133,6 +142,13 @@ shift_step_size = 100
 
 ########################################################################################################################
 # Model configuration.
+
+num_layers = 4
+
+loss_func = 'MSE'
+
+learning_rate = 1e-4
+optimizer = 'adam'
 
 act_type = 'lrelu'
 act_param = 0.01
