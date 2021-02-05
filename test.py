@@ -33,12 +33,13 @@ def simulation_test(model, num):
     _, dataset_val, dataset_test = load_datasets(False, True, False)
 
     dataloader_val = torch.utils.data.DataLoader(
-        dataset=dataset_val,
-        batch_size=config.N_val_examples,
-        shuffle=False,
-        num_workers=0,
-        pin_memory=True
+        dataset     = dataset_val,
+        batch_size  = config.N_val_examples,
+        shuffle     = False,
+        num_workers = 0,
+        pin_memory  = True
     )
+
 
     IC = np.zeros(config.nodes_coarse.shape[0])
     for i, data in enumerate(dataloader_val):
