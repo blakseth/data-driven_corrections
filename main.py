@@ -10,6 +10,7 @@ Main entry point for ML-correcting heat equation.
 # Package imports
 
 import argparse
+import os
 
 ########################################################################################################################
 # File imports
@@ -40,7 +41,7 @@ def main():
     #os.makedirs(config.datasets_dir, exist_ok=True)
     #os.makedirs(config.raw_data_dir, exist_ok=True)
     #os.makedirs(config.results_dir,  exist_ok=True)
-    #os.makedirs(config.run_dir,      exist_ok=True)
+    os.makedirs(config.run_dir,      exist_ok=False)
     #os.makedirs(config.tb_dir,       exist_ok=True)
     #if config.is_train:
     #    os.makedirs(config.tb_run_dir,   exist_ok=False)
