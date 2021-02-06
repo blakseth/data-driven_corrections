@@ -17,7 +17,7 @@ import os
 
 import config
 import datasets
-#import test
+import test
 import train
 import models
 
@@ -76,9 +76,13 @@ def main():
 
     if args.test:
         print("Initiating testing.")
+        error_dicts = []
+        plot_data_dicts = []
         for i, model in enumerate(ensemble):
-            pass
-            #test.test(model, i)
+            error_dict, plot_data_dict = test.simulation_test(model, i)
+            error_dicts.append(error_dict)
+            plot_data_dicts.append(plot_data_dict)
+        test.save_test_data(error_dicts, plot_data_dicts)
         print("Completed testing.")
 
     # ------------------------------------------------------------------------------------------------------------------

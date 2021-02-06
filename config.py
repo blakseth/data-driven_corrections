@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name = "train_test6_hybrid"
-system   = 1
-data_tag = "system1"
+run_name  = "trial1_test_hybrid"
+system    = 1
+data_tag  = "system1"
 model_key = 0
 model_is_hybrid = True
 
@@ -39,10 +39,10 @@ model_name = model_types[model_key]
 
 augment_training_data = False
 
-ensemble_size = 1
+ensemble_size = 2
 
 do_train = True
-do_test  = False
+do_test  = True
 
 load_model_from_save      = False
 resume_training_from_save = False
@@ -135,10 +135,14 @@ Nt_coarse  = int(t_end / dt_coarse) + 1
 N_train_examples = int(0.6*Nt_coarse)
 N_val_examples   = int(0.2*Nt_coarse)
 N_test_examples  = int(0.2*Nt_coarse)
+# TODO: Change this
 
 # Parameters for shift data augmentation.
 N_shift_steps   = 5
 shift_step_size = 100
+
+# Test iterations at which temperature profiles are saved.
+profile_save_steps = np.asarray([1, 32, 1000]) - 1
 
 ########################################################################################################################
 # Model configuration.
@@ -159,7 +163,7 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = 100000
+max_train_it = 1000
 
 print_train_loss_period = 100    # Number of training iterations per print of training losses.
 save_model_period       = 50000  # Number of training iterations per model save.

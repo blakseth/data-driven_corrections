@@ -20,8 +20,76 @@ import torch
 
 import config
 from datasets import load_datasets
-import util
+import models
 import physics
+import util
+
+########################################################################################################################
+# helper function for visualizing test data.
+
+def visualize_test_data(error_stats_dict, plot_stats_dict):
+    # Visualize error stats.
+    plt.figure()
+    plt.xlabel("Test iterations", fontsize=20)
+    plt.ylabel(r"$L_2$ Error")
+
+########################################################################################################################
+# Helper function for saving test data.
+
+def save_test_data(error_dicts, plot_data_dicts):
+    # Pickle raw data.
+    with open(os.path.join(config.run_dir, "error_data_raw" + ".pkl"), "wb") as f:
+        pickle.dump(error_dicts, f)
+    with open(os.path.join(config.run_dir, "plot_data_raw" + ".pkl"), "wb") as f:
+        pickle.dump(plot_data_dicts, f)
+
+    # Save raw error data in a text file for easy manual inspection.
+    with open(os.path.join(config.run_dir, "error_data_raw" + ".txt"), "w") as f:
+        f.write("L2 error (corrected)\t\tL2 error (uncorrected)\n")
+        for num, error_dict in enumerate(error_dicts):
+            f.write("\nModel instance " + str(num) + "\n")
+            for i in range(error_dict['unc'].shape[0]):
+                f.write(str(i) + ": " + str(error_dict['cor'][i]) + "\t\t" + str(error_dict['unc'][i]) + "\n")
+        f.close()
+
+    # Calculate statistical properties of errors.
+    unc_errors = np.asarray([error_dicts[i]['unc'] for i in range(len(error_dicts))])
+    cor_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
+    unc_error_mean = np.mean(unc_errors, axis=0)
+    unc_error_std  = np.std(unc_errors,  axis=0)
+    cor_error_mean = np.mean(cor_errors, axis=0)
+    cor_error_std  = np.std(cor_errors,  axis=0)
+
+    # Calculate statistical properties of plot data.
+    unc_plots = np.asarray([plot_data_dicts[i]['unc'] for i in range(len(plot_data_dicts))])
+    cor_plots = np.asarray([plot_data_dicts[i]['cor'] for i in range(len(plot_data_dicts))])
+    unc_plot_mean = np.mean(unc_plots, axis=0)
+    unc_plot_std  = np.std(unc_plots,  axis=0)
+    cor_plot_mean = np.mean(cor_plots, axis=0)
+    cor_plot_std  = np.std(cor_plots,  axis=0)
+
+    # Pickle statistical properties.
+    error_stats_dict = {
+        'unc_mean': unc_error_mean,
+        'unc_std':  unc_error_std,
+        'cor_mean': cor_error_mean,
+        'cor_std':  cor_error_std,
+    }
+    plot_stats_dict = {
+        'unc_mean': unc_plot_mean,
+        'unc_std':  unc_plot_std,
+        'cor_mean': cor_plot_mean,
+        'cor_std':  cor_plot_std,
+        'ref':      plot_data_dicts[0]['ref'], # These are the same for all model instances, so the choice of ...
+        'x':        plot_data_dicts[0]['x']    # ... retrieving them from the first instance is arbitrary.
+    }
+    with open(os.path.join(config.run_dir, "error_data_stats" + ".pkl"), "wb") as f:
+        pickle.dump(error_stats_dict, f)
+    with open(os.path.join(config.run_dir, "plot_data_stats" + ".pkl"), "wb") as f:
+        pickle.dump(plot_stats_dict, f)
+
+    return error_stats_dict, plot_stats_dict
+
 
 ########################################################################################################################
 # Testing ML-model.
@@ -30,149 +98,86 @@ def simulation_test(model, num):
     model.net.eval()
 
     # Get target temperature profile of last validation example. This will be IC for test simulation.
-    _, dataset_val, dataset_test = load_datasets(False, True, False)
+    _, _, dataset_test = load_datasets(False, False, True)
 
-    dataloader_val = torch.utils.data.DataLoader(
-        dataset     = dataset_val,
-        batch_size  = config.N_val_examples,
-        shuffle     = False,
-        num_workers = 0,
-        pin_memory  = True
-    )
+    # Get stats used for normalization/unnormalization.
+    stats = dataset_test[:6][3].detach().numpy()
 
+    unc_mean = stats[0]
+    unc_std  = stats[3]
+    ref_mean = stats[1]
+    ref_std  = stats[4]
+    src_mean = stats[2]
+    src_std  = stats[5]
 
-    IC = np.zeros(config.nodes_coarse.shape[0])
-    for i, data in enumerate(dataloader_val):
-        IC[0]  = data[0][-1][0]
-        IC[-1] = data[0][-1][-1]
-        if config.model_type == "end-to-end":
-            IC[1:-1] = data[1][-1]
-            IC = util.unnormalize(IC, config.T_min_train, config.T_max_train)
-        if config.model_type == "source":
-            old = util.unnormalize(data[2][-1], config.T_min_train, config.T_max_train)
-            correct_source = util.unnormalize(data[1][-1], config.source_min_train, config.source_max_train)
-            IC = physics.simulate(
-                config.nodes_coarse, config.faces_coarse, old, old[0], old[-1],
-                config.k_ref, config.c_V, config.rho, config.area, config.q_hat + correct_source,
-                config.dt_coarse, config.dt_coarse, False, True
-            )
+    L2_errors_unc = np.zeros(config.N_test_examples)
+    L2_errors_cor = np.zeros(config.N_test_examples)
 
-    T_uncorrected = IC
-    T_corrected   = IC
-    T_exact       = IC
-
-    T_min = config.T_min_train
-    T_max = config.T_max_train
-
-    src_min = config.source_min_train
-    src_max = config.source_max_train
-
-    L2_errors_uncorrected = []
-    L2_errors_corrected   = []
-
-    plot_steps = [0, 4, 19, 99, 999]
+    plot_steps = config.profile_save_steps
+    plot_data_dict = {
+        'x': config.nodes_coarse,
+        'unc': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0])),
+        'ref': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0])),
+        'cor': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0]))
+    }
+    plot_num = 0
     for i in range(config.N_test_examples):
 
-        new_uncorrected = physics.simulate(
-            config.nodes_coarse, config.faces_coarse, T_uncorrected, T_uncorrected[0], T_uncorrected[-1],
-            config.k_ref, config.c_V, config.rho, config.area, config.q_hat,
-            config.dt_coarse, config.dt_coarse, False, True
-        )
-        new_exact = physics.simulate(
-            config.nodes_coarse, config.faces_coarse, T_exact, T_exact[0], T_exact[-1],
-            config.get_k, config.c_V, config.rho, config.area, config.q_hat,
-            config.dt, config.dt_coarse, False, True
-        )
+        new_unc_tensor = dataset_test[i][0]
+        new_ref_tensor = dataset_test[i][1]
 
-        if config.model_type == "end-to-end":
-            new_corrected = T_corrected
-            new_corrected[1:-1] = util.unnormalize(
-                model.net(
-                    torch.from_numpy(
-                        util.normalize(T_corrected, T_min, T_max)
-                    )
-                ).detach().numpy(),
-                T_min, T_max
-            )
-        elif config.model_type == "source":
-            new_correction_src = util.unnormalize(
-                model.net(
-                    torch.from_numpy(
-                        util.normalize(new_uncorrected, src_min, src_max)
-                    )
-                ).detach().numpy(),
-                src_min, src_max
-            )
-            new_corrected = physics.simulate(
-                config.nodes_coarse, config.faces_coarse, T_corrected, T_corrected[0], T_corrected[-1],
-                config.get_k, config.c_V, config.rho, config.area, config.q_hat + new_correction_src,
-                config.dt_coarse, config.dt_coarse, False, True
+        new_unc = util.z_unnormalize(new_unc_tensor.detach().numpy(), unc_mean, unc_std)
+        new_ref = util.z_unnormalize(new_ref_tensor.detach().numpy(), ref_mean, ref_std)
+
+        new_cor = np.zeros_like(new_ref)
+        if config.model_is_hybrid:
+            new_src = util.z_unnormalize(model.net(new_unc_tensor).detach().numpy(), src_mean, src_std)
+            new_cor = physics.simulate(
+                config.nodes_coarse, config.faces_coarse,
+                config.get_T0(config.nodes_coarse), config.T_a, config.T_b,
+                config.get_k, config.get_cV, config.rho, config.A,
+                config.get_q_hat, new_src,
+                config.dt_coarse, config.dt_coarse, False
             )
         else:
-            print("Model type:", config.model_type)
-            raise Exception
+            new_cor[0]  = new_ref[0]   # Since BCs are not ...
+            new_cor[-1] = new_ref[-1]  # predicted by the NN.
+            new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_tensor).detach().numpy(), ref_mean, ref_std)
+
+        lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
+        lin_ref = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+        lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
+
+        ref_norm = util.get_L2_norm(config.faces_coarse, lin_ref)
+        unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - lin_ref(x)) / ref_norm
+        cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - lin_ref(x)) / ref_norm
+
+        L2_errors_unc[i] = unc_error_norm
+        L2_errors_cor[i] = cor_error_norm
 
         if i in plot_steps:
-            plt.figure()
-            if config.model_type == "end-to-end":
-                plt.title("End-to-end simulation test, model #" + str(num+1) + ", iteration " + str(i + 1))
-            if config.model_type == "source":
-                plt.title("Hybrid simulation test, model #" + str(num + 1) + ", iteration " + str(i + 1))
-            plt.xlabel(r"$x$ (m)")
-            plt.ylabel(r"$T$ (K)")
-            plt.plot(config.nodes_coarse, new_uncorrected, 'r-',  linewidth=2.0, label="Uncorrected")
-            plt.plot(config.nodes_coarse, new_corrected,   'k.',  linewidth=2.3, label="Corrected")
-            plt.plot(config.nodes_coarse, new_corrected,   'k--', linewidth=0.9)
-            plt.plot(config.nodes_coarse, new_exact,       'g-',  linewidth=1.3, label="Target")
-            plt.legend()
-            plt.grid()
-            plt.savefig(
-                os.path.join(config.run_dir, "Simulation test, model #" + str(num+1) + ", iteration " + str(i+1) + ".pdf"),
-                bbox_inches='tight'
-            )
+            plot_data_dict['unc'][plot_num] = new_unc
+            plot_data_dict['ref'][plot_num] = new_ref
+            plot_data_dict['cor'][plot_num] = new_cor
+            plot_num += 1
 
-            data_dict = dict()
-            data_dict['Uncorrected'] = np.asarray([config.nodes_coarse, new_uncorrected])
-            data_dict['Corrected']   = np.asarray([config.nodes_coarse, new_corrected])
-            data_dict['Target']      = np.asarray([config.nodes_coarse, new_exact])
+    error_dict = {
+        'unc': L2_errors_unc,
+        'cor': L2_errors_cor
+    }
 
-            pickle.dump(
-                data_dict, open(os.path.join(config.run_dir, "plot_data_example" + "_" + str(num+1) + "_" + str(i+1) + ".pkl"), "wb")
-            )
+    return error_dict, plot_data_dict
 
-        T_uncorrected = new_uncorrected
-        T_corrected   = new_corrected
-        T_exact       = new_exact
+########################################################################################################################
 
-        linearized_uncorrected = lambda x_lam: util.linearized_T_num(x_lam, config.nodes_coarse, new_uncorrected)
-        linearized_corrected   = lambda x_lam: util.linearized_T_num(x_lam, config.nodes_coarse, new_corrected)
-        linearized_exact       = lambda x_lam, t: util.linearized_T_num(x_lam, config.nodes_coarse, new_exact)
-        L2_errors_uncorrected.append(
-            util.get_L2_norm(config.faces_coarse, np.infty, linearized_uncorrected, linearized_exact)
-        )
-        L2_errors_corrected.append(
-            util.get_L2_norm(config.faces_coarse, np.infty, linearized_corrected, linearized_exact)
-        )
+def main():
+    model = models.create_new_model()
+    num = 0
+    simulation_test(model, num)
 
-    loss_data_dict = dict()
-    loss_data_dict['L2_uncorrected'] = L2_errors_uncorrected
-    loss_data_dict['L2_corrected']   = L2_errors_corrected
-    f = open(os.path.join(config.run_dir, "hybrid_modelling_simulation_test" + str(num) + ".txt"), "w")
-    f.write("L2 error (corrected)")
-    for i in range(len(L2_errors_corrected)):
-        f.write(str(i) + ": " + str(L2_errors_corrected[i]) + "\n")
-    f.write("\n")
-    f.write("L2 error (uncorrected)")
-    for i in range(len(L2_errors_uncorrected)):
-        f.write(str(i) + ": " + str(L2_errors_uncorrected[i]) + "\n")
-    f.close()
+########################################################################################################################
 
-def test(model, num):
-    if config.do_simulation_test:
-        simulation_test(model, num)
-    elif config.model_type == "end-to-end":
-        test_end_to_end(model, num)
-    elif config.model_type == "source":
-        test_source(model, num)
+if __name__ == "__main__":
+    main()
 
 ########################################################################################################################
