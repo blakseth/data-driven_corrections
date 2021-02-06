@@ -32,7 +32,7 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
 
     plt.figure()
-    plt.plot(iterations, error_stats_dict['unc'], 'k-', linewidth=2.0, label="Uncorrected")
+    plt.plot(iterations, error_stats_dict['unc'], 'r-', linewidth=2.0, label="Uncorrected")
     plt.plot(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
     plt.fill_between(iterations,
                      error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
@@ -46,10 +46,28 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     plt.grid()
     plt.legend(prop={'size': 19})
     plt.savefig(os.path.join(config.run_dir, "error_stats.pdf"), bbox_inches='tight')
-    plt.show()
 
     # Visualize temperature profiles.
-    #for i in range(len(plot_stats_dict['unc'])
+    for i in range(plot_stats_dict['unc'].shape[0]):
+        plt.figure()
+        plt.plot(plot_stats_dict['x'], plot_stats_dict['unc'][i], 'r-', linewidth=2.0, label="Uncorrected")
+        plt.plot(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
+        plt.fill_between(plot_stats_dict['x'],
+                         plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
+                         plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
+                         facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+        plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
+        plt.xlabel(r"$x$ (m)", fontsize=20)
+        plt.ylabel(r"$T$ (K))")
+        plt.xticks(fontsize=17)
+        plt.yticks(fontsize=17)
+        plt.grid()
+        plt.legend(prop={'size': 19})
+        plt.savefig(os.path.join(config.run_dir, "profiles" + str(i) + ".pdf"), bbox_inches='tight')
+
+    plt.show()
+
 
 ########################################################################################################################
 # Helper function for saving test data.

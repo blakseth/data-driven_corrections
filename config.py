@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial5_test_end"
+run_name  = "trial8_test_end"
 system    = 1
 data_tag  = "system1"
 model_key = 0
