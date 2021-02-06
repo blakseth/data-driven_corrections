@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial1_test_hybrid"
+run_name  = "trial5_test_end"
 system    = 1
 data_tag  = "system1"
 model_key = 0
-model_is_hybrid = True
+model_is_hybrid = False
 
 model_types = [
     'GlobalDense',
@@ -68,12 +68,12 @@ x_b       = 1.0
 A         = 1.0
 
 if system == 1:
-    k_ref = 2500.0
-    cV_ref = 200.0
-    rho = 1000.0
+    k_ref     = 2500.0
+    cV_ref    = 200.0
+    rho       = 1000.0
     q_hat_ref = 100000.0
-    T_a = 200
-    T_b = 300
+    T_a       = 200
+    T_b       = 300
     def get_k(x):
         return k_ref * (1 + 2*x + np.sin(3*np.pi*x) + 0.8*np.cos(20*np.pi*x))
     def get_cV(x):
@@ -83,12 +83,12 @@ if system == 1:
     def get_T0(x):
         return 200 + 100*x + 100*np.sin(2*np.pi*x)
 elif system == 2:
-    k_ref = 2000.0
-    cV_ref = 500.0
-    rho = 1000.0
+    k_ref     = 2000.0
+    cV_ref    = 500.0
+    rho       = 1000.0
     q_hat_ref = 0.0
-    T_a = 1000
-    T_b = 250
+    T_a       = 1000
+    T_b       = 250
     def get_k(x):
         return 0.5 * k_ref * np.exp(2*x)
     def get_cV(x):
@@ -149,6 +149,8 @@ profile_save_steps = np.asarray([1, 32, 1000]) - 1
 
 num_layers = 3
 
+hidden_layer_size = 100
+
 loss_func = 'MSE'
 
 optimizer = 'adam'
@@ -163,11 +165,11 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = 1000
+max_train_it = int(1e5)
 
-print_train_loss_period = 100    # Number of training iterations per print of training losses.
-save_model_period       = 50000  # Number of training iterations per model save.
-validation_period       = 100    # Number of training iterations per validation.
+print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
+save_model_period       = int(5e10)   # Number of training iterations per model save.
+validation_period       = int(1e2)    # Number of training iterations per validation.
 
 batch_size_train = 16
 batch_size_val   = N_val_examples

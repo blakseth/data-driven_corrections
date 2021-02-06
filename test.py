@@ -29,9 +29,27 @@ import util
 
 def visualize_test_data(error_stats_dict, plot_stats_dict):
     # Visualize error stats.
+    iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
+
     plt.figure()
+    plt.plot(iterations, error_stats_dict['unc'], 'k-', linewidth=2.0, label="Uncorrected")
+    plt.plot(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
+    plt.fill_between(iterations,
+                     error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
+                     error_stats_dict['cor_mean'] - error_stats_dict['cor_std'],
+                     facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+    plt.xlim([0, len(error_stats_dict['unc'])])
     plt.xlabel("Test iterations", fontsize=20)
     plt.ylabel(r"$L_2$ Error")
+    plt.xticks(fontsize=17)
+    plt.yticks(fontsize=17)
+    plt.grid()
+    plt.legend(prop={'size': 19})
+    plt.savefig(os.path.join(config.run_dir, "error_stats.pdf"), bbox_inches='tight')
+    plt.show()
+
+    # Visualize temperature profiles.
+    #for i in range(len(plot_stats_dict['unc'])
 
 ########################################################################################################################
 # Helper function for saving test data.
@@ -53,35 +71,27 @@ def save_test_data(error_dicts, plot_data_dicts):
         f.close()
 
     # Calculate statistical properties of errors.
-    unc_errors = np.asarray([error_dicts[i]['unc'] for i in range(len(error_dicts))])
     cor_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
-    unc_error_mean = np.mean(unc_errors, axis=0)
-    unc_error_std  = np.std(unc_errors,  axis=0)
     cor_error_mean = np.mean(cor_errors, axis=0)
     cor_error_std  = np.std(cor_errors,  axis=0)
 
-    # Calculate statistical properties of plot data.
-    unc_plots = np.asarray([plot_data_dicts[i]['unc'] for i in range(len(plot_data_dicts))])
+    # Calculate statistical properties of plot data
     cor_plots = np.asarray([plot_data_dicts[i]['cor'] for i in range(len(plot_data_dicts))])
-    unc_plot_mean = np.mean(unc_plots, axis=0)
-    unc_plot_std  = np.std(unc_plots,  axis=0)
     cor_plot_mean = np.mean(cor_plots, axis=0)
     cor_plot_std  = np.std(cor_plots,  axis=0)
 
     # Pickle statistical properties.
     error_stats_dict = {
-        'unc_mean': unc_error_mean,
-        'unc_std':  unc_error_std,
         'cor_mean': cor_error_mean,
         'cor_std':  cor_error_std,
+        'unc':      error_dicts[0]['unc']
     }
     plot_stats_dict = {
-        'unc_mean': unc_plot_mean,
-        'unc_std':  unc_plot_std,
         'cor_mean': cor_plot_mean,
         'cor_std':  cor_plot_std,
-        'ref':      plot_data_dicts[0]['ref'], # These are the same for all model instances, so the choice of ...
-        'x':        plot_data_dicts[0]['x']    # ... retrieving them from the first instance is arbitrary.
+        'unc':      plot_data_dicts[0]['unc'], # These are the same for all model instances, ...
+        'ref':      plot_data_dicts[0]['ref'], # ... so the choice of retrieving them from ...
+        'x':        plot_data_dicts[0]['x']    # ... the first instance is arbitrary.
     }
     with open(os.path.join(config.run_dir, "error_data_stats" + ".pkl"), "wb") as f:
         pickle.dump(error_stats_dict, f)

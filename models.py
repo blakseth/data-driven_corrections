@@ -130,7 +130,7 @@ class Model:
 
 def create_new_model():
     if config.model_name == 'GlobalDense':
-        return Model('DenseModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
+        return Model('DenseModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.hidden_layer_size)
     elif config.model_name == 'CNNModule':
         return Model('CNNModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
     elif config.model_name == 'LocalDense':
