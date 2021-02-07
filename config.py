@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial8_test_end"
+run_name  = "prelim1_end"
 system    = 1
-data_tag  = "system1"
+data_tag  = "system1_v2"
 model_key = 0
 model_is_hybrid = False
 
@@ -39,7 +39,7 @@ model_name = model_types[model_key]
 
 augment_training_data = False
 
-ensemble_size = 2
+ensemble_size = 10
 
 do_train = True
 do_test  = True
@@ -62,7 +62,7 @@ cp_save_dir  = os.path.join(cp_main_dir, run_name)
 ########################################################################################################################
 # Domain configuration.
 
-t_end     = 5.0
+t_end     = 4.0
 x_a       = 0.0
 x_b       = 1.0
 A         = 1.0
@@ -132,17 +132,16 @@ Nt_coarse  = int(t_end / dt_coarse) + 1
 # Data configuration.
 
 # Dataset sizes (unaugmented).
-N_train_examples = int(0.6*Nt_coarse)
-N_val_examples   = int(0.2*Nt_coarse)
-N_test_examples  = int(0.2*Nt_coarse)
-# TODO: Change this
+N_train_examples = int(0.8*Nt_coarse)
+N_val_examples   = int(0.1*Nt_coarse)
+N_test_examples  = int(0.1*Nt_coarse)
 
 # Parameters for shift data augmentation.
 N_shift_steps   = 5
 shift_step_size = 100
 
 # Test iterations at which temperature profiles are saved.
-profile_save_steps = np.asarray([1, 32, 1000]) - 1
+profile_save_steps = np.asarray([1, 20, 400]) - 1
 
 ########################################################################################################################
 # Model configuration.

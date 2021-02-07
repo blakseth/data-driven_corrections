@@ -32,8 +32,8 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
 
     plt.figure()
-    plt.plot(iterations, error_stats_dict['unc'], 'r-', linewidth=2.0, label="Uncorrected")
-    plt.plot(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
+    plt.semilogy(iterations, error_stats_dict['unc'], 'r-', linewidth=2.0, label="Uncorrected")
+    plt.semilogy(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
     plt.fill_between(iterations,
                      error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
                      error_stats_dict['cor_mean'] - error_stats_dict['cor_std'],
