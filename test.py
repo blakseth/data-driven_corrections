@@ -126,7 +126,7 @@ def simulation_test(model, num):
     model.net.eval()
 
     # Get target temperature profile of last validation example. This will be IC for test simulation.
-    _, _, dataset_test = load_datasets(False, False, True)
+    _, dataset_val, dataset_test = load_datasets(False, True, True)
 
     # Get stats used for normalization/unnormalization.
     stats = dataset_test[:6][3].detach().numpy()
@@ -137,6 +137,9 @@ def simulation_test(model, num):
     ref_std  = stats[4]
     src_mean = stats[2]
     src_std  = stats[5]
+
+    # Use last reference data example of validation set as IC for test simulation.
+    IC = util.z_unnormalize(dataset_val[-1][0].detach().numpy(), ref_mean, ref_std)
 
     L2_errors_unc = np.zeros(config.N_test_examples)
     L2_errors_cor = np.zeros(config.N_test_examples)
@@ -149,20 +152,42 @@ def simulation_test(model, num):
         'cor': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0]))
     }
     plot_num = 0
+    old_unc = IC
+    old_cor = IC
     for i in range(config.N_test_examples):
-
-        new_unc_tensor = dataset_test[i][0]
+        # ref at new time given ref at old time is stored in the test set.
         new_ref_tensor = dataset_test[i][1]
-
-        new_unc = util.z_unnormalize(new_unc_tensor.detach().numpy(), unc_mean, unc_std)
         new_ref = util.z_unnormalize(new_ref_tensor.detach().numpy(), ref_mean, ref_std)
+
+        # new_unc  = new uncorrected profile given old uncorrected profile.
+        # new_unc_ = new uncorrected profile given old   corrected profile.
+        if i == 0:
+            new_unc_ = dataset_test[i][0]
+            new_unc  = util.z_unnormalize(new_unc_.detach().numpy(), unc_mean, unc_std)
+        else:
+            new_unc = physics.simulate(
+                config.nodes_coarse, config.faces_coarse,
+                old_unc, config.T_a, config.T_b,
+                config.get_k, config.get_cV, config.rho, config.A,
+                config.get_q_hat, np.zeros(config.N_coarse),
+                config.dt_coarse, config.dt_coarse, False
+            )
+            new_unc_ = torch.from_numpy(util.z_normalize(
+                physics.simulate(
+                    config.nodes_coarse, config.faces_coarse,
+                    old_cor, config.T_a, config.T_b,
+                    config.get_k, config.get_cV, config.rho, config.A,
+                    config.get_q_hat, np.zeros(config.N_coarse),
+                    config.dt_coarse, config.dt_coarse, False
+                ), unc_mean, unc_std
+            ))
 
         new_cor = np.zeros_like(new_ref)
         if config.model_is_hybrid:
-            new_src = util.z_unnormalize(model.net(new_unc_tensor).detach().numpy(), src_mean, src_std)
+            new_src = util.z_unnormalize(model.net(new_unc_).detach().numpy(), src_mean, src_std)
             new_cor = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                config.get_T0(config.nodes_coarse), config.T_a, config.T_b,
+                old_cor, config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, new_src,
                 config.dt_coarse, config.dt_coarse, False
@@ -170,7 +195,7 @@ def simulation_test(model, num):
         else:
             new_cor[0]  = new_ref[0]   # Since BCs are not ...
             new_cor[-1] = new_ref[-1]  # predicted by the NN.
-            new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_tensor).detach().numpy(), ref_mean, ref_std)
+            new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_).detach().numpy(), ref_mean, ref_std)
 
         lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
         lin_ref = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
@@ -188,6 +213,9 @@ def simulation_test(model, num):
             plot_data_dict['ref'][plot_num] = new_ref
             plot_data_dict['cor'][plot_num] = new_cor
             plot_num += 1
+
+        old_unc = new_unc
+        old_cor = new_cor
 
     error_dict = {
         'unc': L2_errors_unc,
