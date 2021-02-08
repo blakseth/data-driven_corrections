@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial13_hybrid"
+run_name  = "trial14_hybrid_const_k"
 system    = 2
-data_tag  = "system2_v2"
+data_tag  = "system2_const_k"
 model_key = 0
 model_is_hybrid = True
 

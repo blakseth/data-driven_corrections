@@ -50,7 +50,7 @@ def create_datasets():
             unc_Ts[i] = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 unc_Ts[i-1], config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A,
+                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, config.dt_coarse, False
             )
@@ -90,7 +90,7 @@ def create_datasets():
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts_downsampled[i], ref_Ts_downsampled[i-1],
                 config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
+                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A, config.get_q_hat,
                 config.dt_coarse, False
             )
 

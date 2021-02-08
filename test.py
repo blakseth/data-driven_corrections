@@ -168,7 +168,7 @@ def simulation_test(model, num):
             new_unc = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 old_unc, config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A,
+                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros(config.N_coarse),
                 config.dt_coarse, config.dt_coarse, False
             )
@@ -176,7 +176,7 @@ def simulation_test(model, num):
                 physics.simulate(
                     config.nodes_coarse, config.faces_coarse,
                     old_cor, config.T_a, config.T_b,
-                    config.get_k, config.get_cV, config.rho, config.A,
+                    lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                     config.get_q_hat, np.zeros(config.N_coarse),
                     config.dt_coarse, config.dt_coarse, False
                 ), unc_mean, unc_std
@@ -188,7 +188,7 @@ def simulation_test(model, num):
             new_cor = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 old_cor, config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A,
+                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, new_src,
                 config.dt_coarse, config.dt_coarse, False
             )
