@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "prelim1_end"
-system    = 1
-data_tag  = "system1_v2"
+run_name  = "trial13_hybrid"
+system    = 2
+data_tag  = "system2_v2"
 model_key = 0
-model_is_hybrid = False
+model_is_hybrid = True
 
 model_types = [
     'GlobalDense',
@@ -39,7 +39,7 @@ model_name = model_types[model_key]
 
 augment_training_data = False
 
-ensemble_size = 10
+ensemble_size = 2
 
 do_train = True
 do_test  = True
@@ -174,4 +174,4 @@ batch_size_train = 16
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 
-overfit_limit = 10
+overfit_limit = 1e3
