@@ -169,16 +169,18 @@ def simulation_test(model, num):
                 config.nodes_coarse, config.faces_coarse,
                 old_unc, config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                config.get_q_hat, np.zeros(config.N_coarse),
-                config.dt_coarse, config.dt_coarse, False
+                config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
+                (config.N_train_examples + config.N_val_examples)*config.t_end + config.dt_coarse*i,
+                config.dt_coarse, False
             )
             new_unc_ = torch.from_numpy(util.z_normalize(
                 physics.simulate(
                     config.nodes_coarse, config.faces_coarse,
                     old_cor, config.T_a, config.T_b,
                     lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                    config.get_q_hat, np.zeros(config.N_coarse),
-                    config.dt_coarse, config.dt_coarse, False
+                    config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
+                    (config.N_train_examples + config.N_val_examples)*config.t_end + config.dt_coarse*i,
+                    config.dt_coarse, False
                 ), unc_mean, unc_std
             ))
 
@@ -189,8 +191,9 @@ def simulation_test(model, num):
                 config.nodes_coarse, config.faces_coarse,
                 old_cor, config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                config.get_q_hat, new_src,
-                config.dt_coarse, config.dt_coarse, False
+                config.get_q_hat, new_src, config.dt_coarse,
+                (config.N_train_examples + config.N_val_examples)*config.t_end + config.dt_coarse*i,
+                config.dt_coarse, False
             )
         else:
             new_cor[0]  = new_ref[0]   # Since BCs are not ...

@@ -84,7 +84,7 @@ def main():
             T_old, config.T_a, config.T_b,
             lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
             config.get_q_hat, simulation_data['src'][0][index+1],
-            config.dt_coarse, config.dt_coarse, False
+            config.dt_coarse, t, t + config.dt_coarse, False
         )
         index += 1
         t += config.dt_coarse

@@ -34,7 +34,7 @@ def main():
             unc_Ts_constk[i - 1], config.T_a, config.T_b,
             lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
             config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
-            config.dt_coarse, config.dt_coarse, False
+            config.dt_coarse, config.dt_coarse*(i-1), config.dt_coarse*i, False
         )
 
     # Perform coarse-scale simulation.
@@ -46,7 +46,7 @@ def main():
             unc_Ts[i - 1], config.T_a, config.T_b,
             config.get_k, config.get_cV, config.rho, config.A,
             config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
-            config.dt_coarse, config.dt_coarse, False
+            config.dt_coarse, config.dt_coarse*(i-1), config.dt_coarse*i, False
         )
 
     plt.figure()
@@ -54,14 +54,14 @@ def main():
         plt.plot(config.nodes_coarse, unc_Ts[index], label=index)
     plt.legend()
     plt.grid()
-    plt.savefig(os.path.join(config.results_dir, 'system1/unc.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(config.results_dir, 'debug_t/unc.pdf'), bbox_inches='tight')
 
     plt.figure()
     for index in indices:
         plt.plot(config.nodes_coarse, unc_Ts_constk[index], label=index)
     plt.legend()
     plt.grid()
-    plt.savefig(os.path.join(config.results_dir, 'system1/unc_const.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(config.results_dir, 'debug_t/unc_const.pdf'), bbox_inches='tight')
 
     # Perform fine-scale simulation.
     ref_Ts = np.zeros((config.Nt_fine, config.N_fine + 2))
@@ -72,7 +72,7 @@ def main():
             ref_Ts[i - 1], config.T_a, config.T_b,
             config.get_k, config.get_cV, config.rho, config.A,
             config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
-            config.dt_fine, config.dt_fine, False
+            config.dt_fine, config.dt_fine*(i-1), config.dt_fine*i, False
         )
 
     ref_Ts_downsampled = np.zeros((config.Nt_coarse, config.N_coarse + 2))
@@ -92,21 +92,21 @@ def main():
         plt.plot(config.nodes_coarse, ref_Ts_downsampled[index], label=index)
     plt.legend()
     plt.grid()
-    plt.savefig(os.path.join(config.results_dir, 'system1/ref.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(config.results_dir, 'debug_t/ref.pdf'), bbox_inches='tight')
 
     plt.figure()
     for index in indices:
         plt.plot(config.nodes_coarse, error[index], label=index)
     plt.legend()
     plt.grid()
-    plt.savefig(os.path.join(config.results_dir, 'system1/err.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(config.results_dir, 'debug_t/err.pdf'), bbox_inches='tight')
 
     plt.figure()
     for index in indices:
         plt.plot(config.nodes_coarse, error_constk[index], label=index)
     plt.legend()
     plt.grid()
-    plt.savefig(os.path.join(config.results_dir, 'system1/err_const.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(config.results_dir, 'debug_t/err_const.pdf'), bbox_inches='tight')
 
 ########################################################################################################################'
 

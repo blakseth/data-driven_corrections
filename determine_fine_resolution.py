@@ -9,7 +9,6 @@ Script for determining the appropriate fine resolution for System 1 and System 2
 ########################################################################################################################
 # Package imports.
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 ########################################################################################################################
@@ -35,8 +34,9 @@ def verify(N, dt):
 
     T_ref = physics.simulate(nodes_ref, faces_ref,
                              config.get_T0(nodes_ref), config.T_a, config.T_b,
-                             config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
-                             dt_ref, config.t_end, steady=False)
+                             config.get_k, config.get_cV, config.rho, config.A,
+                             config.get_q_hat, np.zeros_like(nodes_ref[1:-1]),
+                             dt_ref, 0, config.t_end, steady=False)
 
     # Improved spatial resolution.
     N_space = N_ref * 2
@@ -49,16 +49,18 @@ def verify(N, dt):
 
     T_space = physics.simulate(nodes_space, faces_space,
                                config.get_T0(nodes_space), config.T_a, config.T_b,
-                               config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
-                               dt_ref, config.t_end, steady=False)
+                               config.get_k, config.get_cV, config.rho, config.A,
+                               config.get_q_hat, np.zeros_like(nodes_ref[1:-1]),
+                               dt_ref, 0, config.t_end, steady=False)
 
     # Improved temporal resolution.
     dt_time = dt / 2.0
 
     T_time = physics.simulate(nodes_ref, faces_ref,
                               config.get_T0(nodes_ref), config.T_a, config.T_b,
-                              config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
-                              dt_time, config.t_end, steady=False)
+                              config.get_k, config.get_cV, config.rho, config.A,
+                              config.get_q_hat, np.zeros_like(nodes_ref[1:-1]),
+                              dt_time, 0, config.t_end, steady=False)
 
     lin_T_ref   = lambda x: util.linearize_between_nodes(x, nodes_ref, T_ref)
     lin_T_space = lambda x: util.linearize_between_nodes(x, nodes_space, T_space)
@@ -90,8 +92,9 @@ def main():
 
     T_old     = physics.simulate(nodes_old, faces_old,
                                   config.get_T0(nodes_old), config.T_a, config.T_b,
-                                  config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
-                                  dt_old, config.t_end, steady=False)
+                                  config.get_k, config.get_cV, config.rho, config.A,
+                                 config.get_q_hat, np.zeros_like(nodes_old[1:-1]),
+                                  dt_old, 0, config.t_end, steady=False)
 
     cont_refine  = True
     refine_space = True
@@ -112,8 +115,9 @@ def main():
 
             T_new = physics.simulate(nodes_new, faces_new,
                                      config.get_T0(nodes_new), config.T_a, config.T_b,
-                                     config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
-                                     dt_new, config.t_end, steady=False)
+                                     config.get_k, config.get_cV, config.rho, config.A,
+                                     config.get_q_hat, np.zeros_like(nodes_new[1:-1]),
+                                     dt_new, 0, config.t_end, steady=False)
 
             lin_T_new = lambda x: util.linearize_between_nodes(x, nodes_new, T_new)
             lin_T_old = lambda x: util.linearize_between_nodes(x, nodes_old, T_old)
@@ -150,8 +154,9 @@ def main():
 
             T_new = physics.simulate(nodes_new, faces_new,
                                      config.get_T0(nodes_new), config.T_a, config.T_b,
-                                     config.get_k, config.get_cV, config.rho, config.A, config.get_q_hat,
-                                     dt_new, config.t_end, steady=False)
+                                     config.get_k, config.get_cV, config.rho, config.A,
+                                     config.get_q_hat, np.zeros_like(nodes_new[1:-1]),
+                                     dt_new, 0, config.t_end, steady=False)
 
             lin_T_new = lambda x: util.linearize_between_nodes(x, nodes_new, T_new)
             lin_T_old = lambda x: util.linearize_between_nodes(x, nodes_old, T_old)

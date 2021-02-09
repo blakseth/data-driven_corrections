@@ -9,7 +9,6 @@ Creating training, validation and test datasets for ML correction of 1D heat con
 ########################################################################################################################
 # Package imports.
 
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy_indexed as npi
 import os
@@ -61,14 +60,14 @@ def create_datasets():
                 unc_IC, config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
-                config.dt_coarse, config.dt_coarse, False
+                config.dt_coarse, config.dt_coarse*(i-1), config.dt_coarse*i, False
             )
             ref_Ts_full[i] = physics.simulate(
                 config.nodes_fine, config.faces_fine,
                 ref_Ts_full[i-1], config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
-                config.dt_fine, config.dt_coarse, False
+                config.dt_fine, config.dt_coarse*(i-1), config.dt_coarse*i, False
             )
             for j in range(config.N_coarse + 2):
                 ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
@@ -81,14 +80,14 @@ def create_datasets():
                 ref_Ts[i], ref_Ts[i-1],
                 config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A, config.get_q_hat,
-                config.dt_coarse, False
+                config.dt_coarse, config.dt_coarse*(i-1), False
             )
             corrected = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts[i-1], config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, sources[i],
-                config.dt_coarse, config.dt_coarse, False
+                config.dt_coarse, config.dt_coarse*(i-1), config.dt_coarse*i, False
             )
             np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=0)
         print("Correction source terms generated and verified.")

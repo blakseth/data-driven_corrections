@@ -31,7 +31,7 @@ def tdma(low_diag, main_diag, high_diag, rhs, N):
 ########################################################################################################################
 # Physics simulation.
 
-def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_src, dt, t_end, steady):
+def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_src, dt, t0, t_end, steady):
     assert steady or T0.shape[0] == nodes.shape[0]
     assert faces.shape[0] == nodes.shape[0] - 1
     assert steady or T0 is not None
@@ -50,8 +50,6 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
     alpha_half_int[0] = alpha_nodes[0]
     alpha_half_int[-1] = alpha_nodes[-1]
 
-    sigma = get_src(nodes[1:-1]) / (rho * cV_nodes[1:-1]) + corr_src
-
     if T0 is not None:
         T = T0[1:-1]
     elif steady:
@@ -60,6 +58,9 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
         raise Exception("Missing initial condition.")
 
     if steady:
+        # Get discredited source term.
+        sigma = get_src(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1]) + corr_src
+
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
         off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
@@ -81,11 +82,14 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
         off_diag_dn = -dt * alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1])  # Off-diagonal directly below main diagonal.
 
         # Initialize time.
-        time = 0
+        time = t0
 
         while time < t_end:
             # Increment time.
             time += dt
+
+            # Get discredited source term.
+            sigma = get_src(nodes[1:-1], time) / (rho * cV_nodes[1:-1]) + corr_src
 
             # Define RHS vector.
             b = T + dt * sigma
@@ -107,7 +111,7 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
 ########################################################################################################################
 # Corrective source term.
 
-def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k, get_cV, rho, area, get_source, dt, steady):
+def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k, get_cV, rho, area, get_source, dt, t0, steady):
     assert T_ref_new.shape[0] == nodes.shape[0]
     assert T_ref_old is None or T_ref_old.shape[0] == nodes.shape[0]
     assert faces.shape[0]   == nodes.shape[0] - 1
@@ -125,12 +129,13 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
     alpha_half_int[0] = alpha_nodes[0]
     alpha_half_int[-1] = alpha_nodes[-1]
 
-    sigma = get_source(nodes[1:-1]) / (rho * cV_nodes[1:-1])
-
     A = None
     b = None
 
     if steady:
+        # Get discredited source term.
+        sigma = get_source(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1])
+
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
         off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
@@ -149,6 +154,9 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
         off_diag_up = -dt * alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
         off_diag_dn = -dt * alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1])  # Off-diagonal directly below main diagonal.
         A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
+
+        # Get discredited source term.
+        sigma = get_source(nodes[1:-1], t0 + dt) / (rho * cV_nodes[1:-1])
 
         # Define  RHS vector.
         b = T_ref_old[1:-1] + dt * sigma

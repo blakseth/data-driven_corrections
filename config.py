@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "debug2"
-system    = 4
-data_tag  = "debug2"
+run_name  = "replicate_sp_end"
+system    = 3
+data_tag  = "system3_new"
 model_key = 0
-model_is_hybrid = True
+model_is_hybrid = False
 
 model_types = [
     'GlobalDense',
@@ -39,7 +39,7 @@ model_name = model_types[model_key]
 
 augment_training_data = False
 
-ensemble_size = 1
+ensemble_size = 2
 
 do_train = True
 do_test  = True
@@ -77,7 +77,7 @@ if system == 1:
         return k_ref * (1 + 2*x + np.sin(3*np.pi*x) + 0.8*np.cos(20*np.pi*x))
     def get_cV(x):
         return cV_ref * np.ones_like(x)
-    def get_q_hat(x):
+    def get_q_hat(x, t):
         return q_hat_ref * np.exp(-100*(x - 0.5*(x_b - x_a))**2)
     def get_T0(x):
         return 200 + 100*x + 100*np.sin(2*np.pi*x)
@@ -96,7 +96,7 @@ elif system == 2:
         return 0.5 * k_ref * np.exp(2*x)
     def get_cV(x):
         return cV_ref * (1 + 4*np.heaviside(x + 0.5*(x_b - x_a), 0.5))
-    def get_q_hat(x):
+    def get_q_hat(x, t):
         return q_hat_ref * np.ones_like(x)
     def get_T0(x):
         return 1000/((x+1)**2) + 50*np.sin(4*np.pi*x)
@@ -128,7 +128,7 @@ elif system == 3:
                     return k_ref * k_prefactors[j]
     def get_cV(x):
         return np.ones_like(x) * cV_ref
-    def get_q_hat(x):
+    def get_q_hat(x, t):
         return np.zeros_like(x)
     def get_T0(x):
         T0 = np.ones_like(x) * 325
@@ -152,7 +152,7 @@ elif system == 4:
         return np.ones_like(x) * k_ref
     def get_cV(x):
         return np.ones_like(x) * cV_ref
-    def get_q_hat(x):
+    def get_q_hat(x, t):
         return x * q_hat_ref
     def get_T0(x):
         return x
@@ -170,7 +170,7 @@ elif system == 5:
         return np.ones_like(x) * k_ref
     def get_cV(x):
         return np.ones_like(x) * cV_ref
-    def get_q_hat(x):
+    def get_q_hat(x, t):
         return (1 + 4*np.pi**2)*np.sin(2*np.pi*x)*1
     def get_T0(x):
         return x
@@ -241,7 +241,7 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = int(2e4)
+max_train_it = int(1e5)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.
