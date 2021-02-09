@@ -43,100 +43,80 @@ def create_datasets():
     if os.path.exists(save_filepath) and False:
         simulation_data = joblib.load(save_filepath)
     else:
-        # Perform coarse-scale simulation.
         unc_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
         unc_Ts[0] = config.get_T0(config.nodes_coarse)
+        ref_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
+        ref_Ts[0] = config.get_T0(config.nodes_coarse)
+        idx = npi.indices(np.around(config.nodes_fine,   decimals=10),
+                          np.around(config.nodes_coarse, decimals=10))
         for i in range(1, config.Nt_coarse):
+            if i <= config.Nt_coarse * (config.N_train_examples + config.N_val_examples):
+                unc_IC = ref_Ts[i-1]
+            else:
+                unc_IC = unc_Ts[i-1]
             unc_Ts[i] = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                unc_Ts[i-1], config.T_a, config.T_b,
-                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
+                unc_IC, config.T_a, config.T_b,
+                config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, config.dt_coarse, False
             )
-            # TODO: For time steps corresponding to training and validation,
-            # TODO: this simulation should be "locked" to the reference simulation.
-
-        # Perform fine-scale simulation.
-        ref_Ts = np.zeros((config.Nt_fine, config.N_fine + 2))
-        ref_Ts[0] = config.get_T0(config.nodes_fine)
-        for i in range(1, config.Nt_fine):
-            ref_Ts[i] = physics.simulate(
+            ref_T = physics.simulate(
                 config.nodes_fine, config.faces_fine,
                 ref_Ts[i - 1], config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
-                config.dt_fine, config.dt_fine, False
+                config.dt_fine, config.dt_coarse, False
             )
-
-        # Store data.
-        simulation_data = {
-            'unc': [unc_Ts, config.nodes_coarse],
-            'ref': [ref_Ts, config.nodes_fine],
-        }
-
-        # Downsample fine-scale data.
-        ref_Ts_downsampled = np.zeros((config.Nt_coarse, config.N_coarse + 2))
-        counter = 0
-        for time_level in range(0, config.Nt_fine, int(config.dt_coarse / config.dt_fine)):
-            idx = npi.indices(np.around(simulation_data['ref'][1], decimals=5),
-                              np.around(simulation_data['unc'][1], decimals=5))
-            for i in range(config.N_coarse + 2):
-                ref_Ts_downsampled[counter][i] = simulation_data['ref'][0][time_level][idx[i]]
-            counter += 1
+            for j in range(config.N_coarse + 2):
+                ref_Ts[i][j] = ref_T[idx[j]]
 
         # Calculate correction source terms.
         sources = np.zeros((config.Nt_coarse, config.N_coarse))
         for i in range(1, config.Nt_coarse): # Intentionally leaves the first entry all-zeros.
             sources[i] = physics.get_corrective_src_term(
                 config.nodes_coarse, config.faces_coarse,
-                ref_Ts_downsampled[i], ref_Ts_downsampled[i-1],
+                ref_Ts[i], ref_Ts[i-1],
                 config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A, config.get_q_hat,
                 config.dt_coarse, False
             )
             corrected = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                ref_Ts_downsampled[i-1], config.T_a, config.T_b,
+                ref_Ts[i-1], config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, sources[i],
                 config.dt_coarse, config.dt_coarse, False
             )
-            np.testing.assert_allclose(corrected, ref_Ts_downsampled[i], rtol=1e-10, atol=0)
+            np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=0)
         print("Correction source terms generated and verified.")
 
         # Store data
-        simulation_data['src'] = [sources]
+        simulation_data = {
+            'x':   config.nodes_coarse,
+            'unc': unc_Ts,
+            'ref': ref_Ts,
+            'src': sources
+        }
         joblib.dump(simulation_data, save_filepath)
 
-    # Downsample fine-scale data.
-    ref_Ts_downsampled = np.zeros((config.Nt_coarse, config.N_coarse + 2))
-    counter = 0
-    for time_level in range(0, config.Nt_fine, int(config.dt_coarse / config.dt_fine)):
-        idx = npi.indices(np.around(simulation_data['ref'][1], decimals=5),
-                          np.around(simulation_data['unc'][1], decimals=5))
-        for i in range(config.N_coarse + 2):
-            ref_Ts_downsampled[counter][i] = simulation_data['ref'][0][time_level][idx[i]]
-        counter += 1
-    simulation_data['ref'] = [ref_Ts_downsampled, config.nodes_coarse]
-
     # Remove IC from data.
-    simulation_data['unc'][0] = simulation_data['unc'][0][1:,:]
-    simulation_data['ref'][0] = simulation_data['ref'][0][1:,:]
-    simulation_data['src'][0] = simulation_data['src'][0][1:,:] # The entry removed here is all-zeros.
+    simulation_data['unc'] = simulation_data['unc'][1:,:]
+    simulation_data['ref'] = simulation_data['ref'][1:,:]
+    simulation_data['src'] = simulation_data['src'][1:,:] # The entry removed here is all-zeros.
 
     # Split data into training, validation and test set.
-    train_unc = simulation_data['unc'][0][:config.N_train_examples,:]
-    train_ref = simulation_data['ref'][0][:config.N_train_examples,:]
-    train_src = simulation_data['src'][0][:config.N_train_examples,:]
+    train_unc = simulation_data['unc'][:config.N_train_examples,:]
+    train_ref = simulation_data['ref'][:config.N_train_examples,:]
+    train_src = simulation_data['src'][:config.N_train_examples,:]
 
-    val_unc   = simulation_data['unc'][0][config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
-    val_ref   = simulation_data['ref'][0][config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
-    val_src   = simulation_data['src'][0][config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
+    val_unc   = simulation_data['unc'][config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
+    val_ref   = simulation_data['ref'][config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
+    val_src   = simulation_data['src'][config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
 
-    test_unc  = simulation_data['unc'][0][config.N_train_examples + config.N_val_examples:,:]
-    test_ref  = simulation_data['ref'][0][config.N_train_examples + config.N_val_examples:,:]
-    test_src  = simulation_data['src'][0][config.N_train_examples + config.N_val_examples:,:]
+    test_unc  = simulation_data['unc'][config.N_train_examples + config.N_val_examples:,:]
+    test_ref  = simulation_data['ref'][config.N_train_examples + config.N_val_examples:,:]
+    test_src  = simulation_data['src'][config.N_train_examples + config.N_val_examples:,:]
 
     assert train_unc.shape[0] == config.N_train_examples
     assert train_ref.shape[0] == config.N_train_examples
