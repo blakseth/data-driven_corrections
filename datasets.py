@@ -40,13 +40,15 @@ def create_datasets():
     """
     # Load pickled simulation data, or create and pickle new data if none exists already.
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
-    if os.path.exists(save_filepath) and False:
+    if os.path.exists(save_filepath):
         simulation_data = joblib.load(save_filepath)
     else:
         unc_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
         unc_Ts[0] = config.get_T0(config.nodes_coarse)
         ref_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
         ref_Ts[0] = config.get_T0(config.nodes_coarse)
+        ref_Ts_full    = np.zeros((config.Nt_coarse, config.N_fine + 2))
+        ref_Ts_full[0] = config.get_T0(config.nodes_fine)
         idx = npi.indices(np.around(config.nodes_fine,   decimals=10),
                           np.around(config.nodes_coarse, decimals=10))
         for i in range(1, config.Nt_coarse):
@@ -61,15 +63,15 @@ def create_datasets():
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, config.dt_coarse, False
             )
-            ref_T = physics.simulate(
+            ref_Ts_full[i] = physics.simulate(
                 config.nodes_fine, config.faces_fine,
-                ref_Ts[i - 1], config.T_a, config.T_b,
+                ref_Ts_full[i-1], config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
                 config.dt_fine, config.dt_coarse, False
             )
             for j in range(config.N_coarse + 2):
-                ref_Ts[i][j] = ref_T[idx[j]]
+                ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
 
         # Calculate correction source terms.
         sources = np.zeros((config.Nt_coarse, config.N_coarse))
