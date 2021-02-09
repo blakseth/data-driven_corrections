@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial14_hybrid_const_k"
-system    = 2
-data_tag  = "system2_const_k"
+run_name  = "debug2"
+system    = 4
+data_tag  = "debug2"
 model_key = 0
 model_is_hybrid = True
 
@@ -39,7 +39,7 @@ model_name = model_types[model_key]
 
 augment_training_data = False
 
-ensemble_size = 2
+ensemble_size = 1
 
 do_train = True
 do_test  = True
@@ -62,12 +62,11 @@ cp_save_dir  = os.path.join(cp_main_dir, run_name)
 ########################################################################################################################
 # Domain configuration.
 
-t_end     = 4.0
-x_a       = 0.0
-x_b       = 1.0
-A         = 1.0
-
 if system == 1:
+    t_end = 4.0
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
     k_ref     = 2500.0
     cV_ref    = 200.0
     rho       = 1000.0
@@ -83,6 +82,10 @@ if system == 1:
     def get_T0(x):
         return 200 + 100*x + 100*np.sin(2*np.pi*x)
 elif system == 2:
+    t_end = 4.0
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
     k_ref     = 2000.0
     cV_ref    = 500.0
     rho       = 1000.0
@@ -97,6 +100,80 @@ elif system == 2:
         return q_hat_ref * np.ones_like(x)
     def get_T0(x):
         return 1000/((x+1)**2) + 50*np.sin(4*np.pi*x)
+elif system == 3:
+    t_end = 3.0
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
+    k_ref = 2500
+    cV_ref = 200
+    rho = 200
+    q_hat_ref = 0
+    T_a = 250
+    T_b = 400
+    k_discont_nodes = np.asarray([0.0, 0.12, 0.28, 0.52, 0.68, 0.72, 0.88, 1.0])
+    k_prefactors = np.asarray([1.0, 5.0, 1.0, 0.1, 1.0, 10.0, 1.0])
+    k_int_values = np.zeros(k_discont_nodes.shape[0])
+    def get_k(x):
+        if type(x) is np.ndarray:
+            ks = []
+            for i, x_value in enumerate(x):
+                for j in range(k_prefactors.shape[0]):
+                    if k_discont_nodes[j] <= x_value <= k_discont_nodes[j + 1]:
+                        ks.append(k_ref * k_prefactors[j])
+            return np.asarray(ks)
+        else:
+            for j in range(k_prefactors.shape[0]):
+                if k_discont_nodes[j] <= x < k_discont_nodes[j + 1]:
+                    return k_ref * k_prefactors[j]
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+    def get_q_hat(x):
+        return np.zeros_like(x)
+    def get_T0(x):
+        T0 = np.ones_like(x) * 325
+        if x[0] == x_a:
+            T0[0] = T_a
+        if x[-1] == x_b:
+            T0[-1] = T_b
+        return T0
+elif system == 4:
+    t_end = 0.1
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
+    rho = 1.0
+    k_ref = 1.0
+    cV_ref = 1.0
+    T_a = 0.0
+    T_b = 1.0
+    q_hat_ref = 6.0
+    def get_k(x):
+        return np.ones_like(x) * k_ref
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+    def get_q_hat(x):
+        return x * q_hat_ref
+    def get_T0(x):
+        return x
+elif system == 5:
+    t_end = 0.1
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
+    rho = 1.0
+    k_ref = 1.0
+    cV_ref = 1.0
+    T_a = 0.0
+    T_b = 0.0
+    def get_k(x):
+        return np.ones_like(x) * k_ref
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+    def get_q_hat(x):
+        return (1 + 4*np.pi**2)*np.sin(2*np.pi*x)*1
+    def get_T0(x):
+        return x
 else:
     raise Exception("Invalid domain selection.")
 
@@ -141,7 +218,7 @@ N_shift_steps   = 5
 shift_step_size = 100
 
 # Test iterations at which temperature profiles are saved.
-profile_save_steps = np.asarray([1, 20, 400]) - 1
+profile_save_steps = np.asarray([1, int(np.sqrt(N_test_examples)), N_test_examples]) - 1
 
 ########################################################################################################################
 # Model configuration.
@@ -153,10 +230,10 @@ hidden_layer_size = 100
 loss_func = 'MSE'
 
 optimizer = 'adam'
-learning_rate = 1e-5
+learning_rate = 1e-4
 
 act_type = 'lrelu'
-act_param = 0.01
+act_param = 0.2
 
 use_dropout = False
 dropout_prop = 0.1
@@ -164,13 +241,13 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = int(1e5)
+max_train_it = int(2e4)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.
 validation_period       = int(1e2)    # Number of training iterations per validation.
 
-batch_size_train = 16
+batch_size_train = 64
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 

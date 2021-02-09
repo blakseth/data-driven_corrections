@@ -40,7 +40,7 @@ def create_datasets():
     """
     # Load pickled simulation data, or create and pickle new data if none exists already.
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
-    if os.path.exists(save_filepath):
+    if os.path.exists(save_filepath) and False:
         simulation_data = joblib.load(save_filepath)
     else:
         # Perform coarse-scale simulation.
@@ -54,6 +54,8 @@ def create_datasets():
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, config.dt_coarse, False
             )
+            # TODO: For time steps corresponding to training and validation,
+            # TODO: this simulation should be "locked" to the reference simulation.
 
         # Perform fine-scale simulation.
         ref_Ts = np.zeros((config.Nt_fine, config.N_fine + 2))
@@ -85,7 +87,7 @@ def create_datasets():
 
         # Calculate correction source terms.
         sources = np.zeros((config.Nt_coarse, config.N_coarse))
-        for i in range(1, config.Nt_coarse):
+        for i in range(1, config.Nt_coarse): # Intentionally leaves the first entry all-zeros.
             sources[i] = physics.get_corrective_src_term(
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts_downsampled[i], ref_Ts_downsampled[i-1],
@@ -93,6 +95,15 @@ def create_datasets():
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A, config.get_q_hat,
                 config.dt_coarse, False
             )
+            corrected = physics.simulate(
+                config.nodes_coarse, config.faces_coarse,
+                ref_Ts_downsampled[i-1], config.T_a, config.T_b,
+                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
+                config.get_q_hat, sources[i],
+                config.dt_coarse, config.dt_coarse, False
+            )
+            np.testing.assert_allclose(corrected, ref_Ts_downsampled[i], rtol=1e-10, atol=0)
+        print("Correction source terms generated and verified.")
 
         # Store data
         simulation_data['src'] = [sources]
@@ -112,7 +123,7 @@ def create_datasets():
     # Remove IC from data.
     simulation_data['unc'][0] = simulation_data['unc'][0][1:,:]
     simulation_data['ref'][0] = simulation_data['ref'][0][1:,:]
-    simulation_data['src'][0] = simulation_data['src'][0][1:,:]
+    simulation_data['src'][0] = simulation_data['src'][0][1:,:] # The entry removed here is all-zeros.
 
     # Split data into training, validation and test set.
     train_unc = simulation_data['unc'][0][:config.N_train_examples,:]
