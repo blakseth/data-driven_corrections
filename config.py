@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "smoothIC11"
-system    = 3
-data_tag  = "smoothIC11"
+run_name  = "manufactured_solution2"
+system    = 5
+data_tag  = "manufactured_solution2"
 model_key = 0
 model_is_hybrid = True
 
@@ -160,26 +160,31 @@ elif system == 4:
     def get_T0(x):
         return x
 elif system == 5:
-    t_end = 0.1
+    t_end = 1.0
     x_a = 0.0
     x_b = 1.0
     A = 1.0
     rho = 1.0
     k_ref = 1.0
     cV_ref = 1.0
-    T_a = 0.0
-    T_b = 0.0
+    T_a = 2.0
+    T_b = T_a
+    q_hat_ref = 1.0
     exact_solution_available = True
     def get_k(x):
         return np.ones_like(x) * k_ref
+    def get_k_approx(x):
+        return get_k(x)
     def get_cV(x):
         return np.ones_like(x) * cV_ref
     def get_q_hat(x, t):
         return (1 + 4*np.pi**2)*np.sin(2*np.pi*x)*np.exp(-t)
+    def get_q_hat_approx(x, t):
+        return 0.8 * get_q_hat(x, t)
     def get_T0(x):
-        return x
+        return T_a + np.sin(2*np.pi*x)
     def get_T_exact(x, t):
-        return np.sin(2*np.pi*x)*np.exp(-t)
+        return T_a + np.sin(2*np.pi*x)*np.exp(-t)
 
 else:
     raise Exception("Invalid domain selection.")
@@ -216,9 +221,13 @@ Nt_coarse  = int(t_end / dt_coarse) + 1
 # Data configuration.
 
 # Dataset sizes (unaugmented).
-N_train_examples = int(0.8*Nt_coarse)
-N_val_examples   = int(0.1*Nt_coarse)
-N_test_examples  = int(0.1*Nt_coarse)
+train_examples_ratio = 0.8
+val_examples_ratio   = 0.1
+test_examples_ratio  = 0.1
+assert np.around(train_examples_ratio + val_examples_ratio + test_examples_ratio) == 1.0
+N_train_examples = int(train_examples_ratio * Nt_coarse)
+N_val_examples   = int(val_examples_ratio   * Nt_coarse)
+N_test_examples  = int(test_examples_ratio  * Nt_coarse)
 
 # Parameters for shift data augmentation.
 N_shift_steps   = 5
@@ -258,4 +267,4 @@ batch_size_train = 64
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 
-overfit_limit = 1e3
+overfit_limit = 10

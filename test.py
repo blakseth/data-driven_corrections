@@ -154,10 +154,10 @@ def simulation_test(model, num):
     plot_num = 0
     old_unc = IC
     old_cor = IC
-    t0 = (config.N_train_examples + config.N_val_examples)*config.t_end
+    t0 = (config.train_examples_ratio + config.test_examples_ratio)*config.t_end
     for i in range(config.N_test_examples):
-        old_time = t0 + config.dt_coarse*i
-        new_time = t0 + config.dt_coarse*(i+1)
+        old_time = np.around(t0 + config.dt_coarse*i,     decimals=10)
+        new_time = np.around(t0 + config.dt_coarse*(i+1), decimals=10)
 
         # new_unc  = new uncorrected profile given old uncorrected profile.
         # new_unc_ = new uncorrected profile given old   corrected profile.
