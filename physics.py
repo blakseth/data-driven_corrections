@@ -1,8 +1,6 @@
 """
 physics.py
-
 Written by Sindre Stenen Blakseth, 2021.
-
 Numerical simulation of the 1D heat equation and generation of corrective source terms.
 """
 
@@ -58,13 +56,13 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
         raise Exception("Missing initial condition.")
 
     if steady:
-        # Get discredited source term.
-        sigma = get_src(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1]) + corr_src
-
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
         off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
         off_diag_dn = -alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1]) # Off-diagonal directly below main diagonal.
+
+        # Get discredited source term.
+        sigma = get_src(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1]) + corr_src
 
         # Define RHS vector.
         b = sigma
@@ -133,14 +131,14 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
     b = None
 
     if steady:
-        # Get discredited source term.
-        sigma = get_source(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1])
-
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
         off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
         off_diag_dn = -alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1]) # Off-diagonal directly below main diagonal.
         A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
+
+        # Get discredited source term.
+        sigma = get_source(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1])
 
         # Define RHS vector.
         b = sigma

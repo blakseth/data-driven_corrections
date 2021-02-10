@@ -9,6 +9,7 @@ Creating training, validation and test datasets for ML correction of 1D heat con
 ########################################################################################################################
 # Package imports.
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy_indexed as npi
 import os
