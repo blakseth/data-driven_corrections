@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "debug_temporal7"
+run_name  = "smoothIC6"
 system    = 3
-data_tag  = "system3_oldIC2"
+data_tag  = "smoothIC6"
 model_key = 0
 model_is_hybrid = True
 
@@ -101,7 +101,7 @@ elif system == 2:
     def get_T0(x):
         return 1000/((x+1)**2) + 50*np.sin(4*np.pi*x)
 elif system == 3:
-    t_end = 0.1
+    t_end = 3.0
     x_a = 0.0
     x_b = 1.0
     A = 1.0
@@ -131,13 +131,7 @@ elif system == 3:
     def get_q_hat(x, t):
         return np.zeros_like(x)
     def get_T0(x):
-        #return T_a + (T_b - T_a) * (x + 0.5 * np.sin(2 * np.pi * x))
-        T0 = np.ones_like(x) * 325
-        if x[0] == x_a:
-            T0[0] = T_a
-        if x[-1] == x_b:
-            T0[-1] = T_b
-        return T0
+        return T_a + (T_b - T_a) * (x + 0.5 * np.sin(2 * np.pi * x))
 elif system == 4:
     t_end = 0.1
     x_a = 0.0

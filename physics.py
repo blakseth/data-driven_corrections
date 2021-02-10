@@ -84,7 +84,7 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
 
         while time < t_end:
             # Increment time.
-            time += dt
+            time = np.around(time + dt, decimals=10)
 
             # Get discredited source term.
             sigma = get_src(nodes[1:-1], time) / (rho * cV_nodes[1:-1]) + corr_src
@@ -98,6 +98,7 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
             new_T = tdma(off_diag_dn.copy(), diag.copy(), off_diag_up.copy(), b, N)
             np.set_printoptions(precision=12)
             T = new_T
+            print("Time (simulate):", time)
 
     T_including_boundary = np.zeros(N + 2)
     T_including_boundary[0] = T_a
@@ -154,12 +155,14 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
         A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
 
         # Get discredited source term.
-        sigma = get_source(nodes[1:-1], t0 + dt) / (rho * cV_nodes[1:-1])
+        sigma = get_source(nodes[1:-1], np.around(t0 + dt, 10)) / (rho * cV_nodes[1:-1])
 
         # Define  RHS vector.
         b = T_ref_old[1:-1] + dt * sigma
         b[0] += alpha_half_int[0] * dt * T_a / (dx_int[0] * dx_half_int[0])
         b[-1] += alpha_half_int[-1] * dt * T_b / (dx_int[-1] * dx_half_int[-1])
+
+        print("Time (src):", t0+dt)
 
     # Calculate corrective source term.
     sigma_corr = np.dot(A, T_ref_new[1:-1]) - b

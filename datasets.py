@@ -40,7 +40,7 @@ def create_datasets():
     """
     # Load pickled simulation data, or create and pickle new data if none exists already.
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
-    if os.path.exists(save_filepath):
+    if os.path.exists(save_filepath) and False:
         simulation_data = joblib.load(save_filepath)
     else:
         unc_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
@@ -52,6 +52,8 @@ def create_datasets():
         idx = npi.indices(np.around(config.nodes_fine,   decimals=10),
                           np.around(config.nodes_coarse, decimals=10))
         for i in range(1, config.Nt_coarse):
+            old_time = np.around(config.dt_coarse*(i-1), decimals=10)
+            new_time = np.around(config.dt_coarse*i,     decimals=10)
             if i <= config.Nt_coarse * (config.N_train_examples + config.N_val_examples):
                 unc_IC = ref_Ts[i-1]
             else:
@@ -61,14 +63,14 @@ def create_datasets():
                 unc_IC, config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
-                config.dt_coarse, config.dt_coarse*(i-1), config.dt_coarse*i, False
+                config.dt_coarse, old_time, new_time, False
             )
             ref_Ts_full[i] = physics.simulate(
                 config.nodes_fine, config.faces_fine,
                 ref_Ts_full[i-1], config.T_a, config.T_b,
                 config.get_k, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
-                config.dt_fine, config.dt_coarse*(i-1), config.dt_coarse*i, False
+                config.dt_fine, old_time, new_time, False
             )
             for j in range(config.N_coarse + 2):
                 ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
@@ -76,20 +78,23 @@ def create_datasets():
         # Calculate correction source terms.
         sources = np.zeros((config.Nt_coarse, config.N_coarse))
         for i in range(1, config.Nt_coarse): # Intentionally leaves the first entry all-zeros.
+            old_time = np.around(config.dt_coarse * (i - 1), decimals=10)
+            new_time = np.around(config.dt_coarse * i, decimals=10)
             sources[i] = physics.get_corrective_src_term(
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts[i], ref_Ts[i-1],
                 config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A, config.get_q_hat,
-                config.dt_coarse, config.dt_coarse*(i-1), False
+                config.dt_coarse, old_time, False
             )
             corrected = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts[i-1], config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, sources[i],
-                config.dt_coarse, config.dt_coarse*(i-1), config.dt_coarse*i, False
+                config.dt_coarse, old_time, new_time, False
             )
+            print("Time:", new_time)
             np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=0)
         print("Correction source terms generated and verified.")
 
