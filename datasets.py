@@ -40,7 +40,7 @@ def create_datasets():
     """
     # Load pickled simulation data, or create and pickle new data if none exists already.
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
-    if os.path.exists(save_filepath) and False:
+    if os.path.exists(save_filepath):
         simulation_data = joblib.load(save_filepath)
     else:
         unc_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
