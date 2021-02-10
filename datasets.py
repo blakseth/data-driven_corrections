@@ -61,7 +61,7 @@ def create_datasets():
             unc_Ts[i] = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 unc_IC, config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A,
+                lambda x: np.ones_like(x)*config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, old_time, new_time, False
             )
@@ -94,7 +94,6 @@ def create_datasets():
                 config.get_q_hat, sources[i],
                 config.dt_coarse, old_time, new_time, False
             )
-            print("Time:", new_time)
             np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=0)
         print("Correction source terms generated and verified.")
 
