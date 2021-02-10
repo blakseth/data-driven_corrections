@@ -154,6 +154,7 @@ def simulation_test(model, num):
     plot_num = 0
     old_unc = IC
     old_cor = IC
+    t0 = (config.N_train_examples + config.N_val_examples)*config.t_end
     for i in range(config.N_test_examples):
         # ref at new time given ref at old time is stored in the test set.
         new_ref_tensor = dataset_test[i][1]
@@ -161,28 +162,22 @@ def simulation_test(model, num):
 
         # new_unc  = new uncorrected profile given old uncorrected profile.
         # new_unc_ = new uncorrected profile given old   corrected profile.
-        if i == 0:
-            new_unc_ = dataset_test[i][0]
-            new_unc  = util.z_unnormalize(new_unc_.detach().numpy(), unc_mean, unc_std)
-        else:
-            new_unc = physics.simulate(
+        new_unc = physics.simulate(
+            config.nodes_coarse, config.faces_coarse,
+            old_unc, config.T_a, config.T_b,
+            lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
+            config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
+            t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
+        )
+        new_unc_ = torch.from_numpy(util.z_normalize(
+            physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                old_unc, config.T_a, config.T_b,
+                old_cor, config.T_a, config.T_b,
                 lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
                 config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
-                (config.N_train_examples + config.N_val_examples)*config.t_end + config.dt_coarse*i,
-                config.dt_coarse, False
-            )
-            new_unc_ = torch.from_numpy(util.z_normalize(
-                physics.simulate(
-                    config.nodes_coarse, config.faces_coarse,
-                    old_cor, config.T_a, config.T_b,
-                    lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                    config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
-                    (config.N_train_examples + config.N_val_examples)*config.t_end + config.dt_coarse*i,
-                    config.dt_coarse, False
-                ), unc_mean, unc_std
-            ))
+                t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
+            ), unc_mean, unc_std
+        ))
 
         new_cor = np.zeros_like(new_ref)
         if config.model_is_hybrid:
