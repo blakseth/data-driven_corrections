@@ -156,9 +156,8 @@ def simulation_test(model, num):
     old_cor = IC
     t0 = (config.N_train_examples + config.N_val_examples)*config.t_end
     for i in range(config.N_test_examples):
-        # ref at new time given ref at old time is stored in the test set.
-        new_ref_tensor = dataset_test[i][1]
-        new_ref = util.z_unnormalize(new_ref_tensor.detach().numpy(), ref_mean, ref_std)
+        old_time = t0 + config.dt_coarse*i
+        new_time = t0 + config.dt_coarse*(i+1)
 
         # new_unc  = new uncorrected profile given old uncorrected profile.
         # new_unc_ = new uncorrected profile given old   corrected profile.
@@ -166,41 +165,49 @@ def simulation_test(model, num):
             config.nodes_coarse, config.faces_coarse,
             old_unc, config.T_a, config.T_b,
             config.get_k_approx, config.get_cV, config.rho, config.A,
-            config.get_q_hat_approx, np.zeros(config.N_coarse), config.dt_coarse,
-            t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
+            config.get_q_hat_approx, np.zeros(config.N_coarse),
+            config.dt_coarse, old_time, new_time, False
         )
         new_unc_ = torch.from_numpy(util.z_normalize(
             physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 old_cor, config.T_a, config.T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A,
-                config.get_q_hat_approx, np.zeros(config.N_coarse), config.dt_coarse,
-                t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
+                config.get_q_hat_approx, np.zeros(config.N_coarse),
+                config.dt_coarse, old_time, new_time, False
             ), unc_mean, unc_std
         ))
 
-        new_cor = np.zeros_like(new_ref)
+        new_cor = np.zeros_like(old_cor)
         if config.model_is_hybrid:
             new_src = util.z_unnormalize(model.net(new_unc_).detach().numpy(), src_mean, src_std)
             new_cor = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 old_cor, config.T_a, config.T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A,
-                config.get_q_hat_approx, new_src, config.dt_coarse,
-                t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
+                config.get_q_hat_approx, new_src,
+                config.dt_coarse, old_time, new_time, False
             )
         else:
-            new_cor[0]  = new_ref[0]   # Since BCs are not ...
-            new_cor[-1] = new_ref[-1]  # predicted by the NN.
+            new_cor[0]  = old_cor[0]   # Since BCs are not ...
+            new_cor[-1] = old_cor[-1]  # predicted by the NN.
             new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_).detach().numpy(), ref_mean, ref_std)
 
         lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
-        lin_ref = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
         lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
 
-        ref_norm = util.get_L2_norm(config.faces_coarse, lin_ref)
-        unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - lin_ref(x)) / ref_norm
-        cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - lin_ref(x)) / ref_norm
+
+        if config.exact_solution_available:
+            ref_func = lambda x: config.get_T_exact(x, new_time)
+            new_ref = config.get_T_exact(config.nodes_coarse, new_time)
+        else:
+            new_ref_tensor = dataset_test[i][1]
+            new_ref = util.z_unnormalize(new_ref_tensor.detach().numpy(), ref_mean, ref_std)
+            ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+
+        ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
+        unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
 
         L2_errors_unc[i] = unc_error_norm
         L2_errors_cor[i] = cor_error_norm

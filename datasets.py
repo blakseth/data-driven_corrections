@@ -65,15 +65,18 @@ def create_datasets():
                 config.get_q_hat_approx, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, old_time, new_time, False
             )
-            ref_Ts_full[i] = physics.simulate(
-                config.nodes_fine, config.faces_fine,
-                ref_Ts_full[i-1], config.T_a, config.T_b,
-                config.get_k, config.get_cV, config.rho, config.A,
-                config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
-                config.dt_fine, old_time, new_time, False
-            )
-            for j in range(config.N_coarse + 2):
-                ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
+            if config.exact_solution_available:
+                ref_Ts[i] = config.get_T_exact(config.nodes_coarse, new_time)
+            else:
+                ref_Ts_full[i] = physics.simulate(
+                    config.nodes_fine, config.faces_fine,
+                    ref_Ts_full[i-1], config.T_a, config.T_b,
+                    config.get_k, config.get_cV, config.rho, config.A,
+                    config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
+                    config.dt_fine, old_time, new_time, False
+                )
+                for j in range(config.N_coarse + 2):
+                    ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
 
         # Calculate correction source terms.
         sources = np.zeros((config.Nt_coarse, config.N_coarse))

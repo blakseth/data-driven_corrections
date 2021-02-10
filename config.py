@@ -73,6 +73,7 @@ if system == 1:
     q_hat_ref = 100000.0
     T_a       = 200
     T_b       = 300
+    exact_solution_available = False
     def get_k(x):
         return k_ref * (1 + 2*x + np.sin(3*np.pi*x) + 0.8*np.cos(20*np.pi*x))
     def get_cV(x):
@@ -92,6 +93,7 @@ elif system == 2:
     q_hat_ref = 0.0
     T_a       = 1000
     T_b       = 250
+    exact_solution_available = False
     def get_k(x):
         return 0.5 * k_ref * np.exp(2*x)
     def get_cV(x):
@@ -114,6 +116,7 @@ elif system == 3:
     k_discont_nodes = np.asarray([0.0, 0.12, 0.28, 0.52, 0.68, 0.72, 0.88, 1.0])
     k_prefactors = np.asarray([1.0, 5.0, 1.0, 0.1, 1.0, 10.0, 1.0])
     k_int_values = np.zeros(k_discont_nodes.shape[0])
+    exact_solution_available = False
     def get_k(x):
         if type(x) is np.ndarray:
             ks = []
@@ -147,6 +150,7 @@ elif system == 4:
     T_a = 0.0
     T_b = 1.0
     q_hat_ref = 6.0
+    exact_solution_available = False
     def get_k(x):
         return np.ones_like(x) * k_ref
     def get_cV(x):
@@ -165,14 +169,18 @@ elif system == 5:
     cV_ref = 1.0
     T_a = 0.0
     T_b = 0.0
+    exact_solution_available = True
     def get_k(x):
         return np.ones_like(x) * k_ref
     def get_cV(x):
         return np.ones_like(x) * cV_ref
     def get_q_hat(x, t):
-        return (1 + 4*np.pi**2)*np.sin(2*np.pi*x)*1
+        return (1 + 4*np.pi**2)*np.sin(2*np.pi*x)*np.exp(-t)
     def get_T0(x):
         return x
+    def get_T_exact(x, t):
+        return np.sin(2*np.pi*x)*np.exp(-t)
+
 else:
     raise Exception("Invalid domain selection.")
 
