@@ -30,6 +30,8 @@ def main():
         indices = [0, 100, 200, 400, 800, 1500, 3000]
     elif config.system == 4:
         indices = [0,9,19,29,39,49,59,69,79,89, 99]
+    elif config.system == 5:
+        indices = [0, 10, 100, 1000]
     else:
         raise Exception("Invalid system selection.")
     save_filepath = os.path.join(config.datasets_dir, config.data_tag + ".sav")
@@ -38,19 +40,10 @@ def main():
     else:
         raise Exception("No matching dataset found.")
 
-    ref_Ts_downsampled = np.zeros((config.Nt_coarse, config.N_coarse + 2))
-    counter = 0
-    for time_level in range(0, config.Nt_fine, int(config.dt_coarse / config.dt_fine)):
-        idx = npi.indices(np.around(simulation_data['ref'][1], decimals=5),
-                          np.around(simulation_data['unc'][1], decimals=5))
-        for i in range(config.N_coarse + 2):
-            ref_Ts_downsampled[counter][i] = simulation_data['ref'][0][time_level][idx[i]]
-        counter += 1
-
     plt.figure()
     plt.title("Uncorrected")
     for index in indices:
-        plt.plot(simulation_data['unc'][1], simulation_data['unc'][0][index], label=index)
+        plt.plot(simulation_data['x'], simulation_data['unc'][index], label=index)
     plt.legend()
     plt.grid()
     #plt.savefig(os.path.join(config.results_dir, config.data_tag + '/unc.pdf'), bbox_inches='tight')
@@ -58,7 +51,7 @@ def main():
     plt.figure()
     plt.title("Reference")
     for index in indices:
-        plt.plot(simulation_data['unc'][1], ref_Ts_downsampled[index], label=index)
+        plt.plot(simulation_data['x'], simulation_data['ref'][index], label=index)
     plt.legend()
     plt.grid()
     #plt.savefig(os.path.join(config.results_dir, config.data_tag + '/ref.pdf'), bbox_inches='tight')
@@ -66,14 +59,22 @@ def main():
     plt.figure()
     plt.title("Source")
     for index in indices:
-        plt.plot(simulation_data['unc'][1][1:-1], simulation_data['src'][0][index], label=index)
+        plt.plot(simulation_data['x'][1:-1], simulation_data['src'][index], label=index)
     plt.legend()
     plt.grid()
     #plt.savefig(os.path.join(config.results_dir, config.data_tag + '/src.pdf'), bbox_inches='tight')
+
+    if config.exact_solution_available:
+        plt.figure()
+        plt.title("Exact vs ref")
+        plt.plot(simulation_data['x'], simulation_data['ref'][-1], '.', label="ref")
+        plt.plot(simulation_data['x'], config.get_T_exact(config.nodes_coarse, config.t_end), label="exact")
+        plt.legend()
+        plt.grid()
+
     plt.show()
 
-
-    T0 = simulation_data['unc'][0][0]
+    T0 = simulation_data['unc'][0]
     t = 0
     index = 0
     T_old = T0
@@ -83,18 +84,18 @@ def main():
             config.nodes_coarse, config.faces_coarse,
             T_old, config.T_a, config.T_b,
             config.get_k_approx, config.get_cV, config.rho, config.A,
-            config.get_q_hat_approx, simulation_data['src'][0][index+1],
-            config.dt_coarse, t, t + config.dt_coarse, False
+            config.get_q_hat_approx, simulation_data['src'][index+1],
+            config.dt_coarse, t, np.around(t + config.dt_coarse, decimals=10), False
         )
         index += 1
-        t += config.dt_coarse
-        if index < ref_Ts_downsampled.shape[0]:
-            errors.append(np.sqrt(np.sum((T_new - ref_Ts_downsampled[index])**2)))
+        t = np.around(t + config.dt_coarse, decimals=10)
+        if index < simulation_data['ref'].shape[0]:
+            errors.append(np.sqrt(np.sum((T_new - simulation_data['ref'][index])**2)))
         T_old = T_new
 
     print("Corrected:", T_old)
-    print("Reference:", ref_Ts_downsampled[-1])
-    print("End diff:", T_old - ref_Ts_downsampled[-1])
+    print("Reference:", simulation_data['ref'][-1])
+    print("End diff:", T_old - simulation_data['ref'][-1])
 
     plt.figure()
     plt.title("Errors")
