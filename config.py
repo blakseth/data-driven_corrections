@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "manufactured_solution2"
+run_name  = "manufactured_solution1_v3"
 system    = 5
-data_tag  = "manufactured_solution2"
+data_tag  = "manufactured_solution1"
 model_key = 0
 model_is_hybrid = True
 
