@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "smoothIC6"
+run_name  = "smoothIC11"
 system    = 3
-data_tag  = "smoothIC6"
+data_tag  = "smoothIC11"
 model_key = 0
 model_is_hybrid = True
 
@@ -126,9 +126,13 @@ elif system == 3:
             for j in range(k_prefactors.shape[0]):
                 if k_discont_nodes[j] <= x < k_discont_nodes[j + 1]:
                     return k_ref * k_prefactors[j]
+    def get_k_approx(x):
+        return np.ones_like(x) * k_ref
     def get_cV(x):
         return np.ones_like(x) * cV_ref
     def get_q_hat(x, t):
+        return np.zeros_like(x)
+    def get_q_hat_approx(x, t):
         return np.zeros_like(x)
     def get_T0(x):
         return T_a + (T_b - T_a) * (x + 0.5 * np.sin(2 * np.pi * x))
@@ -236,7 +240,7 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = int(1e5)
+max_train_it = int(2e4)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.

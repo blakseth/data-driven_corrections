@@ -165,16 +165,16 @@ def simulation_test(model, num):
         new_unc = physics.simulate(
             config.nodes_coarse, config.faces_coarse,
             old_unc, config.T_a, config.T_b,
-            lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-            config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
+            config.get_k_approx, config.get_cV, config.rho, config.A,
+            config.get_q_hat_approx, np.zeros(config.N_coarse), config.dt_coarse,
             t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
         )
         new_unc_ = torch.from_numpy(util.z_normalize(
             physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 old_cor, config.T_a, config.T_b,
-                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                config.get_q_hat, np.zeros(config.N_coarse), config.dt_coarse,
+                config.get_k_approx, config.get_cV, config.rho, config.A,
+                config.get_q_hat_approx, np.zeros(config.N_coarse), config.dt_coarse,
                 t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
             ), unc_mean, unc_std
         ))
@@ -185,10 +185,9 @@ def simulation_test(model, num):
             new_cor = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 old_cor, config.T_a, config.T_b,
-                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                config.get_q_hat, new_src, config.dt_coarse,
-                (config.N_train_examples + config.N_val_examples)*config.t_end + config.dt_coarse*i,
-                config.dt_coarse, False
+                config.get_k_approx, config.get_cV, config.rho, config.A,
+                config.get_q_hat_approx, new_src, config.dt_coarse,
+                t0 + config.dt_coarse*i, t0 + config.dt_coarse*(i+1), False
             )
         else:
             new_cor[0]  = new_ref[0]   # Since BCs are not ...

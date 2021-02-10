@@ -82,8 +82,8 @@ def main():
         T_new = physics.simulate(
             config.nodes_coarse, config.faces_coarse,
             T_old, config.T_a, config.T_b,
-            lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-            config.get_q_hat, simulation_data['src'][0][index+1],
+            config.get_k_approx, config.get_cV, config.rho, config.A,
+            config.get_q_hat_approx, simulation_data['src'][0][index+1],
             config.dt_coarse, t, t + config.dt_coarse, False
         )
         index += 1

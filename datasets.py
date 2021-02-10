@@ -61,8 +61,8 @@ def create_datasets():
             unc_Ts[i] = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 unc_IC, config.T_a, config.T_b,
-                lambda x: np.ones_like(x)*config.k_ref, config.get_cV, config.rho, config.A,
-                config.get_q_hat, np.zeros_like(config.nodes_coarse[1:-1]),
+                config.get_k_approx, config.get_cV, config.rho, config.A,
+                config.get_q_hat_approx, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, old_time, new_time, False
             )
             ref_Ts_full[i] = physics.simulate(
@@ -84,14 +84,14 @@ def create_datasets():
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts[i], ref_Ts[i-1],
                 config.T_a, config.T_b,
-                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A, config.get_q_hat,
+                config.get_k_approx, config.get_cV, config.rho, config.A, config.get_q_hat_approx,
                 config.dt_coarse, old_time, False
             )
             corrected = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts[i-1], config.T_a, config.T_b,
-                lambda x: np.ones_like(x) * config.k_ref, config.get_cV, config.rho, config.A,
-                config.get_q_hat, sources[i],
+                config.get_k_approx, config.get_cV, config.rho, config.A,
+                config.get_q_hat_approx, sources[i],
                 config.dt_coarse, old_time, new_time, False
             )
             np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=0)
