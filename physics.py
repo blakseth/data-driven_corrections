@@ -96,9 +96,7 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
 
             # Solve linear system.
             new_T = tdma(off_diag_dn.copy(), diag.copy(), off_diag_up.copy(), b, N)
-            np.set_printoptions(precision=12)
             T = new_T
-            print("Time (simulate):", time)
 
     T_including_boundary = np.zeros(N + 2)
     T_including_boundary[0] = T_a
@@ -161,8 +159,6 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
         b = T_ref_old[1:-1] + dt * sigma
         b[0] += alpha_half_int[0] * dt * T_a / (dx_int[0] * dx_half_int[0])
         b[-1] += alpha_half_int[-1] * dt * T_b / (dx_int[-1] * dx_half_int[-1])
-
-        print("Time (src):", t0+dt)
 
     # Calculate corrective source term.
     sigma_corr = np.dot(A, T_ref_new[1:-1]) - b
