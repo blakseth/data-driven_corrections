@@ -32,7 +32,7 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
 
     plt.figure()
-    plt.semilogy(iterations, error_stats_dict['unc'], 'r-', linewidth=2.0, label="Uncorrected")
+    plt.semilogy(iterations, error_stats_dict['unc'],      'r-', linewidth=2.0, label="Uncorrected")
     plt.semilogy(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
     plt.fill_between(iterations,
                      error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
@@ -40,31 +40,60 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
                      facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
     plt.xlim([0, len(error_stats_dict['unc'])])
     plt.xlabel("Test iterations", fontsize=20)
-    plt.ylabel(r"$L_2$ Error")
+    plt.ylabel(r"$L_2$ Error",    fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
-    plt.legend(prop={'size': 19})
+    plt.legend(prop={'size': 17})
     plt.savefig(os.path.join(config.run_dir, "error_stats.pdf"), bbox_inches='tight')
+
+    if config.exact_solution_available:
+        t0 = (config.train_examples_ratio + config.test_examples_ratio)*config.t_end
+        plot_times = t0 + (config.profile_save_steps + 1)*config.dt_coarse
+        x_dense = np.linspace(config.x_a, config.x_b, num=1001, endpoint=True)
 
     # Visualize temperature profiles.
     for i in range(plot_stats_dict['unc'].shape[0]):
         plt.figure()
-        plt.plot(plot_stats_dict['x'], plot_stats_dict['unc'][i], 'r-', linewidth=2.0, label="Uncorrected")
+        plt.plot(plot_stats_dict['x'], plot_stats_dict['unc'][i],      'r-', linewidth=2.0, label="Uncorrected")
         plt.plot(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
-        plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
+        if config.exact_solution_available:
+            plt.plot(x_dense, config.get_T_exact(x_dense, plot_times[i]), 'k-', linewidth=2.0, label="Reference")
+        else:
+            plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
         plt.fill_between(plot_stats_dict['x'],
                          plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
                          plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
                          facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
         plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
         plt.xlabel(r"$x$ (m)", fontsize=20)
-        plt.ylabel(r"$T$ (K))")
+        plt.ylabel(r"$T$ (K)", fontsize=20)
         plt.xticks(fontsize=17)
         plt.yticks(fontsize=17)
         plt.grid()
-        plt.legend(prop={'size': 19})
+        plt.legend(prop={'size': 17})
         plt.savefig(os.path.join(config.run_dir, "profiles" + str(i) + ".pdf"), bbox_inches='tight')
+
+    # Visualize correction source terms (if applicable).
+    if 'src_mean' in plot_stats_dict.keys():
+        for i in range(plot_stats_dict['src_mean'].shape[0]):
+            plt.figure()
+            plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
+            plt.plot(x_dense,
+                     config.get_q_hat(x_dense, plot_times[i]) - config.get_q_hat_approx(x_dense, plot_times[i]),
+                     'k-', linewidth=2.0, label="Reference")
+            plt.fill_between(plot_stats_dict['x'][1:-1],
+                             plot_stats_dict['src_mean'][i] + plot_stats_dict['src_std'][i],
+                             plot_stats_dict['src_mean'][i] - plot_stats_dict['src_std'][i],
+                             facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+            plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
+            plt.xlabel(r"$x$ (m)", fontsize=20)
+            plt.ylabel(r"$T$ (K)", fontsize=20)
+            plt.xticks(fontsize=17)
+            plt.yticks(fontsize=17)
+            plt.grid()
+            plt.legend(prop={'size': 17})
+            plt.savefig(os.path.join(config.run_dir, "src_profiles" + str(i) + ".pdf"), bbox_inches='tight')
 
     plt.show()
 
@@ -97,6 +126,10 @@ def save_test_data(error_dicts, plot_data_dicts):
     cor_plots = np.asarray([plot_data_dicts[i]['cor'] for i in range(len(plot_data_dicts))])
     cor_plot_mean = np.mean(cor_plots, axis=0)
     cor_plot_std  = np.std(cor_plots,  axis=0)
+    if 'src' in plot_data_dicts[0].keys():
+        src_plots = np.asarray([plot_data_dicts[i]['src'] for i in range(len(plot_data_dicts))])
+        src_plot_mean = np.mean(src_plots, axis=0)
+        src_plot_std  = np.std(src_plots,  axis=0)
 
     # Pickle statistical properties.
     error_stats_dict = {
@@ -111,6 +144,9 @@ def save_test_data(error_dicts, plot_data_dicts):
         'ref':      plot_data_dicts[0]['ref'], # ... so the choice of retrieving them from ...
         'x':        plot_data_dicts[0]['x']    # ... the first instance is arbitrary.
     }
+    if 'src' in plot_data_dicts[0].keys():
+        plot_stats_dict['src_mean'] = src_plot_mean
+        plot_stats_dict['src_std']  = src_plot_std
     with open(os.path.join(config.run_dir, "error_data_stats" + ".pkl"), "wb") as f:
         pickle.dump(error_stats_dict, f)
     with open(os.path.join(config.run_dir, "plot_data_stats" + ".pkl"), "wb") as f:
@@ -151,6 +187,8 @@ def simulation_test(model, num):
         'ref': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0])),
         'cor': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0]))
     }
+    if config.model_is_hybrid and config.exact_solution_available:
+        plot_data_dict['src'] = np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0] - 2))
     plot_num = 0
     old_unc = IC
     old_cor = IC
@@ -216,6 +254,8 @@ def simulation_test(model, num):
             plot_data_dict['unc'][plot_num] = new_unc
             plot_data_dict['ref'][plot_num] = new_ref
             plot_data_dict['cor'][plot_num] = new_cor
+            if config.model_is_hybrid and config.exact_solution_available:
+                plot_data_dict['src'][plot_num] = new_src
             plot_num += 1
 
         old_unc = new_unc
