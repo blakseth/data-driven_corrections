@@ -60,7 +60,7 @@ def create_datasets():
                 unc_IC = unc_Ts[i-1]
             unc_Ts[i] = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                unc_IC, config.T_a, config.T_b,
+                unc_IC, config.get_T_a, config.get_T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A,
                 config.get_q_hat_approx, np.zeros_like(config.nodes_coarse[1:-1]),
                 config.dt_coarse, old_time, new_time, False
@@ -70,7 +70,7 @@ def create_datasets():
             else:
                 ref_Ts_full[i] = physics.simulate(
                     config.nodes_fine, config.faces_fine,
-                    ref_Ts_full[i-1], config.T_a, config.T_b,
+                    ref_Ts_full[i-1], config.get_T_a, config.get_T_b,
                     config.get_k, config.get_cV, config.rho, config.A,
                     config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
                     config.dt_fine, old_time, new_time, False
@@ -86,13 +86,13 @@ def create_datasets():
             sources[i] = physics.get_corrective_src_term(
                 config.nodes_coarse, config.faces_coarse,
                 ref_Ts[i], ref_Ts[i-1],
-                config.T_a, config.T_b,
+                config.get_T_a, config.get_T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A, config.get_q_hat_approx,
                 config.dt_coarse, old_time, False
             )
             corrected = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                ref_Ts[i-1], config.T_a, config.T_b,
+                ref_Ts[i-1], config.get_T_a, config.get_T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A,
                 config.get_q_hat_approx, sources[i],
                 config.dt_coarse, old_time, new_time, False

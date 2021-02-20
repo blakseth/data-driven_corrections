@@ -33,7 +33,7 @@ def verify(N, dt):
     dt_ref = dt
 
     T_ref = physics.simulate(nodes_ref, faces_ref,
-                             config.get_T0(nodes_ref), config.T_a, config.T_b,
+                             config.get_T0(nodes_ref), config.get_T_a, config.get_T_b,
                              config.get_k, config.get_cV, config.rho, config.A,
                              config.get_q_hat, np.zeros_like(nodes_ref[1:-1]),
                              dt_ref, 0, config.t_end, steady=False)
@@ -48,7 +48,7 @@ def verify(N, dt):
     nodes_space[-1] = config.x_b
 
     T_space = physics.simulate(nodes_space, faces_space,
-                               config.get_T0(nodes_space), config.T_a, config.T_b,
+                               config.get_T0(nodes_space), config.get_T_a, config.get_T_b,
                                config.get_k, config.get_cV, config.rho, config.A,
                                config.get_q_hat, np.zeros_like(nodes_ref[1:-1]),
                                dt_ref, 0, config.t_end, steady=False)
@@ -57,7 +57,7 @@ def verify(N, dt):
     dt_time = dt / 2.0
 
     T_time = physics.simulate(nodes_ref, faces_ref,
-                              config.get_T0(nodes_ref), config.T_a, config.T_b,
+                              config.get_T0(nodes_ref), config.get_T_a, config.get_T_b,
                               config.get_k, config.get_cV, config.rho, config.A,
                               config.get_q_hat, np.zeros_like(nodes_ref[1:-1]),
                               dt_time, 0, config.t_end, steady=False)
@@ -91,7 +91,7 @@ def main():
     dt_old    = config.dt_coarse
 
     T_old     = physics.simulate(nodes_old, faces_old,
-                                  config.get_T0(nodes_old), config.T_a, config.T_b,
+                                  config.get_T0(nodes_old), config.get_T_a, config.get_T_b,
                                   config.get_k, config.get_cV, config.rho, config.A,
                                  config.get_q_hat, np.zeros_like(nodes_old[1:-1]),
                                   dt_old, 0, config.t_end, steady=False)
@@ -114,7 +114,7 @@ def main():
             print("N_new:", N_new)
 
             T_new = physics.simulate(nodes_new, faces_new,
-                                     config.get_T0(nodes_new), config.T_a, config.T_b,
+                                     config.get_T0(nodes_new), config.get_T_a, config.get_T_b,
                                      config.get_k, config.get_cV, config.rho, config.A,
                                      config.get_q_hat, np.zeros_like(nodes_new[1:-1]),
                                      dt_new, 0, config.t_end, steady=False)
@@ -153,7 +153,7 @@ def main():
             dt_new = dt_old / 2.0
 
             T_new = physics.simulate(nodes_new, faces_new,
-                                     config.get_T0(nodes_new), config.T_a, config.T_b,
+                                     config.get_T0(nodes_new), config.get_T_a, config.get_T_b,
                                      config.get_k, config.get_cV, config.rho, config.A,
                                      config.get_q_hat, np.zeros_like(nodes_new[1:-1]),
                                      dt_new, 0, config.t_end, steady=False)

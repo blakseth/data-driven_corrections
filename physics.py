@@ -29,7 +29,7 @@ def tdma(low_diag, main_diag, high_diag, rhs, N):
 ########################################################################################################################
 # Physics simulation.
 
-def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_src, dt, t0, t_end, steady):
+def simulate(nodes, faces, T0, get_T_a, get_T_b, get_k, get_cV, rho, A, get_src, corr_src, dt, t0, t_end, steady):
     assert steady or T0.shape[0] == nodes.shape[0]
     assert faces.shape[0] == nodes.shape[0] - 1
     assert steady or T0 is not None
@@ -55,19 +55,25 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
     else:
         raise Exception("Missing initial condition.")
 
+    # Initialize time.
+    time = t0
+
     if steady:
+        # Increment time.
+        time = np.infty
+
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
         off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
         off_diag_dn = -alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1]) # Off-diagonal directly below main diagonal.
 
         # Get discredited source term.
-        sigma = get_src(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1]) + corr_src
+        sigma = get_src(nodes[1:-1], time) / (rho * cV_nodes[1:-1]) + corr_src
 
         # Define RHS vector.
         b = sigma
-        b[0] += alpha_half_int[0] * T_a / (dx_int[0] * dx_half_int[0])
-        b[-1] += alpha_half_int[-1] * T_b / (dx_int[-1] * dx_half_int[-1])
+        b[0] += alpha_half_int[0] * get_T_a(time) / (dx_int[0] * dx_half_int[0])
+        b[-1] += alpha_half_int[-1] * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
 
         # Solve linear system.
         T = tdma(off_diag_dn, diag, off_diag_up, b, N)
@@ -79,9 +85,6 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
         off_diag_up = -dt * alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
         off_diag_dn = -dt * alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1])  # Off-diagonal directly below main diagonal.
 
-        # Initialize time.
-        time = t0
-
         while time < t_end:
             # Increment time.
             time = np.around(time + dt, decimals=10)
@@ -91,24 +94,24 @@ def simulate(nodes, faces, T0, T_a, T_b, get_k, get_cV, rho, A, get_src, corr_sr
 
             # Define RHS vector.
             b = T + dt * sigma
-            b[0] += alpha_half_int[0] * dt * T_a / (dx_int[0] * dx_half_int[0])
-            b[-1] += alpha_half_int[-1] * dt * T_b / (dx_int[-1] * dx_half_int[-1])
+            b[0] += alpha_half_int[0] * dt * get_T_a(time) / (dx_int[0] * dx_half_int[0])
+            b[-1] += alpha_half_int[-1] * dt * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
 
             # Solve linear system.
             new_T = tdma(off_diag_dn.copy(), diag.copy(), off_diag_up.copy(), b, N)
             T = new_T
 
     T_including_boundary = np.zeros(N + 2)
-    T_including_boundary[0] = T_a
+    T_including_boundary[0] = get_T_a(time)
     T_including_boundary[1:-1] = T
-    T_including_boundary[-1] = T_b
+    T_including_boundary[-1] = get_T_b(time)
 
     return T_including_boundary
 
 ########################################################################################################################
 # Corrective source term.
 
-def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k, get_cV, rho, area, get_source, dt, t0, steady):
+def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, get_T_a, get_T_b, get_k, get_cV, rho, area, get_source, dt, t0, steady):
     assert T_ref_new.shape[0] == nodes.shape[0]
     assert T_ref_old is None or T_ref_old.shape[0] == nodes.shape[0]
     assert faces.shape[0]   == nodes.shape[0] - 1
@@ -129,7 +132,13 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
     A = None
     b = None
 
+    # Initialize time
+    time = t0
+
     if steady:
+        # Increment time.
+        time = np.infty
+
         # Define coefficient matrix of linear system.
         diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
         off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
@@ -137,14 +146,17 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
         A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
 
         # Get discredited source term.
-        sigma = get_source(nodes[1:-1], np.infty) / (rho * cV_nodes[1:-1])
+        sigma = get_source(nodes[1:-1], time) / (rho * cV_nodes[1:-1])
 
         # Define RHS vector.
         b = sigma
-        b[0] += alpha_half_int[0] * T_a / (dx_int[0] * dx_half_int[0])
-        b[-1] += alpha_half_int[-1] * T_b / (dx_int[-1] * dx_half_int[-1])
+        b[0] += alpha_half_int[0] * get_T_a(time) / (dx_int[0] * dx_half_int[0])
+        b[-1] += alpha_half_int[-1] * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
 
     if not steady:
+        # Increment time
+        time = np.around(time + dt, 10)
+
         # Define coefficient matrix of linear system.
         diag = np.ones(N) + dt * (
                     alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
@@ -153,12 +165,12 @@ def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, T_a, T_b, get_k,
         A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
 
         # Get discredited source term.
-        sigma = get_source(nodes[1:-1], np.around(t0 + dt, 10)) / (rho * cV_nodes[1:-1])
+        sigma = get_source(nodes[1:-1], time) / (rho * cV_nodes[1:-1])
 
         # Define  RHS vector.
         b = T_ref_old[1:-1] + dt * sigma
-        b[0] += alpha_half_int[0] * dt * T_a / (dx_int[0] * dx_half_int[0])
-        b[-1] += alpha_half_int[-1] * dt * T_b / (dx_int[-1] * dx_half_int[-1])
+        b[0] += alpha_half_int[0] * dt * get_T_a(time) / (dx_int[0] * dx_half_int[0])
+        b[-1] += alpha_half_int[-1] * dt * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
 
     # Calculate corrective source term.
     sigma_corr = np.dot(A, T_ref_new[1:-1]) - b

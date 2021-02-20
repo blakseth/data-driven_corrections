@@ -97,14 +97,14 @@ def main():
         t_new = np.around(t + config.dt_coarse, decimals=10)
         T_new = physics.simulate(
             config.nodes_coarse, config.faces_coarse,
-            T_old, config.T_a, config.T_b,
+            T_old, config.get_T_a, config.get_T_b,
             config.get_k_approx, config.get_cV, config.rho, config.A,
             config.get_q_hat_approx, simulation_data['src'][index+1],
             config.dt_coarse, t, t_new, False
         )
         T_new_ = physics.simulate(
             config.nodes_coarse, config.faces_coarse,
-            T_old_, config.T_a, config.T_b,
+            T_old_, config.get_T_a, config.get_T_b,
             config.get_k_approx, config.get_cV, config.rho, config.A,
             config.get_q_hat_approx,
             config.get_q_hat(config.nodes_coarse[1:-1],t_new)-config.get_q_hat_approx(config.nodes_coarse[1:-1],t_new),

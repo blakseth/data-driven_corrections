@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "manufactured_solution1_v3"
-system    = 5
-data_tag  = "manufactured_solution1"
+run_name  = "manufactured_solution2_hybrid_modified"
+system    = 6
+data_tag  = "manufactured_solution2_modified"
 model_key = 0
 model_is_hybrid = True
 
@@ -71,8 +71,10 @@ if system == 1:
     cV_ref    = 200.0
     rho       = 1000.0
     q_hat_ref = 100000.0
-    T_a       = 200
-    T_b       = 300
+    def get_T_a(t):
+        return 200
+    def get_T_b(t):
+        return 300
     exact_solution_available = False
     def get_k(x):
         return k_ref * (1 + 2*x + np.sin(3*np.pi*x) + 0.8*np.cos(20*np.pi*x))
@@ -91,8 +93,10 @@ elif system == 2:
     cV_ref    = 500.0
     rho       = 1000.0
     q_hat_ref = 0.0
-    T_a       = 1000
-    T_b       = 250
+    def get_T_a(t):
+        return 1000
+    def get_T_b(x):
+        return 250
     exact_solution_available = False
     def get_k(x):
         return 0.5 * k_ref * np.exp(2*x)
@@ -111,8 +115,10 @@ elif system == 3:
     cV_ref = 200
     rho = 200
     q_hat_ref = 0
-    T_a = 250
-    T_b = 400
+    def get_T_a(t):
+        return 250
+    def get_T_b(x):
+        return 400
     k_discont_nodes = np.asarray([0.0, 0.12, 0.28, 0.52, 0.68, 0.72, 0.88, 1.0])
     k_prefactors = np.asarray([1.0, 5.0, 1.0, 0.1, 1.0, 10.0, 1.0])
     k_int_values = np.zeros(k_discont_nodes.shape[0])
@@ -138,7 +144,7 @@ elif system == 3:
     def get_q_hat_approx(x, t):
         return np.zeros_like(x)
     def get_T0(x):
-        return T_a + (T_b - T_a) * (x + 0.5 * np.sin(2 * np.pi * x))
+        return get_T_a(0) + (get_T_b(0) - get_T_a(0)) * (x + 0.5 * np.sin(2 * np.pi * x))
 elif system == 4:
     t_end = 0.1
     x_a = 0.0
@@ -147,8 +153,10 @@ elif system == 4:
     rho = 1.0
     k_ref = 1.0
     cV_ref = 1.0
-    T_a = 0.0
-    T_b = 1.0
+    def get_T_a(t):
+        return 0.0
+    def get_T_b(t):
+        return 1.0
     q_hat_ref = 6.0
     exact_solution_available = False
     def get_k(x):
@@ -167,8 +175,10 @@ elif system == 5:
     rho = 1.0
     k_ref = 1.0
     cV_ref = 1.0
-    T_a = 2.0
-    T_b = T_a
+    def get_T_a(t):
+        return 2.0
+    def get_T_b(t):
+        return get_T_a(t)
     q_hat_ref = 1.0
     exact_solution_available = True
     def get_k(x):
@@ -180,11 +190,39 @@ elif system == 5:
     def get_q_hat(x, t):
         return (1 + 4*np.pi**2)*np.sin(2*np.pi*x)*np.exp(-t)
     def get_q_hat_approx(x, t):
-        return 0.8 * get_q_hat(x, t)
+        0.8 * get_q_hat(x, t)
     def get_T0(x):
-        return T_a + np.sin(2*np.pi*x)
+        return get_T_a(None) + np.sin(2*np.pi*x)
     def get_T_exact(x, t):
-        return T_a + np.sin(2*np.pi*x)*np.exp(-t)
+        return get_T_a(None) + np.sin(2*np.pi*x)*np.exp(-t)
+elif system == 6:
+    t_end = 2.0
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
+    rho = 1.0
+    k_ref = 1.0
+    cV_ref = 1.0
+    def get_T_a(t):
+        return 1.0
+    def get_T_b(t):
+        return get_T_a(t)
+    q_hat_ref = 1.0
+    exact_solution_available = True
+    def get_k(x):
+        return np.ones_like(x) * k_ref
+    def get_k_approx(x):
+        return get_k(x)
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+    def get_q_hat(x, t):
+        return (0.1-10*t)*np.sin(10*np.pi*x) + (2+x+x**2)/(t+0.1)
+    def get_q_hat_approx(x, t):
+        return np.zeros_like(x)#return (0.1-10*t) + (2+x)
+    def get_T0(x):
+        return get_T_a(None) + np.sin(2 * np.pi * x)
+    def get_T_exact(x, t):
+        return 1 + (x*(x-1))/(t + 0.1) + 0.1*t*np.sin(10*np.pi*x)
 
 else:
     raise Exception("Invalid domain selection.")
@@ -213,7 +251,7 @@ nodes_fine[-1] = x_b
 
 # Temporal discretization.
 dt_fine   = 0.000125
-dt_coarse = 0.001
+dt_coarse = 0.000125
 Nt_fine    = int(t_end / dt_fine) + 1
 Nt_coarse  = int(t_end / dt_coarse) + 1
 

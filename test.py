@@ -55,16 +55,18 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     # Visualize temperature profiles.
     for i in range(plot_stats_dict['unc'].shape[0]):
         plt.figure()
-        plt.plot(plot_stats_dict['x'], plot_stats_dict['unc'][i],      'r-', linewidth=2.0, label="Uncorrected")
-        plt.plot(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.scatter(plot_stats_dict['x'], plot_stats_dict['unc'][i],
+                    s=40, facecolors='none', edgecolors='r', label="Uncorrected")
+        plt.scatter(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], s=40,
+                    facecolors='none', edgecolors='b', label="Corrected, mean")
         if config.exact_solution_available:
             plt.plot(x_dense, config.get_T_exact(x_dense, plot_times[i]), 'k-', linewidth=2.0, label="Reference")
         else:
             plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
-        plt.fill_between(plot_stats_dict['x'],
-                         plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
-                         plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
-                         facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+        #plt.fill_between(plot_stats_dict['x'],
+        #                 plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
+        #                 plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
+        #                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
         plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
         plt.xlabel(r"$x$ (m)", fontsize=20)
         plt.ylabel(r"$T$ (K)", fontsize=20)
@@ -201,7 +203,7 @@ def simulation_test(model, num):
         # new_unc_ = new uncorrected profile given old   corrected profile.
         new_unc = physics.simulate(
             config.nodes_coarse, config.faces_coarse,
-            old_unc, config.T_a, config.T_b,
+            old_unc, config.get_T_a, config.get_T_b,
             config.get_k_approx, config.get_cV, config.rho, config.A,
             config.get_q_hat_approx, np.zeros(config.N_coarse),
             config.dt_coarse, old_time, new_time, False
@@ -209,7 +211,7 @@ def simulation_test(model, num):
         new_unc_ = torch.from_numpy(util.z_normalize(
             physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                old_cor, config.T_a, config.T_b,
+                old_cor, config.get_T_a, config.get_T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A,
                 config.get_q_hat_approx, np.zeros(config.N_coarse),
                 config.dt_coarse, old_time, new_time, False
@@ -221,7 +223,7 @@ def simulation_test(model, num):
             new_src = util.z_unnormalize(model.net(new_unc_).detach().numpy(), src_mean, src_std)
             new_cor = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
-                old_cor, config.T_a, config.T_b,
+                old_cor, config.get_T_a, config.get_T_b,
                 config.get_k_approx, config.get_cV, config.rho, config.A,
                 config.get_q_hat_approx, new_src,
                 config.dt_coarse, old_time, new_time, False
