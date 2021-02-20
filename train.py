@@ -23,24 +23,7 @@ from datasets import load_datasets
 ########################################################################################################################
 # Training ML-model.
 
-def train(model, num):
-    dataset_train, dataset_val, _ = load_datasets(True, True, False)
-
-    dataloader_train = torch.utils.data.DataLoader(
-        dataset     = dataset_train,
-        batch_size  = config.batch_size_train,
-        shuffle     = True,
-        num_workers = 0,
-        pin_memory  = True
-    )
-    dataloader_val = torch.utils.data.DataLoader(
-        dataset     = dataset_val,
-        batch_size  = config.batch_size_val,
-        shuffle     = True,
-        num_workers = 0,
-        pin_memory  = True
-    )
-
+def train(model, num, dataloader_train, dataloader_val):
     it_per_epoch = len(dataloader_train)
     num_epochs = config.max_train_it // it_per_epoch + 1
 

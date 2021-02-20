@@ -11,6 +11,7 @@ Main entry point for ML-correcting heat equation.
 
 import argparse
 import os
+import torch
 
 ########################################################################################################################
 # File imports
@@ -66,9 +67,25 @@ def main():
         ensemble.append(model)
 
     if args.train:
+        dataset_train, dataset_val, _ = datasets.load_datasets(True, True, False)
+
+        dataloader_train = torch.utils.data.DataLoader(
+            dataset=dataset_train,
+            batch_size=config.batch_size_train,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True
+        )
+        dataloader_val = torch.utils.data.DataLoader(
+            dataset=dataset_val,
+            batch_size=config.batch_size_val,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True
+        )
         print("Initiating training.")
         for i, model in enumerate(ensemble):
-            train.train(model, i)
+            train.train(model, i, dataloader_train, dataloader_val)
         print("Completed training.")
 
     #-------------------------------------------------------------------------------------------------------------------
