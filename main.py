@@ -63,7 +63,9 @@ def main():
 
     ensemble = []
     for i in range(config.ensemble_size):
-        model = models.create_new_model()
+        model = models.create_new_model(
+            config.learning_rate, config.dropout_prop, [config.num_layers, config.hidden_layer_size]
+        )
         ensemble.append(model)
 
     if args.train:
@@ -85,7 +87,7 @@ def main():
         )
         print("Initiating training.")
         for i, model in enumerate(ensemble):
-            train.train(model, i, dataloader_train, dataloader_val)
+            _ = train.train(model, i, dataloader_train, dataloader_val)
         print("Completed training.")
 
     #-------------------------------------------------------------------------------------------------------------------

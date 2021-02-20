@@ -111,4 +111,6 @@ def train(model, num, dataloader_train, dataloader_val):
     data_dict['Validation loss'] = np.asarray([model.val_iterations, model.val_losses])
     pickle.dump(data_dict, open(os.path.join(config.run_dir, "plot_data_loss_training_and_val" + str(num) + ".pkl"), "wb"))
 
+    return data_dict
+
 ########################################################################################################################

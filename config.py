@@ -269,7 +269,7 @@ N_test_examples  = int(test_examples_ratio  * Nt_coarse)
 
 # Parameters for shift data augmentation.
 N_shift_steps   = 5
-shift_step_size = 100
+shift_step_size = 5
 
 # Test iterations at which temperature profiles are saved.
 profile_save_steps = np.asarray([1, int(np.sqrt(N_test_examples)), N_test_examples]) - 1
@@ -295,14 +295,14 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = int(2e4)
+max_train_it = int(1e6)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.
-validation_period       = int(1e2)    # Number of training iterations per validation.
+validation_period       = int(1e3)    # Number of training iterations per validation.
 
-batch_size_train = 64
+batch_size_train = 32
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 
-overfit_limit = 10
+overfit_limit = 5

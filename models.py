@@ -21,24 +21,22 @@ import config
 
 # Dense layer with activation function and (possibly) dropout.
 class DenseLayerWithAct(torch.nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, dropout_probs):
         super(DenseLayerWithAct, self).__init__()
         self.layer = torch.nn.Linear(input_size, output_size)
         self.activation = None
-        self.dropout = torch.nn.Dropout(0.0)
+        self.dropout = torch.nn.Dropout(dropout_probs)
         if config.act_type == 'lrelu':
             self.activation = torch.nn.LeakyReLU(config.act_param)
         else:
             raise Exception("Invalid loss function selection.")
-        if config.use_dropout:
-            self.dropout = torch.nn.Dropout(config.dropout_prop)
 
     def forward(self, x):
         return self.dropout(self.activation(self.layer(x)))
 
 # Network of dense layers.
 class DenseModule(torch.nn.Module):
-    def __init__(self, num_layers, input_size, output_size, hidden_size = 0):
+    def __init__(self, num_layers, input_size, output_size, hidden_size = 0, dropout_prob = 0):
         assert num_layers >= 2
         assert num_layers == 2 or hidden_size > 0
         assert input_size > 0 and output_size > 0
@@ -52,7 +50,7 @@ class DenseModule(torch.nn.Module):
 
         # Defining hidden layers.
         hidden_block = [
-            DenseLayerWithAct(hidden_size, hidden_size) for hidden_layer in range(num_layers - 2)
+            DenseLayerWithAct(hidden_size, hidden_size, dropout_prob) for hidden_layer in range(num_layers - 2)
         ]
 
         # Defining output layer.
@@ -95,14 +93,17 @@ class EnsembleDenseModule(torch.nn.Module):
 # Full model, consisting of network, loss function, optimizer and information storage facilitation.
 
 class Model:
-    def __init__(self, module_name, num_layers, input_size, output_size, hidden_size = 0):
-        assert num_layers >= 2
-        assert num_layers == 2 or hidden_size > 0
-        assert input_size > 0 and output_size > 0
+    def __init__(self, module_name, learning_rate, dropout_prob, model_specific_params):
 
         # Defining network architecture.
+        input_size = config.N_coarse + 2
+        output_size = config.N_coarse
         if module_name == 'DenseModule':
-            self.net = DenseModule(num_layers, input_size, output_size, hidden_size)
+            num_layers = model_specific_params[0]
+            hidden_size = model_specific_params[1]
+            assert num_layers >= 2
+            assert num_layers == 2 or hidden_size > 0
+            self.net = DenseModule(num_layers, input_size, output_size, hidden_size, dropout_prob)
         else:
             raise Exception("Invalid module selection.")
 
@@ -115,7 +116,7 @@ class Model:
         # Defining learning parameters.
         self.learning_rate = config.learning_rate
         if config.optimizer == 'adam':
-            self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+            self.optimizer = torch.optim.Adam(self.net.parameters(), lr=learning_rate)
         else:
             raise Exception("Invalid optimizer selection.")
 
@@ -128,9 +129,9 @@ class Model:
 ########################################################################################################################
 # Creating a new model.
 
-def create_new_model():
+def create_new_model(learning_rate, dropout_prob, model_specific_params):
     if config.model_name == 'GlobalDense':
-        return Model('DenseModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.hidden_layer_size)
+        return Model('DenseModule', learning_rate, dropout_prob, model_specific_params)
     elif config.model_name == 'CNNModule':
         return Model('CNNModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
     elif config.model_name == 'LocalDense':
