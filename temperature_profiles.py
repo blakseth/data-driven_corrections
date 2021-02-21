@@ -43,8 +43,8 @@ def main():
         lambda x, t: np.sin(3*np.pi*t)*np.cos(4*np.pi*x),
         lambda x, t: np.sin(2*np.pi*x*(t**2)),
         lambda x, t: 5 + x*(x-1)/(t+0.1) + 0.1*t*np.sin(2*np.pi*x),
-        lambda x, t: np.sin(5*x*t)*np.exp(0.1*x*t),
-        lambda x, t: 5*t*(x**2)*np.sin(2*np.pi*t) + np.sin(2*np.pi*x)/(t+0.2)
+        lambda x, t: np.sin(5*x*t)*np.exp(-0.2*x*t),
+        lambda x, t: 5*t*(x**2)*np.sin(10*np.pi*t) + np.sin(2*np.pi*x)/(t+0.2)
     ]
     timess   = [
         [0, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0],
