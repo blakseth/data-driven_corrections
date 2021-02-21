@@ -97,7 +97,7 @@ def create_datasets():
                 config.get_q_hat_approx, sources[i],
                 config.dt_coarse, old_time, new_time, False
             )
-            np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=0)
+            np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=1e-15)
         print("Correction source terms generated and verified.")
 
         # Store data
