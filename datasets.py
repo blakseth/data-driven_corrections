@@ -282,10 +282,23 @@ def load_datasets(load_train, load_val, load_test):
 def load_datasets_from_path(train_path, val_path, test_path):
     if train_path is not None:
         try:
-            dataset_train = torch.load(os.path.join(datasets_location, data_tag + '_train.pt'))
+            dataset_train = torch.load(train_path)
         except:
             print("WARNING: Training dataset not found.")
             dataset_train = None
+    if val_path is not None:
+        try:
+            dataset_val = torch.load(val_path)
+        except:
+            print("WARNING: Training dataset not found.")
+            dataset_val = None
+    if test_path is not None:
+        try:
+            dataset_test = torch.load(test_path)
+        except:
+            print("WARNING: Training dataset not found.")
+            dataset_train = None
+    return dataset_train, dataset_val, dataset_test
 
 
 ########################################################################################################################
