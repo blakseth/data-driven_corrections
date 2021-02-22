@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "parameter_grid_search1"
-system    = "1"
-data_tag  = "manufactured_solution2_modified_test"
+run_name  = "grid_search_test"
+system    = "8B"
+data_tag  = "system8B"
 model_key = 0
-model_is_hybrid = True
+model_is_hybrid = False
 
 model_types = [
     'GlobalDense',
@@ -41,8 +41,8 @@ augment_training_data = False
 
 ensemble_size = 2
 
-do_train = True
-do_test  = True
+do_train = False
+do_test  = False
 
 load_model_from_save      = False
 resume_training_from_save = False
@@ -255,7 +255,7 @@ if system == "1":
         return np.ones_like(x) * cV_ref
 elif system == "2A":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -283,7 +283,7 @@ elif system == "2A":
         return np.ones_like(x) * cV_ref
 elif system == "2B":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -311,7 +311,7 @@ elif system == "2B":
         return np.ones_like(x) * cV_ref
 elif system == "3":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -339,7 +339,7 @@ elif system == "3":
         return np.ones_like(x) * cV_ref
 elif system == "4":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -367,7 +367,7 @@ elif system == "4":
         return np.ones_like(x) * cV_ref
 elif system == "5A":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -395,7 +395,7 @@ elif system == "5A":
         return np.ones_like(x) * cV_ref
 elif system == "5B":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -423,7 +423,7 @@ elif system == "5B":
         return np.ones_like(x) * cV_ref
 elif system == "6":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -451,7 +451,7 @@ elif system == "6":
         return np.ones_like(x) * cV_ref
 elif system == "7":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -479,7 +479,7 @@ elif system == "7":
         return np.ones_like(x) * cV_ref
 elif system == "8A":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -507,7 +507,7 @@ elif system == "8A":
         return np.ones_like(x) * cV_ref
 elif system == "8B":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -535,7 +535,7 @@ elif system == "8B":
         return np.ones_like(x) * cV_ref
 elif system == "9":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -563,7 +563,7 @@ elif system == "9":
         return np.ones_like(x) * cV_ref
 elif system == "10":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -591,7 +591,7 @@ elif system == "10":
         return np.ones_like(x) * cV_ref
 elif system == "11":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -619,7 +619,7 @@ elif system == "11":
         return np.ones_like(x) * cV_ref
 elif system == "12":
     exact_solution_available = True
-    t_end  = 2.0
+    t_end  = 5.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -672,7 +672,7 @@ nodes_fine[1:-1] = faces_fine[:-1] + dx_fine / 2
 nodes_fine[-1] = x_b
 
 # Temporal discretization.
-dt_fine   = 0.000125
+dt_fine   = 0.001
 dt_coarse = 0.000125
 Nt_fine    = int(t_end / dt_fine) + 1
 Nt_coarse  = int(t_end / dt_coarse) + 1
@@ -717,11 +717,11 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = int(1e6)
+max_train_it = int(1e3)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.
-validation_period       = int(1e3)    # Number of training iterations per validation.
+validation_period       = int(1e1)    # Number of training iterations per validation.
 
 batch_size_train = 32
 batch_size_val   = N_val_examples
