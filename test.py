@@ -229,8 +229,8 @@ def simulation_test(model, num):
                 config.dt_coarse, old_time, new_time, False
             )
         else:
-            new_cor[0]  = old_cor[0]   # Since BCs are not ...
-            new_cor[-1] = old_cor[-1]  # predicted by the NN.
+            new_cor[0]  = config.get_T_a(new_time)   # Since BCs are not ...
+            new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
             new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_).detach().numpy(), ref_mean, ref_std)
 
         lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
