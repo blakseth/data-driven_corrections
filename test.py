@@ -54,6 +54,37 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     if 'time' in plot_stats_dict.keys():
         plot_times = plot_stats_dict['time']
 
+    if 'cor_means_mean' in error_stats_dict.keys():
+        labels = ['Hybrid modelling', 'Uncorrected']
+        avgs = [error_stats_dict['cor_means_mean'], error_stats_dict['unc_means_mean']]
+        devs = [error_stats_dict['cor_stds_mean'], error_stats_dict['unc_stds_mean']]
+        print(labels)
+        print("avgs:", avgs)
+        print("devs:", devs)
+
+        x = np.arange(len(labels))  # the label locations
+        width = 0.4  # the width of the bars
+
+        fig, ax = plt.subplots()
+        fig.set_figheight(3)
+        fig.set_figwidth(8)
+        ax.yaxis.grid(zorder=-1)
+        # ax.set_aspect(2)
+        rects1 = ax.bar(x - width / 2, avgs, width, label='Average', zorder=3)
+        rects2 = ax.bar(x + width / 2, devs, width, label='Standard deviation', zorder=3)
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        ax.set_ylabel(r'$L_2$ error', fontsize=15)
+        # ax.set_title('Scores by group and gender')
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, fontsize=12)
+        ax.legend(prop={'size': 11})
+        # ax.set_yscale('log')
+        #ax.set_ylim((0, 0.15))
+        fig.tight_layout()
+
+        plt.savefig(os.path.join(config.results_dir, "histogram.pdf"), bbox_inches='tight')
+
     # Visualize temperature profiles.
     for i in range(plot_stats_dict['unc'].shape[0]):
         plt.figure()
@@ -125,6 +156,12 @@ def save_test_data(error_dicts, plot_data_dicts):
     cor_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
     cor_error_mean = np.mean(cor_errors, axis=0)
     cor_error_std  = np.std(cor_errors,  axis=0)
+    if 'cor_mean' in error_dicts[0].keys():
+        cor_means = np.asarray([error_dicts[i]['cor_mean'] for i in range(len(error_dicts))])
+        cor_means_mean = np.mean(cor_means, axis=0)
+    if 'cor_std' in error_dicts[0].keys():
+        cor_stds = np.asarray([error_dicts[i]['cor_std'] for i in range(len(error_dicts))])
+        cor_stds_mean = np.mean(cor_stds, axis=0)
 
     # Calculate statistical properties of plot data
     cor_plots = np.asarray([plot_data_dicts[i]['cor'] for i in range(len(plot_data_dicts))])
@@ -141,6 +178,14 @@ def save_test_data(error_dicts, plot_data_dicts):
         'cor_std':  cor_error_std,
         'unc':      error_dicts[0]['unc']
     }
+    if 'cor_mean' in error_dicts[0].keys():
+        error_stats_dict['cor_means_mean'] = cor_means_mean
+    if 'cor_std' in error_dicts[0].keys():
+        error_stats_dict['cor_stds_mean'] = cor_stds_mean
+    if 'unc_mean' in error_dicts[0].keys():
+        error_stats_dict['unc_means_mean'] = error_dicts[0]['unc_mean']
+    if 'unc_std' in error_dicts[0].keys():
+        error_stats_dict['unc_stds_mean'] = error_dicts[0]['unc_std']
     plot_stats_dict = {
         'cor_mean': cor_plot_mean,
         'cor_std':  cor_plot_std,
@@ -200,7 +245,7 @@ def single_step_test(model, num):
     for i in range(config.N_test_examples):
         old_time = np.around(times[i] - config.dt_coarse, decimals=10)
         new_time = np.around(times[i], decimals=10)
-        print("New time:", new_time)
+        #print("New time:", new_time)
 
         new_unc = unc[i]
         new_unc_tensor = unc_tensor[i]
@@ -248,16 +293,14 @@ def single_step_test(model, num):
 
     error_dict = {
         'unc': L2_errors_unc,
-        'cor': L2_errors_cor
-    }
-    error_stats = {
+        'cor': L2_errors_cor,
         'unc_mean': np.mean(L2_errors_unc),
         'unc_std': np.std(L2_errors_unc),
         'cor_mean': np.mean(L2_errors_cor),
         'cor_std': np.std(L2_errors_cor)
     }
 
-    return error_dict, plot_data_dict, error_stats
+    return error_dict, plot_data_dict
 
 def simulation_test(model, num):
     model.net.eval()
