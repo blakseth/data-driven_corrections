@@ -34,7 +34,7 @@ def train(model, num, dataloader_train, dataloader_val):
 
     for epoch in range(num_epochs):
         for i, data in enumerate(dataloader_train):
-            if it >= config.max_train_it or val_epoch_since_improvement >= config.overfit_limit:
+            if it >= config.max_train_it or (val_epoch_since_improvement >= config.overfit_limit and it >= config.min_train_it):
                 break
 
             model.net.train()

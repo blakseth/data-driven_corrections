@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "grid_search_test"
-system    = "8B"
-data_tag  = "system8B"
+run_name  = "trial_system1_sst2"
+system    = "1"
+data_tag  = "system1_sst"
 model_key = 0
-model_is_hybrid = False
+model_is_hybrid = True
 
 model_types = [
     'GlobalDense',
@@ -41,8 +41,8 @@ augment_training_data = False
 
 ensemble_size = 2
 
-do_train = False
-do_test  = False
+do_train = True
+do_test  = True
 
 load_model_from_save      = False
 resume_training_from_save = False
@@ -339,7 +339,7 @@ elif system == "3":
         return np.ones_like(x) * cV_ref
 elif system == "4":
     exact_solution_available = True
-    t_end  = 5.0
+    t_end  = 1.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -535,7 +535,7 @@ elif system == "8B":
         return np.ones_like(x) * cV_ref
 elif system == "9":
     exact_solution_available = True
-    t_end  = 5.0
+    t_end  = 0.5
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -554,7 +554,7 @@ elif system == "9":
     def get_q_hat(x, t):
         return 4*(np.pi**2)*(t**4)*np.sin(2*np.pi*x*(t**2)) - 4*np.pi*x*t*np.cos(2*np.pi*x*(t**2))
     def get_q_hat_approx(x, t):
-        return 0.8*get_q_hat(x, t)
+        return 0.5*get_q_hat(x, t)
     def get_k(x):
         return np.ones_like(x) * k_ref
     def get_k_approx(x):
@@ -645,6 +645,101 @@ elif system == "12":
         return get_k(x)
     def get_cV(x):
         return np.ones_like(x) * cV_ref
+elif system == "13":
+    exact_solution_available = True
+    t_end  = 5.0
+    x_a    = 0.0
+    x_b    = 1.0
+    A      = 1.0
+    rho    = 1.0
+    k_ref  = 1.0
+    cV_ref = 1.0
+    q_hat_ref = 1.0
+    def get_T_exact(x, t):
+        return t/(1+((x-0.5)**2))
+    def get_T0(x):
+        return get_T_exact(x, 0)
+    def get_T_a(t):
+        return get_T_exact(x_a, t)
+    def get_T_b(t):
+        return get_T_exact(x_b, t)
+    def get_q_hat(x, t):
+        return (2*x+2*t-1)/((1+(x-0.5)**2)**2) - (8*t*(x-0.5)**2)/((1+(x-0.5)**2)**3)
+    def get_q_hat_approx(x, t):
+        return 0.8*get_q_hat(x, t)
+    def get_k(x):
+        return np.ones_like(x) * k_ref
+    def get_k_approx(x):
+        return get_k(x)
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+elif system == "14":
+    exact_solution_available = True
+    t_end  = 5.0
+    x_a    = 0.0
+    x_b    = 1.0
+    A      = 1.0
+    rho    = 1.0
+    k_ref  = 1.0
+    cV_ref = 1.0
+    q_hat_ref = 1.0
+    def get_T_exact(x, t):
+        return t*np.exp(-1000*(x-0.5)**2)
+    def get_T0(x):
+        return get_T_exact(x, 0)
+    def get_T_a(t):
+        return get_T_exact(x_a, t)
+    def get_T_b(t):
+        return get_T_exact(x_b, t)
+    def get_q_hat(x, t):
+        return np.exp(-1000*(x-0.5)**2)*(4000000*t*(x-(x**2)-0.2495) - 1)
+    def get_q_hat_approx(x, t):
+        return 0.8*get_q_hat(x, t)
+    def get_k(x):
+        return np.ones_like(x) * k_ref
+    def get_k_approx(x):
+        return get_k(x)
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+elif system == "sp1":
+    t_end = 3.0
+    x_a = 0.0
+    x_b = 1.0
+    A = 1.0
+    k_ref = 2500
+    cV_ref = 200
+    rho = 200
+    q_hat_ref = 0
+    def get_T_a(t):
+        return 250
+    def get_T_b(x):
+        return 400
+    k_discont_nodes = np.asarray([0.0, 0.12, 0.28, 0.52, 0.68, 0.72, 0.88, 1.0])
+    k_prefactors = np.asarray([1.0, 5.0, 1.0, 0.1, 1.0, 10.0, 1.0])
+    k_int_values = np.zeros(k_discont_nodes.shape[0])
+    exact_solution_available = False
+    def get_k(x):
+        if type(x) is np.ndarray:
+            ks = []
+            for i, x_value in enumerate(x):
+                for j in range(k_prefactors.shape[0]):
+                    if k_discont_nodes[j] <= x_value <= k_discont_nodes[j + 1]:
+                        ks.append(k_ref * k_prefactors[j])
+            return np.asarray(ks)
+        else:
+            for j in range(k_prefactors.shape[0]):
+                if k_discont_nodes[j] <= x < k_discont_nodes[j + 1]:
+                    return k_ref * k_prefactors[j]
+    def get_k_approx(x):
+        return np.ones_like(x) * k_ref
+    def get_cV(x):
+        return np.ones_like(x) * cV_ref
+    def get_q_hat(x, t):
+        return np.zeros_like(x)
+    def get_q_hat_approx(x, t):
+        return np.zeros_like(x)
+    def get_T0(x):
+        return get_T_a(0) + (get_T_b(0) - get_T_a(0)) * (x + 0.5 * np.sin(2 * np.pi * x))
 else:
     raise Exception("Invalid domain selection.")
 
@@ -663,7 +758,7 @@ nodes_coarse[1:-1] = faces_coarse[:-1] + dx_coarse / 2
 nodes_coarse[-1] = x_b
 
 # Fine spatial discretization.
-N_fine = 4860
+N_fine = 20
 dx_fine = (x_b - x_a) / N_fine
 faces_fine = np.linspace(x_a, x_b, num = N_fine + 1, endpoint=True)
 nodes_fine = np.zeros(N_fine + 2)
@@ -673,12 +768,14 @@ nodes_fine[-1] = x_b
 
 # Temporal discretization.
 dt_fine   = 0.001
-dt_coarse = 0.000125
+dt_coarse = 0.001
 Nt_fine    = int(t_end / dt_fine) + 1
 Nt_coarse  = int(t_end / dt_coarse) + 1
 
 ########################################################################################################################
 # Data configuration.
+
+do_simulation_test = False
 
 # Dataset sizes (unaugmented).
 train_examples_ratio = 0.8
@@ -717,14 +814,15 @@ dropout_prop = 0.1
 ########################################################################################################################
 # Training configuration.
 
-max_train_it = int(1e3)
+max_train_it = int(1e6)
+min_train_it = int(1e4)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.
-validation_period       = int(1e1)    # Number of training iterations per validation.
+validation_period       = int(1e2)    # Number of training iterations per validation.
 
 batch_size_train = 32
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 
-overfit_limit = 5
+overfit_limit = 7

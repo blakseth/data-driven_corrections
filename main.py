@@ -98,7 +98,13 @@ def main():
         error_dicts = []
         plot_data_dicts = []
         for i, model in enumerate(ensemble):
-            error_dict, plot_data_dict = test.simulation_test(model, i)
+            if config.do_simulation_test:
+                error_dict, plot_data_dict = test.simulation_test(model, i)
+            else:
+                error_dict, plot_data_dict, error_stats = test.single_step_test(model, i)
+                for key in error_stats.keys():
+                    print(key + ": " + str(error_stats[key]))
+                print("\n")
             error_dicts.append(error_dict)
             plot_data_dicts.append(plot_data_dict)
         error_stats_dict, plot_stats_dict = test.save_test_data(error_dicts, plot_data_dicts)

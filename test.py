@@ -51,6 +51,8 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
         t0 = (config.train_examples_ratio + config.test_examples_ratio)*config.t_end
         plot_times = t0 + (config.profile_save_steps + 1)*config.dt_coarse
         x_dense = np.linspace(config.x_a, config.x_b, num=1001, endpoint=True)
+    if 'time' in plot_stats_dict.keys():
+        plot_times = plot_stats_dict['time']
 
     # Visualize temperature profiles.
     for i in range(plot_stats_dict['unc'].shape[0]):
@@ -144,7 +146,8 @@ def save_test_data(error_dicts, plot_data_dicts):
         'cor_std':  cor_plot_std,
         'unc':      plot_data_dicts[0]['unc'], # These are the same for all model instances, ...
         'ref':      plot_data_dicts[0]['ref'], # ... so the choice of retrieving them from ...
-        'x':        plot_data_dicts[0]['x']    # ... the first instance is arbitrary.
+        'x':        plot_data_dicts[0]['x'],   # ... the first instance is arbitrary.
+        'time':     plot_data_dicts[0]['time']
     }
     if 'src' in plot_data_dicts[0].keys():
         plot_stats_dict['src_mean'] = src_plot_mean
@@ -159,6 +162,102 @@ def save_test_data(error_dicts, plot_data_dicts):
 
 ########################################################################################################################
 # Testing ML-model.
+
+def single_step_test(model, num):
+    model.net.eval()
+
+    _, _, dataset_test = load_datasets(False, False, True)
+
+    unc_tensor = dataset_test[:][0].detach()
+    ref_tensor = dataset_test[:][1].detach()
+    stats = dataset_test[:6][3].detach().numpy()
+    ICs   = dataset_test[:][4].detach().numpy()
+    times = dataset_test[:][5].detach().numpy()
+
+    unc_mean = stats[0]
+    unc_std  = stats[3]
+    ref_mean = stats[1]
+    ref_std  = stats[4]
+    src_mean = stats[2]
+    src_std  = stats[5]
+
+    unc = util.z_unnormalize(unc_tensor.numpy(), unc_mean, unc_std)
+    ref = util.z_unnormalize(ref_tensor.numpy(), unc_mean, unc_std)
+
+    L2_errors_unc = np.zeros(config.N_test_examples)
+    L2_errors_cor = np.zeros(config.N_test_examples)
+
+    num_profile_plots = config.profile_save_steps.shape[0]
+    plot_data_dict = {
+        'x': config.nodes_coarse,
+        'unc': np.zeros((num_profile_plots, config.nodes_coarse.shape[0])),
+        'ref': np.zeros((num_profile_plots, config.nodes_coarse.shape[0])),
+        'cor': np.zeros((num_profile_plots, config.nodes_coarse.shape[0])),
+        'time': np.zeros(num_profile_plots)
+    }
+    if config.model_is_hybrid and config.exact_solution_available:
+        plot_data_dict['src'] = np.zeros((num_profile_plots, config.nodes_coarse.shape[0] - 2))
+    for i in range(config.N_test_examples):
+        old_time = np.around(times[i] - config.dt_coarse, decimals=10)
+        new_time = np.around(times[i], decimals=10)
+        print("New time:", new_time)
+
+        new_unc = unc[i]
+        new_unc_tensor = unc_tensor[i]
+        IC = ICs[i] # The profile at old_time which was used to generate new_unc, which is a profile at new_time.
+
+        new_cor = np.zeros_like(new_unc)
+        if config.model_is_hybrid:
+            new_src = util.z_unnormalize(model.net(new_unc_tensor).detach().numpy(), src_mean, src_std)
+            new_cor = physics.simulate(
+                config.nodes_coarse, config.faces_coarse,
+                IC, config.get_T_a, config.get_T_b,
+                config.get_k_approx, config.get_cV, config.rho, config.A,
+                config.get_q_hat_approx, new_src,
+                config.dt_coarse, old_time, new_time, False
+            )
+        else:
+            new_cor[0] = config.get_T_a(new_time)  # Since BCs are not ...
+            new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
+            new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor).detach().numpy(), ref_mean, ref_std)
+
+        lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
+        lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
+
+        if config.exact_solution_available:
+            ref_func = lambda x: config.get_T_exact(x, new_time)
+            new_ref = config.get_T_exact(config.nodes_coarse, new_time)
+        else:
+            new_ref = util.z_unnormalize(ref_tensor[i].detach().numpy(), ref_mean, ref_std)
+            ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+
+        ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
+        unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+
+        L2_errors_unc[i] = unc_error_norm
+        L2_errors_cor[i] = cor_error_norm
+
+        if i < num_profile_plots:
+            plot_data_dict['unc'][i] = new_unc
+            plot_data_dict['ref'][i] = new_ref
+            plot_data_dict['cor'][i] = new_cor
+            if config.model_is_hybrid and config.exact_solution_available:
+                plot_data_dict['src'][i] = new_src
+            plot_data_dict['time'][i] = new_time
+
+    error_dict = {
+        'unc': L2_errors_unc,
+        'cor': L2_errors_cor
+    }
+    error_stats = {
+        'unc_mean': np.mean(L2_errors_unc),
+        'unc_std': np.std(L2_errors_unc),
+        'cor_mean': np.mean(L2_errors_cor),
+        'cor_std': np.std(L2_errors_cor)
+    }
+
+    return error_dict, plot_data_dict, error_stats
 
 def simulation_test(model, num):
     model.net.eval()
@@ -195,6 +294,7 @@ def simulation_test(model, num):
     old_unc = IC
     old_cor = IC
     t0 = (config.train_examples_ratio + config.test_examples_ratio)*config.t_end
+    diffs = []
     for i in range(config.N_test_examples):
         old_time = np.around(t0 + config.dt_coarse*i,     decimals=10)
         new_time = np.around(t0 + config.dt_coarse*(i+1), decimals=10)
@@ -258,7 +358,11 @@ def simulation_test(model, num):
             plot_data_dict['cor'][plot_num] = new_cor
             if config.model_is_hybrid and config.exact_solution_available:
                 plot_data_dict['src'][plot_num] = new_src
+            plot_data_dict['time'][plot_num] = new_time
             plot_num += 1
+
+        if i % 10 == 0 and i <= 50:
+            diffs.append(np.asarray(new_cor - new_ref))
 
         old_unc = new_unc
         old_cor = new_cor
@@ -267,6 +371,13 @@ def simulation_test(model, num):
         'unc': L2_errors_unc,
         'cor': L2_errors_cor
     }
+
+    plt.figure()
+    for i in range(len(diffs)):
+        plt.plot(config.nodes_coarse, diffs[i], label=str(10*i))
+    plt.grid()
+    plt.legend()
+    plt.savefig(os.path.join(config.run_dir, "differences.pdf"), bbox_inches='tight')
 
     return error_dict, plot_data_dict
 
