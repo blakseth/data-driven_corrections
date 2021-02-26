@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial_system1_sst2"
-system    = "1"
-data_tag  = "system1_sst"
+run_name  = "trial_system8B_sst_hybrid"
+system    = "8B"
+data_tag  = "system8B_sst"
 model_key = 0
 model_is_hybrid = True
 
@@ -488,7 +488,7 @@ elif system == "8A":
     cV_ref = 1.0
     q_hat_ref = 1.0
     def get_T_exact(x, t):
-        return np.sin(2*np.pi*t) * np.cos(2*np.pi*x)
+        return 1 + np.sin(2*np.pi*t) * np.cos(2*np.pi*x)
     def get_T0(x):
         return get_T_exact(x, 0)
     def get_T_a(t):
@@ -516,7 +516,7 @@ elif system == "8B":
     cV_ref = 1.0
     q_hat_ref = 1.0
     def get_T_exact(x, t):
-        return np.sin(3*np.pi*t) * np.cos(4*np.pi*x)
+        return 1 + np.sin(3*np.pi*t) * np.cos(4*np.pi*x)
     def get_T0(x):
         return get_T_exact(x, 0)
     def get_T_a(t):
@@ -544,7 +544,7 @@ elif system == "9":
     cV_ref = 1.0
     q_hat_ref = 1.0
     def get_T_exact(x, t):
-        return np.sin(2*np.pi*x*(t**2))
+        return 1 + np.sin(2*np.pi*x*(t**2))
     def get_T0(x):
         return get_T_exact(x, 0)
     def get_T_a(t):
@@ -600,7 +600,7 @@ elif system == "11":
     cV_ref = 1.0
     q_hat_ref = 1.0
     def get_T_exact(x, t):
-        return np.sin(5*x*t)*np.exp(-0.2*x*t)
+        return 1 + np.sin(5*x*t)*np.exp(-0.2*x*t)
     def get_T0(x):
         return get_T_exact(x, 0)
     def get_T_a(t):
@@ -656,7 +656,7 @@ elif system == "13":
     cV_ref = 1.0
     q_hat_ref = 1.0
     def get_T_exact(x, t):
-        return t/(1+((x-0.5)**2))
+        return 1 + t/(1+((x-0.5)**2))
     def get_T0(x):
         return get_T_exact(x, 0)
     def get_T_a(t):
@@ -684,7 +684,7 @@ elif system == "14":
     cV_ref = 1.0
     q_hat_ref = 1.0
     def get_T_exact(x, t):
-        return t*np.exp(-1000*(x-0.5)**2)
+        return 1 + t*np.exp(-1000*(x-0.5)**2)
     def get_T0(x):
         return get_T_exact(x, 0)
     def get_T_a(t):
@@ -815,7 +815,7 @@ dropout_prop = 0.1
 # Training configuration.
 
 max_train_it = int(1e6)
-min_train_it = int(1e4)
+min_train_it = int(5e3)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.
@@ -825,4 +825,4 @@ batch_size_train = 32
 batch_size_val   = N_val_examples
 batch_size_test  = N_test_examples
 
-overfit_limit = 7
+overfit_limit = 10
