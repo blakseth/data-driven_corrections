@@ -24,10 +24,10 @@ import train
 ########################################################################################################################
 # Parameter space.
 
-learning_rates = [1e-4]#, 5e-4, 1e-5]
-dropout_probs = [0.0]#, 0.1, 0.2]
-widths = config.N_coarse * np.asarray([1, 2])#[0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-depths = [3,4]#[2, 3, 4, 5, 6, 7, 8, 9, 10]
+learning_rates = [1e-4, 1e-5]
+dropout_probs = [0.0, 0.1, 0.2]
+widths = (config.N_coarse * np.asarray([0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).astype(int)
+depths = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 
 ########################################################################################################################
@@ -36,15 +36,15 @@ def main():
     os.makedirs(config.run_dir, exist_ok=False)
     # Load datasets and create dataloaders.
     dataset_paths = [
-        [os.path.join(config.datasets_dir, 'system2B_train.pt'),
-        os.path.join(config.datasets_dir, 'system2B_val.pt'),
-        os.path.join(config.datasets_dir, 'system2B_test.pt')],
-        [os.path.join(config.datasets_dir, 'system5B_train.pt'),
-        os.path.join(config.datasets_dir, 'system5B_val.pt'),
-        os.path.join(config.datasets_dir, 'system5B_test.pt')],
-        [os.path.join(config.datasets_dir, 'system8B_train.pt'),
-        os.path.join(config.datasets_dir, 'system8B_val.pt'),
-        os.path.join(config.datasets_dir, 'system8B_test.pt')]
+        [os.path.join(config.datasets_dir, 'system2B_sst_train.pt'),
+        os.path.join(config.datasets_dir,  'system2B_sst_val.pt'),
+        os.path.join(config.datasets_dir,  'system2B_sst_test.pt')],
+        [os.path.join(config.datasets_dir, 'system5B_sst_train.pt'),
+        os.path.join(config.datasets_dir,  'system5B_sst_val.pt'),
+        os.path.join(config.datasets_dir,  'system5B_sst_test.pt')],
+        [os.path.join(config.datasets_dir, 'system8B_sst_train.pt'),
+        os.path.join(config.datasets_dir,  'system8B_sst_val.pt'),
+        os.path.join(config.datasets_dir,  'system8B_sst_test.pt')]
     ]
     print("Paths:", dataset_paths)
     print("Paths[0][0]:", dataset_paths[0][0])
@@ -92,17 +92,22 @@ def main():
 
     lowest_loss = np.inf
     best_params = ""
-    for data_dict in search_data:
-        print("Parameters:\t", data_dict["str"])
-        print("Losses:\t",     data_dict["losses"])
-        print("Loss sum:\t",   data_dict["sum"])
-        print("\n")
-        if data_dict["sum"] < lowest_loss:
-            lowest_loss = data_dict["sum"]
-            best_params = data_dict["str"]
+    with open(os.path.join(config.run_dir, "grid_search_results" + ".txt"), "w") as f:
+        for data_dict in search_data:
+            print("Parameters:\t", data_dict["str"])
+            print("Losses:\t",     data_dict["losses"])
+            print("Loss sum:\t",   data_dict["sum"])
+            print("\n")
+            f.write("Parameters:\t" + str(data_dict["str"])    + "\n")
+            f.write("Losses:\t"     + str(data_dict["losses"]) + "\n")
+            f.write("Loss sum:\t"   + str(data_dict["sum"])    + "\n")
+            f.write("\n")
+            if data_dict["sum"] < lowest_loss:
+                lowest_loss = data_dict["sum"]
+                best_params = data_dict["str"]
 
-    print("BEST PARAMETERS:")
-    print(best_params)
+        print("BEST PARAMETERS:")
+        print(best_params)
 
 ########################################################################################################################
 

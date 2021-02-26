@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "trial_system8B_sst_hybrid"
+run_name  = "pgs_hybrid_global_dense"
 system    = "8B"
 data_tag  = "system8B_sst"
 model_key = 0
