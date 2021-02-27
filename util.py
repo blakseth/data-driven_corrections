@@ -91,6 +91,9 @@ def get_L2_norm(cell_faces, function):
 
     return norm
 
+def get_disc_L2_norm(vector):
+    return np.sqrt(np.sum(vector**2))
+
 ########################################################################################################################
 
 def main():

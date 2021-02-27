@@ -83,7 +83,7 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
         #ax.set_ylim((0, 0.15))
         fig.tight_layout()
 
-        plt.savefig(os.path.join(config.results_dir, "histogram.pdf"), bbox_inches='tight')
+        plt.savefig(os.path.join(config.run_dir, "histogram.pdf"), bbox_inches='tight')
 
     # Visualize temperature profiles.
     for i in range(plot_stats_dict['unc'].shape[0]):
@@ -266,19 +266,22 @@ def single_step_test(model, num):
             new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
             new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor).detach().numpy(), ref_mean, ref_std)
 
-        lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
-        lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
+        #lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
+        #lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
 
         if config.exact_solution_available:
-            ref_func = lambda x: config.get_T_exact(x, new_time)
+            #ref_func = lambda x: config.get_T_exact(x, new_time)
             new_ref = config.get_T_exact(config.nodes_coarse, new_time)
         else:
             new_ref = util.z_unnormalize(ref_tensor[i].detach().numpy(), ref_mean, ref_std)
-            ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+            #ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
 
-        ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
-        unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
-        cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        #ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
+        #unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        #cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        ref_norm = util.get_disc_L2_norm(new_ref)
+        unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
+        cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
 
         L2_errors_unc[i] = unc_error_norm
         L2_errors_cor[i] = cor_error_norm
@@ -376,21 +379,24 @@ def simulation_test(model, num):
             new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
             new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_).detach().numpy(), ref_mean, ref_std)
 
-        lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
-        lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
+        #lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
+        #lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
 
 
         if config.exact_solution_available:
-            ref_func = lambda x: config.get_T_exact(x, new_time)
+            #ref_func = lambda x: config.get_T_exact(x, new_time)
             new_ref = config.get_T_exact(config.nodes_coarse, new_time)
         else:
             new_ref_tensor = dataset_test[i][1]
             new_ref = util.z_unnormalize(new_ref_tensor.detach().numpy(), ref_mean, ref_std)
-            ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+            #ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
 
-        ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
-        unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
-        cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        #ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
+        #unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        #cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        ref_norm = util.get_disc_L2_norm(new_ref)
+        unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
+        cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
 
         L2_errors_unc[i] = unc_error_norm
         L2_errors_cor[i] = cor_error_norm
