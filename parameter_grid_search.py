@@ -24,10 +24,10 @@ import train
 ########################################################################################################################
 # Parameter space.
 
-learning_rates = [1e-4, 1e-5]
-dropout_probs = [0.0, 0.1, 0.2]
-widths = (config.N_coarse * np.asarray([0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).astype(int)
-depths = [2, 3, 4, 5, 6, 7, 8, 9, 10]
+learning_rates = [1e-4]#, 1e-5]
+dropout_probs = [0.0]#, 0.1, 0.2]
+widths = (config.N_coarse * np.asarray([3, 5])).astype(int)
+depths = [3, 6, 10, 20]
 
 
 ########################################################################################################################
@@ -36,15 +36,15 @@ def main():
     os.makedirs(config.run_dir, exist_ok=False)
     # Load datasets and create dataloaders.
     dataset_paths = [
-        [os.path.join(config.datasets_dir, 'system2B_sst_train.pt'),
-        os.path.join(config.datasets_dir,  'system2B_sst_val.pt'),
-        os.path.join(config.datasets_dir,  'system2B_sst_test.pt')],
-        [os.path.join(config.datasets_dir, 'system5B_sst_train.pt'),
-        os.path.join(config.datasets_dir,  'system5B_sst_val.pt'),
-        os.path.join(config.datasets_dir,  'system5B_sst_test.pt')],
-        [os.path.join(config.datasets_dir, 'system8B_sst_train.pt'),
-        os.path.join(config.datasets_dir,  'system8B_sst_val.pt'),
-        os.path.join(config.datasets_dir,  'system8B_sst_test.pt')]
+        [os.path.join(config.datasets_dir, 'system2B_sst_aug_train.pt'),
+        os.path.join(config.datasets_dir,  'system2B_sst_aug_val.pt'),
+        os.path.join(config.datasets_dir,  'system2B_sst_aug_test.pt')],
+        [os.path.join(config.datasets_dir, 'system5B_sst_aug_train.pt'),
+        os.path.join(config.datasets_dir,  'system5B_sst_aug_val.pt'),
+        os.path.join(config.datasets_dir,  'system5B_sst_aug_test.pt')],
+        [os.path.join(config.datasets_dir, 'system8B_sst_aug_train.pt'),
+        os.path.join(config.datasets_dir,  'system8B_sst_aug_val.pt'),
+        os.path.join(config.datasets_dir,  'system8B_sst_aug_test.pt')]
     ]
     print("Paths:", dataset_paths)
     print("Paths[0][0]:", dataset_paths[0][0])

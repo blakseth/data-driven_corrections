@@ -24,9 +24,9 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "pgs_hybrid_global_dense"
-system    = "8B"
-data_tag  = "system8B_sst"
+run_name  = "2021-02-27_s14_no_aug_higher_lr"
+system    = "14"
+data_tag  = "system14_sst_no_aug"
 model_key = 0
 model_is_hybrid = True
 
@@ -535,7 +535,7 @@ elif system == "8B":
         return np.ones_like(x) * cV_ref
 elif system == "9":
     exact_solution_available = True
-    t_end  = 0.5
+    t_end  = 2.0
     x_a    = 0.0
     x_b    = 1.0
     A      = 1.0
@@ -798,7 +798,7 @@ profile_save_steps = np.asarray([1, int(np.sqrt(N_test_examples)), N_test_exampl
 
 num_layers = 3
 
-hidden_layer_size = 100
+hidden_layer_size = 60
 
 loss_func = 'MSE'
 
@@ -815,7 +815,7 @@ dropout_prop = 0.1
 # Training configuration.
 
 max_train_it = int(1e6)
-min_train_it = int(5e3)
+min_train_it = int(1e4)
 
 print_train_loss_period = int(1e2)    # Number of training iterations per print of training losses.
 save_model_period       = int(5e10)   # Number of training iterations per model save.

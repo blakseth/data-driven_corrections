@@ -79,11 +79,15 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
         ax.set_xticks(x)
         ax.set_xticklabels(labels, fontsize=12)
         ax.legend(prop={'size': 11})
-        # ax.set_yscale('log')
+        ax.set_yscale('log')
         #ax.set_ylim((0, 0.15))
         fig.tight_layout()
 
         plt.savefig(os.path.join(config.run_dir, "histogram.pdf"), bbox_inches='tight')
+        with open(os.path.join(config.run_dir, "histogram_data" + ".txt"), "w") as f:
+            f.write(str(labels) + "\n")
+            f.write("avgs: " + str(avgs) + "\n")
+            f.write("devs: " + str(devs) + "\n")
 
     # Visualize temperature profiles.
     for i in range(plot_stats_dict['unc'].shape[0]):
