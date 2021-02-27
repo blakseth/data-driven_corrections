@@ -143,7 +143,7 @@ def create_datasets():
     val_src   = src[config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
     val_times = times[config.N_train_examples:config.N_train_examples + config.N_val_examples]
 
-    test_ICs  = ICs[config.N_train_examples + config.N_val_examples:, :]
+    test_ICs  = ICs[config.N_train_examples + config.N_val_examples:,:]
     test_unc  = unc[config.N_train_examples + config.N_val_examples:,:]
     test_ref  = ref[config.N_train_examples + config.N_val_examples:,:]
     test_src  = src[config.N_train_examples + config.N_val_examples:,:]
@@ -210,11 +210,11 @@ def create_datasets():
         train_ref = np.concatenate((train_ref, train_ref_mirror), axis=0)
 
         # Correction source term
-        train_src_mirror = -np.flip(train_src, axis=1).copy()
+        train_src_mirror = np.flip(train_src, axis=1).copy()
         train_src = np.concatenate((train_src, train_src_mirror), axis=0)
 
         # Time levels
-        train_times = np.concatenate((train_times, train_times_orig), axis=0)
+        train_times = np.concatenate((train_times, train_times), axis=0)
 
     # Calculate statistical properties of training data.
     train_unc_mean = np.mean(train_unc)
