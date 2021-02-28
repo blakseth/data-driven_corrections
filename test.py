@@ -252,12 +252,12 @@ def single_step_test(model, num):
         #print("New time:", new_time)
 
         new_unc = unc[i]
-        new_unc_tensor = unc_tensor[i]
+        new_unc_tensor = torch.unsqueeze(unc_tensor[i], 0)
         IC = ICs[i] # The profile at old_time which was used to generate new_unc, which is a profile at new_time.
 
         new_cor = np.zeros_like(new_unc)
         if config.model_is_hybrid:
-            new_src = util.z_unnormalize(model.net(new_unc_tensor).detach().numpy(), src_mean, src_std)
+            new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor),0).detach().numpy(), src_mean, src_std)
             new_cor = physics.simulate(
                 config.nodes_coarse, config.faces_coarse,
                 IC, config.get_T_a, config.get_T_b,

@@ -24,10 +24,10 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "2021-02-27_s14_no_aug_higher_lr"
-system    = "14"
-data_tag  = "system14_sst_no_aug"
-model_key = 0
+run_name  = "2021-02-28_s4_no_aug_local_more_capacity"
+system    = "4"
+data_tag  = "system4_sst_no_aug"
+model_key = 2
 model_is_hybrid = True
 
 model_types = [
@@ -796,7 +796,7 @@ profile_save_steps = np.asarray([1, int(np.sqrt(N_test_examples)), N_test_exampl
 ########################################################################################################################
 # Model configuration.
 
-num_layers = 3
+num_layers = 5
 
 hidden_layer_size = 60
 
@@ -809,7 +809,7 @@ act_type = 'lrelu'
 act_param = 0.2
 
 use_dropout = False
-dropout_prop = 0.1
+dropout_prob = 0.1
 
 ########################################################################################################################
 # Training configuration.

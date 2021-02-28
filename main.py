@@ -63,8 +63,13 @@ def main():
 
     ensemble = []
     for i in range(config.ensemble_size):
+        model_specific_params = []
+        if config.model_name == 'GlobalDense':
+            model_specific_params = [config.num_layers, config.hidden_layer_size]
+        elif config.model_name == 'LocalDense':
+            model_specific_params = [config.num_layers, 5]
         model = models.create_new_model(
-            config.learning_rate, config.dropout_prop, [config.num_layers, config.hidden_layer_size]
+            config.learning_rate, config.dropout_prob, model_specific_params
         )
         ensemble.append(model)
 
