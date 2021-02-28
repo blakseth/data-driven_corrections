@@ -24,10 +24,10 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "2021-02-28_s4_no_aug_local_more_capacity"
-system    = "4"
-data_tag  = "system4_sst_no_aug"
-model_key = 2
+run_name  = "2021-02-28_s1_cnn_no_aug"
+system    = "1"
+data_tag  = "system1_sst_no_aug"
+model_key = 1
 model_is_hybrid = True
 
 model_types = [

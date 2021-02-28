@@ -38,13 +38,13 @@ class DenseLayerWithAct(torch.nn.Module):
 class ConvLayerWithAct(torch.nn.Module):
     def __init__(self, num_in_ch, num_out_ch, kernel_size):
         super(ConvLayerWithAct, self).__init__()
-        padding = kernel_size / 2 - 1
-        self.layer = torch.nn.Conv2d(
+        padding = kernel_size // 2
+        self.layer = torch.nn.Conv1d(
             in_channels  = num_in_ch,
             out_channels = num_out_ch,
             kernel_size  = kernel_size,
-            padding      = padding,
-            stride       = 1
+            stride       = 1,
+            padding      = padding
         )
         self.activation = None
         if config.act_type == 'lrelu':
@@ -99,8 +99,8 @@ class ConvolutionModule(torch.nn.Module):
         assert num_filters     >  0
 
         # Defining input layer.
-        padding = kernel_size / 2 - 1
-        first_layer = torch.nn.Conv2d(1, num_filters, kernel_size, padding, 1)
+        padding = kernel_size // 2 - 1
+        first_layer = torch.nn.Conv1d(1, num_filters, kernel_size, 1, padding)
         first_activation = None
         if config.act_type == 'lrelu':
             first_activation = torch.nn.LeakyReLU(config.act_param)
@@ -110,8 +110,10 @@ class ConvolutionModule(torch.nn.Module):
             ConvLayerWithAct(num_filters, num_filters, kernel_size) for hidden_layer in range(num_conv_layers - 1)
         ]
 
+        self.transition_size = output_size * num_filters
+
         # Defining first dense layer.
-        first_fc = DenseLayerWithAct((output_size + 2) * num_filters, output_size, 0.0)
+        first_fc = DenseLayerWithAct(self.transition_size, output_size, 0.0)
 
         # Defining other dense layers.
         dense_block = [
@@ -119,16 +121,19 @@ class ConvolutionModule(torch.nn.Module):
         ]
 
         # Defining full architecture.
-        self.net = torch.nn.Sequential(
+        self.conv_net = torch.nn.Sequential(
             first_layer,
-            first_activation,
-            *hidden_conv_block,
+            *hidden_conv_block
+        ).double()
+        self.dense_net = torch.nn.Sequential(
             first_fc,
             *dense_block
         ).double()
 
     def forward(self, x):
-        return self.net(x)
+        x1 = self.conv_net(torch.unsqueeze(x, 1))
+        x2 = x1.view(-1, self.transition_size)
+        return self.dense_net(x2)
 
 
 # Ensemble of dense networks.
@@ -168,6 +173,12 @@ class Model:
             num_layers = model_specific_params[0]
             network_width = model_specific_params[1]
             self.net = EnsembleDenseModule(num_layers, output_size, network_width, dropout_prob)
+        elif module_name == "CNNModule":
+            num_conv_layers = model_specific_params[0]
+            kernel_size = model_specific_params[1]
+            num_filters = model_specific_params[2]
+            num_fc_layers = model_specific_params[3]
+            self.net = ConvolutionModule(num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers)
         else:
             raise Exception("Invalid model selection.")
 
@@ -178,7 +189,7 @@ class Model:
             raise Exception("Invalid loss function selection.")
 
         # Defining learning parameters.
-        if module_name == 'EDenseModule':
+        if module_name == 'DenseModule' or module_name == "CNNModule":
             params = self.net.parameters()
         elif module_name == 'EnsembleDenseModule':
             params = []
@@ -206,8 +217,8 @@ class Model:
 def create_new_model(learning_rate, dropout_prob, model_specific_params):
     if config.model_name == 'GlobalDense':
         return Model('DenseModule', learning_rate, dropout_prob, model_specific_params)
-    elif config.model_name == 'CNNModule':
-        return Model('CNNModule', config.num_layers, config.N_coarse + 2, config.N_coarse, config.N_coarse + 2)
+    elif config.model_name == 'GlobalCNN':
+        return Model('CNNModule', learning_rate, dropout_prob, model_specific_params)
     elif config.model_name == 'LocalDense':
         return Model('EnsembleDenseModule', learning_rate, dropout_prob, model_specific_params)
     else:
