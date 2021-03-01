@@ -191,10 +191,14 @@ class Model:
         # Defining learning parameters.
         if module_name == 'DenseModule' or module_name == "CNNModule":
             params = self.net.parameters()
+            print("Number of trainable parameters:", sum(p.numel() for p in self.net.parameters()))
         elif module_name == 'EnsembleDenseModule':
             params = []
+            num_params = 0
             for i in range(len(self.net.nets)):
                 params += list(self.net.nets[i].parameters())
+                num_params += sum(p.numel() for p in self.net.nets[i].parameters())
+            print("Number of trainable parameters:", num_params)
             for param in params:
                 param.requires_grad = True
         else:
