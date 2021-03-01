@@ -67,9 +67,11 @@ def main():
         if config.model_name == 'GlobalDense':
             model_specific_params = [config.num_layers, config.hidden_layer_size]
         elif config.model_name == 'LocalDense':
-            model_specific_params = [config.num_layers, 5]
+            model_specific_params = [config.num_layers, 9]
         elif config.model_name == 'GlobalCNN':
             model_specific_params = [config.num_layers, 3, 20, 1]
+        elif config.model_name == 'Ensemble':
+            model_specific_params = [config.N_coarse, config.num_layers, config.hidden_layer_size]
         model = models.create_new_model(
             config.learning_rate, config.dropout_prob, model_specific_params
         )

@@ -154,15 +154,22 @@ class EnsembleDenseModule(torch.nn.Module):
             output[:,i] = torch.squeeze(self.nets[i](stencil), 1)
         return output
 
+class EnsembleWrapper:
+    def __init__(self, module_name, learning_rate, dropout_prob, input_size, output_size, model_specific_params):
+        if module_name == "DenseModule":
+            num_networks = model_specific_params[0]
+            depth = model_specific_params[1]
+            width = model_specific_params[2]
+            self.nets = [Model("DenseModule", learning_rate, dropout_prob, input_size, output_size, [depth, width]) for i in range(num_networks)]
+        else:
+            raise Exception("Incorrect module selection.")
+
 ########################################################################################################################
 # Full model, consisting of network, loss function, optimizer and information storage facilitation.
 
 class Model:
-    def __init__(self, module_name, learning_rate, dropout_prob, model_specific_params):
-
+    def __init__(self, module_name, learning_rate, dropout_prob, input_size, output_size, model_specific_params):
         # Defining network architecture.
-        input_size = config.N_coarse + 2
-        output_size = config.N_coarse
         if module_name == 'DenseModule':
             num_layers = model_specific_params[0]
             hidden_size = model_specific_params[1]
@@ -220,11 +227,13 @@ class Model:
 
 def create_new_model(learning_rate, dropout_prob, model_specific_params):
     if config.model_name == 'GlobalDense':
-        return Model('DenseModule', learning_rate, dropout_prob, model_specific_params)
+        return Model('DenseModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
     elif config.model_name == 'GlobalCNN':
-        return Model('CNNModule', learning_rate, dropout_prob, model_specific_params)
+        return Model('CNNModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
     elif config.model_name == 'LocalDense':
-        return Model('EnsembleDenseModule', learning_rate, dropout_prob, model_specific_params)
+        return Model('EnsembleDenseModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
+    elif config.model_name == 'Ensemble':
+        return EnsembleWrapper('DenseModule', learning_rate, dropout_prob, 3, 1, model_specific_params)
     else:
         raise Exception("Invalid model selection.")
 

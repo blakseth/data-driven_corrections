@@ -24,16 +24,17 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "2021-02-28_s1_cnn_no_aug"
-system    = "1"
-data_tag  = "system1_sst_no_aug"
-model_key = 1
+run_name  = "2021-03-01_aux2"
+system    = "9"
+data_tag  = "system9_sst_no_aug"
+model_key = 3
 model_is_hybrid = True
 
 model_types = [
     'GlobalDense',
     'GlobalCNN',
     'LocalDense',
+    'Ensemble'
 ]
 model_name = model_types[model_key]
 
@@ -796,9 +797,9 @@ profile_save_steps = np.asarray([1, int(np.sqrt(N_test_examples)), N_test_exampl
 ########################################################################################################################
 # Model configuration.
 
-num_layers = 5
+num_layers = 9
 
-hidden_layer_size = 60
+hidden_layer_size = 9
 
 loss_func = 'MSE'
 
