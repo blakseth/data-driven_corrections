@@ -24,8 +24,8 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "testing_several_runs_at_once"
-run_names  = [["testing_several_runs_at_once_s1", "testing_several_runs_at_once_s2A"]]
+group_name = "print_test"
+run_names  = [["print_test_s1", "print_test_s2A"]]
 systems    = ["1", "2A"]
 data_tags  = ["test1", "test2A"]
 model_keys = [4]
@@ -674,7 +674,15 @@ class Config:
         self.shift_step_size = 5
 
         # Test iterations at which temperature profiles are saved.
-        self.profile_save_steps = np.asarray([1, int(np.sqrt(self.N_test_examples)), self.N_test_examples]) - 1
+        self.profile_save_steps = np.asarray([
+            1,
+            int(self.N_test_examples**(1/5)),
+            int(self.N_test_examples**(1/3)),
+            int(np.sqrt(self.N_test_examples)),
+            int(self.N_test_examples**(5/7)),
+            int(self.N_test_examples**(6/7)),
+            self.N_test_examples
+        ]) - 1
 
         ########################################################################################################################
         # Model configuration.
@@ -697,10 +705,11 @@ class Config:
         ########################################################################################################################
         # Training configuration.
 
-        self.max_train_it = int(1e3)
+        self.max_train_it = int(1e2)
         self.min_train_it = int(1e2)
 
-        self.print_train_loss_period = int(1e2)  # Number of training iterations per print of training losses.
+        self.save_train_loss_period = int(1e1)  # Number of training iterations per save of training losses.
+        self.print_train_loss_period = int(2e1) # Number of training iterations per save of training losses.
         self.save_model_period = int(5e10)  # Number of training iterations per model save.
         self.validation_period = int(1e2)  # Number of training iterations per validation.
 

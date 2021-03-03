@@ -45,6 +45,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
     plt.grid()
     plt.legend(prop={'size': 17})
     plt.savefig(os.path.join(cfg.run_dir, "error_stats.pdf"), bbox_inches='tight')
+    plt.close()
 
     if cfg.exact_solution_available:
         t0 = (cfg.train_examples_ratio + cfg.test_examples_ratio)*cfg.t_end
@@ -54,7 +55,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         plot_times = plot_stats_dict['time']
 
     if 'cor_means_mean' in error_stats_dict.keys():
-        labels = ['Hybrid modelling', 'Uncorrected']
+        labels = ['ML-corrected', 'Uncorrected']
         avgs = [error_stats_dict['cor_means_mean'], error_stats_dict['unc_means_mean']]
         devs = [error_stats_dict['cor_stds_mean'], error_stats_dict['unc_stds_mean']]
         print(labels)
@@ -83,6 +84,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         fig.tight_layout()
 
         plt.savefig(os.path.join(cfg.run_dir, "histogram.pdf"), bbox_inches='tight')
+        plt.close()
         with open(os.path.join(cfg.run_dir, "histogram_data" + ".txt"), "w") as f:
             f.write(str(labels) + "\n")
             f.write("avgs: " + str(avgs) + "\n")
@@ -111,6 +113,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         plt.grid()
         plt.legend(prop={'size': 17})
         plt.savefig(os.path.join(cfg.run_dir, "profiles" + str(i) + ".pdf"), bbox_inches='tight')
+        plt.close()
 
     # Visualize correction source terms (if applicable).
     if 'src_mean' in plot_stats_dict.keys():
@@ -132,8 +135,9 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             plt.grid()
             plt.legend(prop={'size': 17})
             plt.savefig(os.path.join(cfg.run_dir, "src_profiles" + str(i) + ".pdf"), bbox_inches='tight')
+            plt.close()
 
-    plt.show()
+    #plt.show()
 
 
 ########################################################################################################################
@@ -452,6 +456,7 @@ def simulation_test(cfg, model, num):
     plt.grid()
     plt.legend()
     plt.savefig(os.path.join(cfg.run_dir, "differences.pdf"), bbox_inches='tight')
+    plt.close()
 
     return error_dict, plot_data_dict
 

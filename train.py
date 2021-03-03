@@ -55,9 +55,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                     else:
                         loss = model.nets[m].loss(out_stencil, ref_stencil)
 
-                    if it % cfg.print_train_loss_period == 0:
-                        if m == 0:
-                            print(it, loss.item())
+                    if it % cfg.print_train_loss_period == 0 and m == 0:
+                        print(it, loss.item())
+                    if it % cfg.save_train_loss_period == 0:
                         model.nets[m].train_losses.append(loss.item())
                         model.nets[m].train_iterations.append(it)
 
@@ -84,7 +84,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 total_val_loss += val_loss
                                 model.nets[m].val_losses.append(val_loss.item())
                                 model.nets[m].val_iterations.append(it)
-                    print(it, "val", total_val_loss)
+                    #print(it, "val", total_val_loss)
                     if total_val_loss < lowest_val_los:
                         lowest_val_los = total_val_loss
                         val_epoch_since_improvement = 0
@@ -111,6 +111,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
                 if it % cfg.print_train_loss_period == 0:
                     print(it, loss.item())
+                if it % cfg.save_train_loss_period == 0:
                     model.train_losses.append(loss.item())
                     model.train_iterations.append(it)
 
@@ -145,16 +146,16 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
         for m in range(len(model.nets)):
             train_losses[m] = model.nets[m].train_losses
         train_losses = np.sum(train_losses, axis=0)
-        print("train_losses.shape:", train_losses.shape)
+        #print("train_losses.shape:", train_losses.shape)
         val_losses = np.zeros((len(model.nets), len(model.nets[0].val_losses)))
         for m in range(len(model.nets)):
-            print("model.nets[m].val_losses:", model.nets[m].val_losses)
+            #print("model.nets[m].val_losses:", model.nets[m].val_losses)
             val_losses[m] = model.nets[m].val_losses
         val_losses = np.sum(val_losses, axis=0)
-        print("val_losses.shape:", val_losses.shape)
+        #print("val_losses.shape:", val_losses.shape)
         train_iterations = model.nets[0].train_iterations
         val_iterations = model.nets[0].val_iterations
-        print("len(val_iterations):", len(val_iterations))
+        #print("len(val_iterations):", len(val_iterations))
     else:
         train_losses = model.train_losses
         val_losses = model.val_losses
@@ -172,6 +173,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
     plt.legend()
     plt.grid()
     plt.savefig(os.path.join(cfg.run_dir, "training_and_val_loss" + str(num) + ".pdf"))
+    plt.close()
     #print("Ticks:", np.arange(np.log10(min_loss), np.log(max_loss) + 1, 1.0))
 
     data_dict = dict()

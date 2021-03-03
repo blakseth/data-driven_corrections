@@ -149,7 +149,7 @@ class EnsembleDenseModule(torch.nn.Module):
         # Define one locally-correcting network per output node.
         self.nets = [DenseModule(cfg, num_layers, 3, 1, network_width, dropout_prob) for i in range(output_size)]
 
-        print("\n\nNUMBER OF NETS:", len(self.nets))
+        #print("\n\nNUMBER OF NETS:", len(self.nets))
 
     def forward(self, x):
         # TODO: Is it possible to make this more efficient?
@@ -219,18 +219,18 @@ class Model:
         # Defining learning parameters.
         if module_name == 'DenseModule' or module_name == "CNNModule":
             params = self.net.parameters()
-            print("Number of trainable parameters:", sum(p.numel() for p in self.net.parameters()))
+            num_params = sum(p.numel() for p in self.net.parameters())
         elif module_name == 'EnsembleDenseModule':
             params = []
             num_params = 0
             for i in range(len(self.net.nets)):
                 params += list(self.net.nets[i].parameters())
                 num_params += sum(p.numel() for p in self.net.nets[i].parameters())
-            print("Number of trainable parameters:", num_params)
             for param in params:
                 param.requires_grad = True
         else:
             raise Exception("Invalid model selection.")
+        self.num_params = num_params
         self.learning_rate = cfg.learning_rate
         if cfg.optimizer == 'adam':
             self.optimizer = torch.optim.Adam(params, lr=self.learning_rate)
