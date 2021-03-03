@@ -43,7 +43,7 @@ def train(model, num, dataloader_train, dataloader_val):
             ref_data = data[1] # ref = reference.
             src_data = data[2] # src = source.
 
-            if config.model_name == "Ensemble":
+            if config.model_name[:8] == "Ensemble":
                 for m in range(len(model.nets)):
                     model.nets[m].net.train()
 
@@ -142,7 +142,7 @@ def train(model, num, dataloader_train, dataloader_val):
                             else:
                                 val_epoch_since_improvement += 1
 
-    if config.model_name == "Ensemble":
+    if config.model_name[:8] == "Ensemble":
         train_losses = np.zeros((len(model.nets), len(model.nets[0].train_losses)))
         for m in range(len(model.nets)):
             train_losses[m] = model.nets[m].train_losses

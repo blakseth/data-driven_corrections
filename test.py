@@ -213,7 +213,7 @@ def save_test_data(error_dicts, plot_data_dicts):
 # Testing ML-model.
 
 def single_step_test(model, num):
-    if config.model_name == "Ensemble":
+    if config.model_name[:8] == "Ensemble":
         for m in range(len(model.nets)):
             model.nets[m].net.eval()
     else:
@@ -260,7 +260,7 @@ def single_step_test(model, num):
         IC = ICs[i] # The profile at old_time which was used to generate new_unc, which is a profile at new_time.
 
         new_cor = np.zeros_like(new_unc)
-        if config.model_name == "Ensemble":
+        if config.model_name[:8] == "Ensemble":
             if config.model_is_hybrid:
                 new_src = np.zeros(new_unc.shape[0] - 2)
                 for m in range(len(model.nets)):

@@ -160,7 +160,24 @@ class EnsembleWrapper:
             num_networks = model_specific_params[0]
             depth = model_specific_params[1]
             width = model_specific_params[2]
-            self.nets = [Model("DenseModule", learning_rate, dropout_prob, input_size, output_size, [depth, width]) for i in range(num_networks)]
+            self.nets = [
+                Model("DenseModule", learning_rate, dropout_prob,
+                      input_size, output_size, [depth, width]
+                )
+                for i in range(num_networks)
+            ]
+        elif module_name == "CNNModule":
+            num_networks = model_specific_params[0]
+            num_conv_layers = model_specific_params[1]
+            kernel_size = model_specific_params[2]
+            num_filters = model_specific_params[3]
+            num_fc_layers = model_specific_params[4]
+            self.nets = [
+                Model("CNNModule", learning_rate, dropout_prob, input_size, output_size,
+                      [num_conv_layers, kernel_size, num_filters, num_fc_layers]
+                )
+                for i in range(num_networks)
+            ]
         else:
             raise Exception("Incorrect module selection.")
 
@@ -232,8 +249,10 @@ def create_new_model(learning_rate, dropout_prob, model_specific_params):
         return Model('CNNModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
     elif config.model_name == 'LocalDense':
         return Model('EnsembleDenseModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
-    elif config.model_name == 'Ensemble':
+    elif config.model_name == 'EnsembleLocalDense':
         return EnsembleWrapper('DenseModule', learning_rate, dropout_prob, 3, 1, model_specific_params)
+    elif config.model_name == 'EnsembleGlobalCNN':
+        return EnsembleWrapper('CNNModule', learning_rate, dropout_prob, config.N_coarse + 2, 1, model_specific_params)
     else:
         raise Exception("Invalid model selection.")
 

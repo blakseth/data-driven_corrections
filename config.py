@@ -24,17 +24,18 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Run configuration.
 
-run_name  = "2021-03-01_aux2"
+run_name  = "2021-03-02_make_new_histograms"
 system    = "9"
 data_tag  = "system9_sst_no_aug"
-model_key = 3
+model_key = 4
 model_is_hybrid = True
 
 model_types = [
     'GlobalDense',
     'GlobalCNN',
     'LocalDense',
-    'Ensemble'
+    'EnsembleLocalDense',
+    'EnsembleGlobalCNN'
 ]
 model_name = model_types[model_key]
 
@@ -797,7 +798,7 @@ profile_save_steps = np.asarray([1, int(np.sqrt(N_test_examples)), N_test_exampl
 ########################################################################################################################
 # Model configuration.
 
-num_layers = 9
+num_layers = 5
 
 hidden_layer_size = 9
 

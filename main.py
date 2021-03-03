@@ -70,8 +70,11 @@ def main():
             model_specific_params = [config.num_layers, 9]
         elif config.model_name == 'GlobalCNN':
             model_specific_params = [config.num_layers, 3, 20, 1]
-        elif config.model_name == 'Ensemble':
+        elif config.model_name == 'EnsembleLocalDense':
             model_specific_params = [config.N_coarse, config.num_layers, config.hidden_layer_size]
+        elif config.model_name == 'EnsembleGlobalCNN':
+            # [No. networks, No. conv layers, Kernel size, No. channels, No. FC layers at end]
+            model_specific_params = [config.N_coarse, config.num_layers, 3, 20, 1]
         model = models.create_new_model(
             config.learning_rate, config.dropout_prob, model_specific_params
         )
