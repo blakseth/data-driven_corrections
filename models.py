@@ -21,13 +21,13 @@ import config
 
 # Dense layer with activation function and (possibly) dropout.
 class DenseLayerWithAct(torch.nn.Module):
-    def __init__(self, input_size, output_size, dropout_probs):
+    def __init__(self, cfg, input_size, output_size, dropout_probs):
         super(DenseLayerWithAct, self).__init__()
         self.layer = torch.nn.Linear(input_size, output_size)
         self.activation = None
         self.dropout = torch.nn.Dropout(dropout_probs)
-        if config.act_type == 'lrelu':
-            self.activation = torch.nn.LeakyReLU(config.act_param)
+        if cfg.act_type == 'lrelu':
+            self.activation = torch.nn.LeakyReLU(cfg.act_param)
         else:
             raise Exception("Invalid loss function selection.")
 
@@ -36,7 +36,7 @@ class DenseLayerWithAct(torch.nn.Module):
 
 # Convolution layer with activation function and (possibly) dropout.
 class ConvLayerWithAct(torch.nn.Module):
-    def __init__(self, num_in_ch, num_out_ch, kernel_size):
+    def __init__(self, cfg, num_in_ch, num_out_ch, kernel_size):
         super(ConvLayerWithAct, self).__init__()
         padding = kernel_size // 2
         self.layer = torch.nn.Conv1d(
@@ -47,8 +47,8 @@ class ConvLayerWithAct(torch.nn.Module):
             padding      = padding
         )
         self.activation = None
-        if config.act_type == 'lrelu':
-            self.activation = torch.nn.LeakyReLU(config.act_param)
+        if cfg.act_type == 'lrelu':
+            self.activation = torch.nn.LeakyReLU(cfg.act_param)
         else:
             raise Exception("Invalid loss function selection.")
 
@@ -57,7 +57,7 @@ class ConvLayerWithAct(torch.nn.Module):
 
 # Network of dense layers.
 class DenseModule(torch.nn.Module):
-    def __init__(self, num_layers, input_size, output_size, hidden_size = 0, dropout_prob = 0):
+    def __init__(self, cfg, num_layers, input_size, output_size, hidden_size = 0, dropout_prob = 0):
         assert num_layers >= 2
         assert num_layers == 2 or hidden_size > 0
         assert input_size > 0 and output_size > 0
@@ -66,12 +66,12 @@ class DenseModule(torch.nn.Module):
         # Defining input layer.
         first_layer = torch.nn.Linear(input_size, hidden_size)
         first_activation = None
-        if config.act_type == 'lrelu':
-            first_activation = torch.nn.LeakyReLU(config.act_param)
+        if cfg.act_type == 'lrelu':
+            first_activation = torch.nn.LeakyReLU(cfg.act_param)
 
         # Defining hidden layers.
         hidden_block = [
-            DenseLayerWithAct(hidden_size, hidden_size, dropout_prob) for hidden_layer in range(num_layers - 2)
+            DenseLayerWithAct(cfg, hidden_size, hidden_size, dropout_prob) for hidden_layer in range(num_layers - 2)
         ]
 
         # Defining output layer.
@@ -90,7 +90,7 @@ class DenseModule(torch.nn.Module):
 
 # Network of 1D convolution layers, possibly with dense layers at the end.
 class ConvolutionModule(torch.nn.Module):
-    def __init__(self, num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers):
+    def __init__(self, cfg, num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers):
         super(ConvolutionModule, self).__init__()
         assert num_conv_layers >  0
         assert num_fc_layers   >  0
@@ -102,23 +102,28 @@ class ConvolutionModule(torch.nn.Module):
         padding = kernel_size // 2 - 1
         first_layer = torch.nn.Conv1d(1, num_filters, kernel_size, 1, padding)
         first_activation = None
-        if config.act_type == 'lrelu':
-            first_activation = torch.nn.LeakyReLU(config.act_param)
+        if cfg.act_type == 'lrelu':
+            first_activation = torch.nn.LeakyReLU(cfg.act_param)
 
         # Defining hidden conv layers.
         hidden_conv_block = [
-            ConvLayerWithAct(num_filters, num_filters, kernel_size) for hidden_layer in range(num_conv_layers - 1)
+            ConvLayerWithAct(cfg, num_filters, num_filters, kernel_size) for hidden_layer in range(num_conv_layers - 1)
         ]
 
         self.transition_size = output_size * num_filters
 
         # Defining first dense layer.
-        first_fc = DenseLayerWithAct(self.transition_size, output_size, 0.0)
+        if num_fc_layers > 1:
+            first_fc = DenseLayerWithAct(cfg, self.transition_size, output_size, 0.0)
+        else:
+            first_fc = torch.nn.Linear(self.transition_size, output_size)
 
         # Defining other dense layers.
         dense_block = [
-            DenseLayerWithAct(output_size, output_size, 0.0) for fc_layer in range(num_fc_layers - 1)
+            DenseLayerWithAct(cfg, output_size, output_size, 0.0) for fc_layer in range(num_fc_layers - 2)
         ]
+        if num_fc_layers > 1:
+            dense_block.append(torch.nn.Linear(output_size, output_size))
 
         # Defining full architecture.
         self.conv_net = torch.nn.Sequential(
@@ -138,11 +143,11 @@ class ConvolutionModule(torch.nn.Module):
 
 # Ensemble of dense networks.
 class EnsembleDenseModule(torch.nn.Module):
-    def __init__(self, num_layers, output_size, network_width, dropout_prob):
+    def __init__(self, cfg, num_layers, output_size, network_width, dropout_prob):
         super(EnsembleDenseModule, self).__init__()
 
         # Define one locally-correcting network per output node.
-        self.nets = [DenseModule(num_layers, 3, 1, network_width, dropout_prob) for i in range(output_size)]
+        self.nets = [DenseModule(cfg, num_layers, 3, 1, network_width, dropout_prob) for i in range(output_size)]
 
         print("\n\nNUMBER OF NETS:", len(self.nets))
 
@@ -155,14 +160,13 @@ class EnsembleDenseModule(torch.nn.Module):
         return output
 
 class EnsembleWrapper:
-    def __init__(self, module_name, learning_rate, dropout_prob, input_size, output_size, model_specific_params):
+    def __init__(self, cfg, module_name, input_size, output_size, model_specific_params):
         if module_name == "DenseModule":
             num_networks = model_specific_params[0]
             depth = model_specific_params[1]
             width = model_specific_params[2]
             self.nets = [
-                Model("DenseModule", learning_rate, dropout_prob,
-                      input_size, output_size, [depth, width]
+                Model(cfg, "DenseModule", input_size, output_size, [depth, width]
                 )
                 for i in range(num_networks)
             ]
@@ -173,7 +177,7 @@ class EnsembleWrapper:
             num_filters = model_specific_params[3]
             num_fc_layers = model_specific_params[4]
             self.nets = [
-                Model("CNNModule", learning_rate, dropout_prob, input_size, output_size,
+                Model(cfg, "CNNModule", input_size, output_size,
                       [num_conv_layers, kernel_size, num_filters, num_fc_layers]
                 )
                 for i in range(num_networks)
@@ -185,29 +189,29 @@ class EnsembleWrapper:
 # Full model, consisting of network, loss function, optimizer and information storage facilitation.
 
 class Model:
-    def __init__(self, module_name, learning_rate, dropout_prob, input_size, output_size, model_specific_params):
+    def __init__(self, cfg, module_name, input_size, output_size, model_specific_params):
         # Defining network architecture.
         if module_name == 'DenseModule':
             num_layers = model_specific_params[0]
             hidden_size = model_specific_params[1]
             assert num_layers >= 2
             assert num_layers == 2 or hidden_size > 0
-            self.net = DenseModule(num_layers, input_size, output_size, hidden_size, dropout_prob)
+            self.net = DenseModule(cfg, num_layers, input_size, output_size, hidden_size, cfg.dropout_prob)
         elif module_name == 'EnsembleDenseModule':
             num_layers = model_specific_params[0]
             network_width = model_specific_params[1]
-            self.net = EnsembleDenseModule(num_layers, output_size, network_width, dropout_prob)
+            self.net = EnsembleDenseModule(cfg, num_layers, output_size, network_width, cfg.dropout_prob)
         elif module_name == "CNNModule":
             num_conv_layers = model_specific_params[0]
             kernel_size = model_specific_params[1]
             num_filters = model_specific_params[2]
             num_fc_layers = model_specific_params[3]
-            self.net = ConvolutionModule(num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers)
+            self.net = ConvolutionModule(cfg, num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers)
         else:
             raise Exception("Invalid model selection.")
 
         # Defining loss function.
-        if config.loss_func == 'MSE':
+        if cfg.loss_func == 'MSE':
             self.loss = torch.nn.MSELoss(reduction='mean')
         else:
             raise Exception("Invalid loss function selection.")
@@ -227,9 +231,9 @@ class Model:
                 param.requires_grad = True
         else:
             raise Exception("Invalid model selection.")
-        self.learning_rate = config.learning_rate
-        if config.optimizer == 'adam':
-            self.optimizer = torch.optim.Adam(params, lr=learning_rate)
+        self.learning_rate = cfg.learning_rate
+        if cfg.optimizer == 'adam':
+            self.optimizer = torch.optim.Adam(params, lr=self.learning_rate)
         else:
             raise Exception("Invalid optimizer selection.")
 
@@ -242,17 +246,17 @@ class Model:
 ########################################################################################################################
 # Creating a new model.
 
-def create_new_model(learning_rate, dropout_prob, model_specific_params):
-    if config.model_name == 'GlobalDense':
-        return Model('DenseModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
-    elif config.model_name == 'GlobalCNN':
-        return Model('CNNModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
-    elif config.model_name == 'LocalDense':
-        return Model('EnsembleDenseModule', learning_rate, dropout_prob, config.N_coarse + 2, config.N_coarse, model_specific_params)
-    elif config.model_name == 'EnsembleLocalDense':
-        return EnsembleWrapper('DenseModule', learning_rate, dropout_prob, 3, 1, model_specific_params)
-    elif config.model_name == 'EnsembleGlobalCNN':
-        return EnsembleWrapper('CNNModule', learning_rate, dropout_prob, config.N_coarse + 2, 1, model_specific_params)
+def create_new_model(cfg, model_specific_params):
+    if cfg.model_name == 'GlobalDense':
+        return Model(cfg, 'DenseModule', cfg.N_coarse + 2, cfg.N_coarse, model_specific_params)
+    elif cfg.model_name == 'GlobalCNN':
+        return Model(cfg, 'CNNModule', cfg.N_coarse + 2, cfg.N_coarse, model_specific_params)
+    elif cfg.model_name == 'LocalDense':
+        return Model(cfg, 'EnsembleDenseModule', cfg.N_coarse + 2, cfg.N_coarse, model_specific_params)
+    elif cfg.model_name == 'EnsembleLocalDense':
+        return EnsembleWrapper(cfg, 'DenseModule', 3, 1, model_specific_params)
+    elif cfg.model_name == 'EnsembleGlobalCNN':
+        return EnsembleWrapper(cfg, 'CNNModule', cfg.N_coarse + 2, 1, model_specific_params)
     else:
         raise Exception("Invalid model selection.")
 

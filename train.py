@@ -17,15 +17,13 @@ import torch
 
 ########################################################################################################################
 # File imports.
-import config
-from datasets import load_datasets
 
 ########################################################################################################################
 # Training ML-model.
 
-def train(model, num, dataloader_train, dataloader_val):
+def train(cfg, model, num, dataloader_train, dataloader_val):
     it_per_epoch = len(dataloader_train)
-    num_epochs = config.max_train_it // it_per_epoch + 1
+    num_epochs = cfg.max_train_it // it_per_epoch + 1
 
     it = 0
 
@@ -34,7 +32,7 @@ def train(model, num, dataloader_train, dataloader_val):
 
     for epoch in range(num_epochs):
         for i, data in enumerate(dataloader_train):
-            if it >= config.max_train_it or (val_epoch_since_improvement >= config.overfit_limit and it >= config.min_train_it):
+            if it >= cfg.max_train_it or (val_epoch_since_improvement >= cfg.overfit_limit and it >= cfg.min_train_it):
                 break
 
             it += 1
@@ -43,7 +41,7 @@ def train(model, num, dataloader_train, dataloader_val):
             ref_data = data[1] # ref = reference.
             src_data = data[2] # src = source.
 
-            if config.model_name[:8] == "Ensemble":
+            if cfg.model_name[:8] == "Ensemble":
                 for m in range(len(model.nets)):
                     model.nets[m].net.train()
 
@@ -52,12 +50,12 @@ def train(model, num, dataloader_train, dataloader_val):
                     src_stencil = src_data[:, m:m + 1].clone()
                     out_stencil = model.nets[m].net(unc_stencil)
 
-                    if config.model_is_hybrid:
+                    if cfg.model_is_hybrid:
                         loss = model.nets[m].loss(out_stencil, src_stencil)
                     else:
                         loss = model.nets[m].loss(out_stencil, ref_stencil)
 
-                    if it % config.print_train_loss_period == 0:
+                    if it % cfg.print_train_loss_period == 0:
                         if m == 0:
                             print(it, loss.item())
                         model.nets[m].train_losses.append(loss.item())
@@ -69,7 +67,7 @@ def train(model, num, dataloader_train, dataloader_val):
 
                     model.nets[m].optimizer.step()
 
-                if it % config.validation_period == 0:
+                if it % cfg.validation_period == 0:
                     total_val_loss = 0.0
                     for m in range(len(model.nets)):
                         model.nets[m].net.eval()
@@ -79,7 +77,7 @@ def train(model, num, dataloader_train, dataloader_val):
                                 ref_data_val = val_data[1][:,m+1:m+2].clone()
                                 src_data_val = val_data[2][:,m:m+1].clone()
                                 out_data_val = model.nets[m].net(unc_data_val)
-                                if config.model_is_hybrid:
+                                if cfg.model_is_hybrid:
                                     val_loss = model.nets[m].loss(out_data_val, src_data_val)
                                 else:
                                     val_loss = model.nets[m].loss(out_data_val, ref_data_val)
@@ -97,13 +95,13 @@ def train(model, num, dataloader_train, dataloader_val):
 
                 out_data = model.net(unc_data) # out = output (corrected profile or predicted correction source term).
 
-                if config.model_is_hybrid:
+                if cfg.model_is_hybrid:
                     loss = model.loss(out_data, src_data)
                 else:
                     loss = model.loss(out_data, ref_data[:, 1:-1])
 
                 """
-                if it == config.num_train_it:
+                if it == cfg.num_train_it:
                     print("unc_data:", unc_data)
                     print("ref_data:", ref_data)
                     print("src_data:", src_data)
@@ -111,7 +109,7 @@ def train(model, num, dataloader_train, dataloader_val):
                     print("loss:", loss)
                 """
 
-                if it % config.print_train_loss_period == 0:
+                if it % cfg.print_train_loss_period == 0:
                     print(it, loss.item())
                     model.train_losses.append(loss.item())
                     model.train_iterations.append(it)
@@ -122,7 +120,7 @@ def train(model, num, dataloader_train, dataloader_val):
 
                 model.optimizer.step()
 
-                if it % config.validation_period == 0:
+                if it % cfg.validation_period == 0:
                     model.net.eval()
                     with torch.no_grad():
                         for j, val_data in enumerate(dataloader_val):
@@ -130,7 +128,7 @@ def train(model, num, dataloader_train, dataloader_val):
                             ref_data_val = val_data[1]
                             src_data_val = val_data[2]
                             out_data_val = model.net(unc_data_val)
-                            if config.model_is_hybrid:
+                            if cfg.model_is_hybrid:
                                 val_loss = model.loss(out_data_val, src_data_val)
                             else:
                                 val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
@@ -142,7 +140,7 @@ def train(model, num, dataloader_train, dataloader_val):
                             else:
                                 val_epoch_since_improvement += 1
 
-    if config.model_name[:8] == "Ensemble":
+    if cfg.model_name[:8] == "Ensemble":
         train_losses = np.zeros((len(model.nets), len(model.nets[0].train_losses)))
         for m in range(len(model.nets)):
             train_losses[m] = model.nets[m].train_losses
@@ -173,13 +171,13 @@ def train(model, num, dataloader_train, dataloader_val):
     ax1.set_yticks([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2])
     plt.legend()
     plt.grid()
-    plt.savefig(os.path.join(config.run_dir, "training_and_val_loss" + str(num) + ".pdf"))
+    plt.savefig(os.path.join(cfg.run_dir, "training_and_val_loss" + str(num) + ".pdf"))
     #print("Ticks:", np.arange(np.log10(min_loss), np.log(max_loss) + 1, 1.0))
 
     data_dict = dict()
     data_dict['Training loss'] = np.asarray([train_iterations, train_losses])
     data_dict['Validation loss'] = np.asarray([val_iterations, val_losses])
-    pickle.dump(data_dict, open(os.path.join(config.run_dir, "plot_data_loss_training_and_val" + str(num) + ".pkl"), "wb"))
+    pickle.dump(data_dict, open(os.path.join(cfg.run_dir, "plot_data_loss_training_and_val" + str(num) + ".pkl"), "wb"))
 
     return data_dict
 

@@ -18,7 +18,6 @@ import torch
 ########################################################################################################################
 # File imports.
 
-import config
 from datasets import load_datasets
 import models
 import physics
@@ -27,7 +26,7 @@ import util
 ########################################################################################################################
 # helper function for visualizing test data.
 
-def visualize_test_data(error_stats_dict, plot_stats_dict):
+def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
     # Visualize error stats.
     iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
 
@@ -45,12 +44,12 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
     plt.yticks(fontsize=17)
     plt.grid()
     plt.legend(prop={'size': 17})
-    plt.savefig(os.path.join(config.run_dir, "error_stats.pdf"), bbox_inches='tight')
+    plt.savefig(os.path.join(cfg.run_dir, "error_stats.pdf"), bbox_inches='tight')
 
-    if config.exact_solution_available:
-        t0 = (config.train_examples_ratio + config.test_examples_ratio)*config.t_end
-        plot_times = t0 + (config.profile_save_steps + 1)*config.dt_coarse
-        x_dense = np.linspace(config.x_a, config.x_b, num=1001, endpoint=True)
+    if cfg.exact_solution_available:
+        t0 = (cfg.train_examples_ratio + cfg.test_examples_ratio)*cfg.t_end
+        plot_times = t0 + (cfg.profile_save_steps + 1)*cfg.dt_coarse
+        x_dense = np.linspace(cfg.x_a, cfg.x_b, num=1001, endpoint=True)
     if 'time' in plot_stats_dict.keys():
         plot_times = plot_stats_dict['time']
 
@@ -83,8 +82,8 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
         #ax.set_ylim((0, 0.15))
         fig.tight_layout()
 
-        plt.savefig(os.path.join(config.run_dir, "histogram.pdf"), bbox_inches='tight')
-        with open(os.path.join(config.run_dir, "histogram_data" + ".txt"), "w") as f:
+        plt.savefig(os.path.join(cfg.run_dir, "histogram.pdf"), bbox_inches='tight')
+        with open(os.path.join(cfg.run_dir, "histogram_data" + ".txt"), "w") as f:
             f.write(str(labels) + "\n")
             f.write("avgs: " + str(avgs) + "\n")
             f.write("devs: " + str(devs) + "\n")
@@ -96,8 +95,8 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
                     s=40, facecolors='none', edgecolors='r', label="Uncorrected")
         plt.scatter(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], s=40,
                     facecolors='none', edgecolors='b', label="Corrected, mean")
-        if config.exact_solution_available:
-            plt.plot(x_dense, config.get_T_exact(x_dense, plot_times[i]), 'k-', linewidth=2.0, label="Reference")
+        if cfg.exact_solution_available:
+            plt.plot(x_dense, cfg.get_T_exact(x_dense, plot_times[i]), 'k-', linewidth=2.0, label="Reference")
         else:
             plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
         #plt.fill_between(plot_stats_dict['x'],
@@ -111,7 +110,7 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
         plt.yticks(fontsize=17)
         plt.grid()
         plt.legend(prop={'size': 17})
-        plt.savefig(os.path.join(config.run_dir, "profiles" + str(i) + ".pdf"), bbox_inches='tight')
+        plt.savefig(os.path.join(cfg.run_dir, "profiles" + str(i) + ".pdf"), bbox_inches='tight')
 
     # Visualize correction source terms (if applicable).
     if 'src_mean' in plot_stats_dict.keys():
@@ -119,7 +118,7 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
             plt.figure()
             plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
             plt.plot(x_dense,
-                     config.get_q_hat(x_dense, plot_times[i]) - config.get_q_hat_approx(x_dense, plot_times[i]),
+                     cfg.get_q_hat(x_dense, plot_times[i]) - cfg.get_q_hat_approx(x_dense, plot_times[i]),
                      'k-', linewidth=2.0, label="Reference")
             plt.fill_between(plot_stats_dict['x'][1:-1],
                              plot_stats_dict['src_mean'][i] + plot_stats_dict['src_std'][i],
@@ -132,7 +131,7 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
             plt.yticks(fontsize=17)
             plt.grid()
             plt.legend(prop={'size': 17})
-            plt.savefig(os.path.join(config.run_dir, "src_profiles" + str(i) + ".pdf"), bbox_inches='tight')
+            plt.savefig(os.path.join(cfg.run_dir, "src_profiles" + str(i) + ".pdf"), bbox_inches='tight')
 
     plt.show()
 
@@ -140,15 +139,15 @@ def visualize_test_data(error_stats_dict, plot_stats_dict):
 ########################################################################################################################
 # Helper function for saving test data.
 
-def save_test_data(error_dicts, plot_data_dicts):
+def save_test_data(cfg, error_dicts, plot_data_dicts):
     # Pickle raw data.
-    with open(os.path.join(config.run_dir, "error_data_raw" + ".pkl"), "wb") as f:
+    with open(os.path.join(cfg.run_dir, "error_data_raw" + ".pkl"), "wb") as f:
         pickle.dump(error_dicts, f)
-    with open(os.path.join(config.run_dir, "plot_data_raw" + ".pkl"), "wb") as f:
+    with open(os.path.join(cfg.run_dir, "plot_data_raw" + ".pkl"), "wb") as f:
         pickle.dump(plot_data_dicts, f)
 
     # Save raw error data in a text file for easy manual inspection.
-    with open(os.path.join(config.run_dir, "error_data_raw" + ".txt"), "w") as f:
+    with open(os.path.join(cfg.run_dir, "error_data_raw" + ".txt"), "w") as f:
         f.write("L2 error (corrected)\t\tL2 error (uncorrected)\n")
         for num, error_dict in enumerate(error_dicts):
             f.write("\nModel instance " + str(num) + "\n")
@@ -201,9 +200,9 @@ def save_test_data(error_dicts, plot_data_dicts):
     if 'src' in plot_data_dicts[0].keys():
         plot_stats_dict['src_mean'] = src_plot_mean
         plot_stats_dict['src_std']  = src_plot_std
-    with open(os.path.join(config.run_dir, "error_data_stats" + ".pkl"), "wb") as f:
+    with open(os.path.join(cfg.run_dir, "error_data_stats" + ".pkl"), "wb") as f:
         pickle.dump(error_stats_dict, f)
-    with open(os.path.join(config.run_dir, "plot_data_stats" + ".pkl"), "wb") as f:
+    with open(os.path.join(cfg.run_dir, "plot_data_stats" + ".pkl"), "wb") as f:
         pickle.dump(plot_stats_dict, f)
 
     return error_stats_dict, plot_stats_dict
@@ -212,14 +211,14 @@ def save_test_data(error_dicts, plot_data_dicts):
 ########################################################################################################################
 # Testing ML-model.
 
-def single_step_test(model, num):
-    if config.model_name[:8] == "Ensemble":
+def single_step_test(cfg, model, num):
+    if cfg.model_name[:8] == "Ensemble":
         for m in range(len(model.nets)):
             model.nets[m].net.eval()
     else:
         model.net.eval()
 
-    _, _, dataset_test = load_datasets(False, False, True)
+    _, _, dataset_test = load_datasets(cfg, False, False, True)
 
     unc_tensor = dataset_test[:][0].detach()
     ref_tensor = dataset_test[:][1].detach()
@@ -237,21 +236,21 @@ def single_step_test(model, num):
     unc = util.z_unnormalize(unc_tensor.numpy(), unc_mean, unc_std)
     ref = util.z_unnormalize(ref_tensor.numpy(), unc_mean, unc_std)
 
-    L2_errors_unc = np.zeros(config.N_test_examples)
-    L2_errors_cor = np.zeros(config.N_test_examples)
+    L2_errors_unc = np.zeros(cfg.N_test_examples)
+    L2_errors_cor = np.zeros(cfg.N_test_examples)
 
-    num_profile_plots = config.profile_save_steps.shape[0]
+    num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
-        'x': config.nodes_coarse,
-        'unc': np.zeros((num_profile_plots, config.nodes_coarse.shape[0])),
-        'ref': np.zeros((num_profile_plots, config.nodes_coarse.shape[0])),
-        'cor': np.zeros((num_profile_plots, config.nodes_coarse.shape[0])),
+        'x': cfg.nodes_coarse,
+        'unc': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'ref': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'cor': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
         'time': np.zeros(num_profile_plots)
     }
-    if config.model_is_hybrid and config.exact_solution_available:
-        plot_data_dict['src'] = np.zeros((num_profile_plots, config.nodes_coarse.shape[0] - 2))
-    for i in range(config.N_test_examples):
-        old_time = np.around(times[i] - config.dt_coarse, decimals=10)
+    if cfg.model_is_hybrid and cfg.exact_solution_available:
+        plot_data_dict['src'] = np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0] - 2))
+    for i in range(cfg.N_test_examples):
+        old_time = np.around(times[i] - cfg.dt_coarse, decimals=10)
         new_time = np.around(times[i], decimals=10)
         #print("New time:", new_time)
 
@@ -260,51 +259,51 @@ def single_step_test(model, num):
         IC = ICs[i] # The profile at old_time which was used to generate new_unc, which is a profile at new_time.
 
         new_cor = np.zeros_like(new_unc)
-        if config.model_name[:8] == "Ensemble":
-            if config.model_is_hybrid:
+        if cfg.model_name[:8] == "Ensemble":
+            if cfg.model_is_hybrid:
                 new_src = np.zeros(new_unc.shape[0] - 2)
                 for m in range(len(model.nets)):
                     new_src[m] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3]),0).detach().numpy(), src_mean, src_std)
                 new_cor = physics.simulate(
-                    config.nodes_coarse, config.faces_coarse,
-                    IC, config.get_T_a, config.get_T_b,
-                    config.get_k_approx, config.get_cV, config.rho, config.A,
-                    config.get_q_hat_approx, new_src,
-                    config.dt_coarse, old_time, new_time, False
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    IC, cfg.get_T_a, cfg.get_T_b,
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    cfg.get_q_hat_approx, new_src,
+                    cfg.dt_coarse, old_time, new_time, False
                 )
             else:
-                new_cor[0] = config.get_T_a(new_time)  # Since BCs are not ...
-                new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
+                new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
+                new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
                 for m in range(len(model.nets)):
                     new_cor[m+1] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3]),0).detach().numpy(), src_mean, src_std)
         else:
-            if config.model_is_hybrid:
+            if cfg.model_is_hybrid:
                 new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor),0).detach().numpy(), src_mean, src_std)
                 new_cor = physics.simulate(
-                    config.nodes_coarse, config.faces_coarse,
-                    IC, config.get_T_a, config.get_T_b,
-                    config.get_k_approx, config.get_cV, config.rho, config.A,
-                    config.get_q_hat_approx, new_src,
-                    config.dt_coarse, old_time, new_time, False
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    IC, cfg.get_T_a, cfg.get_T_b,
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    cfg.get_q_hat_approx, new_src,
+                    cfg.dt_coarse, old_time, new_time, False
                 )
             else:
-                new_cor[0] = config.get_T_a(new_time)  # Since BCs are not ...
-                new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
+                new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
+                new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
                 new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor).detach().numpy(), ref_mean, ref_std)
 
-        #lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
-        #lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
+        #lin_unc = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_unc)
+        #lin_cor = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_cor)
 
-        if config.exact_solution_available:
-            #ref_func = lambda x: config.get_T_exact(x, new_time)
-            new_ref = config.get_T_exact(config.nodes_coarse, new_time)
+        if cfg.exact_solution_available:
+            #ref_func = lambda x: cfg.get_T_exact(x, new_time)
+            new_ref = cfg.get_T_exact(cfg.nodes_coarse, new_time)
         else:
             new_ref = util.z_unnormalize(ref_tensor[i].detach().numpy(), ref_mean, ref_std)
-            #ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+            #ref_func = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_ref)
 
-        #ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
-        #unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
-        #cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        #ref_norm = util.get_L2_norm(cfg.faces_coarse, ref_func)
+        #unc_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        #cor_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
         ref_norm = util.get_disc_L2_norm(new_ref)
         unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
         cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
@@ -316,7 +315,7 @@ def single_step_test(model, num):
             plot_data_dict['unc'][i] = new_unc
             plot_data_dict['ref'][i] = new_ref
             plot_data_dict['cor'][i] = new_cor
-            if config.model_is_hybrid and config.exact_solution_available:
+            if cfg.model_is_hybrid and cfg.exact_solution_available:
                 plot_data_dict['src'][i] = new_src
             plot_data_dict['time'][i] = new_time
 
@@ -331,11 +330,11 @@ def single_step_test(model, num):
 
     return error_dict, plot_data_dict
 
-def simulation_test(model, num):
+def simulation_test(cfg, model, num):
     model.net.eval()
 
     # Get target temperature profile of last validation example. This will be IC for test simulation.
-    _, dataset_val, dataset_test = load_datasets(False, True, True)
+    _, dataset_val, dataset_test = load_datasets(cfg, False, True, True)
 
     # Get stats used for normalization/unnormalization.
     stats = dataset_test[:6][3].detach().numpy()
@@ -350,76 +349,76 @@ def simulation_test(model, num):
     # Use last reference data example of validation set as IC for test simulation.
     IC = util.z_unnormalize(dataset_val[-1][0].detach().numpy(), ref_mean, ref_std)
 
-    L2_errors_unc = np.zeros(config.N_test_examples)
-    L2_errors_cor = np.zeros(config.N_test_examples)
+    L2_errors_unc = np.zeros(cfg.N_test_examples)
+    L2_errors_cor = np.zeros(cfg.N_test_examples)
 
-    plot_steps = config.profile_save_steps
+    plot_steps = cfg.profile_save_steps
     plot_data_dict = {
-        'x': config.nodes_coarse,
-        'unc': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0])),
-        'ref': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0])),
-        'cor': np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0]))
+        'x': cfg.nodes_coarse,
+        'unc': np.zeros((plot_steps.shape[0], cfg.nodes_coarse.shape[0])),
+        'ref': np.zeros((plot_steps.shape[0], cfg.nodes_coarse.shape[0])),
+        'cor': np.zeros((plot_steps.shape[0], cfg.nodes_coarse.shape[0]))
     }
-    if config.model_is_hybrid and config.exact_solution_available:
-        plot_data_dict['src'] = np.zeros((plot_steps.shape[0], config.nodes_coarse.shape[0] - 2))
+    if cfg.model_is_hybrid and cfg.exact_solution_available:
+        plot_data_dict['src'] = np.zeros((plot_steps.shape[0], cfg.nodes_coarse.shape[0] - 2))
     plot_num = 0
     old_unc = IC
     old_cor = IC
-    t0 = (config.train_examples_ratio + config.test_examples_ratio)*config.t_end
+    t0 = (cfg.train_examples_ratio + cfg.test_examples_ratio)*cfg.t_end
     diffs = []
-    for i in range(config.N_test_examples):
-        old_time = np.around(t0 + config.dt_coarse*i,     decimals=10)
-        new_time = np.around(t0 + config.dt_coarse*(i+1), decimals=10)
+    for i in range(cfg.N_test_examples):
+        old_time = np.around(t0 + cfg.dt_coarse*i,     decimals=10)
+        new_time = np.around(t0 + cfg.dt_coarse*(i+1), decimals=10)
 
         # new_unc  = new uncorrected profile given old uncorrected profile.
         # new_unc_ = new uncorrected profile given old   corrected profile.
         new_unc = physics.simulate(
-            config.nodes_coarse, config.faces_coarse,
-            old_unc, config.get_T_a, config.get_T_b,
-            config.get_k_approx, config.get_cV, config.rho, config.A,
-            config.get_q_hat_approx, np.zeros(config.N_coarse),
-            config.dt_coarse, old_time, new_time, False
+            cfg.nodes_coarse, cfg.faces_coarse,
+            old_unc, cfg.get_T_a, cfg.get_T_b,
+            cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+            cfg.get_q_hat_approx, np.zeros(cfg.N_coarse),
+            cfg.dt_coarse, old_time, new_time, False
         )
         new_unc_ = torch.from_numpy(util.z_normalize(
             physics.simulate(
-                config.nodes_coarse, config.faces_coarse,
-                old_cor, config.get_T_a, config.get_T_b,
-                config.get_k_approx, config.get_cV, config.rho, config.A,
-                config.get_q_hat_approx, np.zeros(config.N_coarse),
-                config.dt_coarse, old_time, new_time, False
+                cfg.nodes_coarse, cfg.faces_coarse,
+                old_cor, cfg.get_T_a, cfg.get_T_b,
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                cfg.get_q_hat_approx, np.zeros(cfg.N_coarse),
+                cfg.dt_coarse, old_time, new_time, False
             ), unc_mean, unc_std
         ))
 
         new_cor = np.zeros_like(old_cor)
-        if config.model_is_hybrid:
+        if cfg.model_is_hybrid:
             new_src = util.z_unnormalize(model.net(new_unc_).detach().numpy(), src_mean, src_std)
             new_cor = physics.simulate(
-                config.nodes_coarse, config.faces_coarse,
-                old_cor, config.get_T_a, config.get_T_b,
-                config.get_k_approx, config.get_cV, config.rho, config.A,
-                config.get_q_hat_approx, new_src,
-                config.dt_coarse, old_time, new_time, False
+                cfg.nodes_coarse, cfg.faces_coarse,
+                old_cor, cfg.get_T_a, cfg.get_T_b,
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                cfg.get_q_hat_approx, new_src,
+                cfg.dt_coarse, old_time, new_time, False
             )
         else:
-            new_cor[0]  = config.get_T_a(new_time)   # Since BCs are not ...
-            new_cor[-1] = config.get_T_b(new_time)  # predicted by the NN.
+            new_cor[0]  = cfg.get_T_a(new_time)   # Since BCs are not ...
+            new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
             new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_).detach().numpy(), ref_mean, ref_std)
 
-        #lin_unc = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_unc)
-        #lin_cor = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_cor)
+        #lin_unc = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_unc)
+        #lin_cor = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_cor)
 
 
-        if config.exact_solution_available:
-            #ref_func = lambda x: config.get_T_exact(x, new_time)
-            new_ref = config.get_T_exact(config.nodes_coarse, new_time)
+        if cfg.exact_solution_available:
+            #ref_func = lambda x: cfg.get_T_exact(x, new_time)
+            new_ref = cfg.get_T_exact(cfg.nodes_coarse, new_time)
         else:
             new_ref_tensor = dataset_test[i][1]
             new_ref = util.z_unnormalize(new_ref_tensor.detach().numpy(), ref_mean, ref_std)
-            #ref_func = lambda x: util.linearize_between_nodes(x, config.nodes_coarse, new_ref)
+            #ref_func = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_ref)
 
-        #ref_norm = util.get_L2_norm(config.faces_coarse, ref_func)
-        #unc_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
-        #cor_error_norm = util.get_L2_norm(config.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        #ref_norm = util.get_L2_norm(cfg.faces_coarse, ref_func)
+        #unc_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        #cor_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
         ref_norm = util.get_disc_L2_norm(new_ref)
         unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
         cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
@@ -431,7 +430,7 @@ def simulation_test(model, num):
             plot_data_dict['unc'][plot_num] = new_unc
             plot_data_dict['ref'][plot_num] = new_ref
             plot_data_dict['cor'][plot_num] = new_cor
-            if config.model_is_hybrid and config.exact_solution_available:
+            if cfg.model_is_hybrid and cfg.exact_solution_available:
                 plot_data_dict['src'][plot_num] = new_src
             plot_data_dict['time'][plot_num] = new_time
             plot_num += 1
@@ -449,19 +448,19 @@ def simulation_test(model, num):
 
     plt.figure()
     for i in range(len(diffs)):
-        plt.plot(config.nodes_coarse, diffs[i], label=str(10*i))
+        plt.plot(cfg.nodes_coarse, diffs[i], label=str(10*i))
     plt.grid()
     plt.legend()
-    plt.savefig(os.path.join(config.run_dir, "differences.pdf"), bbox_inches='tight')
+    plt.savefig(os.path.join(cfg.run_dir, "differences.pdf"), bbox_inches='tight')
 
     return error_dict, plot_data_dict
 
 ########################################################################################################################
 
 def main():
-    model = models.create_new_model()
+    model = models.create_new_model(None, None)
     num = 0
-    simulation_test(model, num)
+    simulation_test(None, model, num)
 
 ########################################################################################################################
 

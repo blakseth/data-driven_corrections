@@ -25,87 +25,86 @@ import physics
 import util
 
 ########################################################################################################################
-# Data configurations.
-
-datasets_location = config.datasets_dir
-data_tag = config.data_tag
-
-########################################################################################################################
 # Create training and test datasets.
 
-def create_datasets():
+def create_datasets(cfg):
     """
     Purpose: Create datasets for supervised learning of data-driven correction models for the 1D heat equation.
     :return: dataset_train, dataset_val, dataset_test
     """
+
+    # Data config.
+    datasets_location = cfg.datasets_dir
+    data_tag = cfg.data_tag
+
     # Load pickled simulation data, or create and pickle new data if none exists already.
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
     if os.path.exists(save_filepath) and False:
         simulation_data = joblib.load(save_filepath)
     else:
-        unc_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
-        unc_Ts[0] = config.get_T0(config.nodes_coarse)
-        ref_Ts    = np.zeros((config.Nt_coarse, config.N_coarse + 2))
-        ref_Ts[0] = config.get_T0(config.nodes_coarse)
-        IC_Ts     = np.zeros((config.Nt_coarse, config.N_coarse + 2))
-        IC_Ts[0]  = config.get_T0(config.nodes_coarse)
-        ref_Ts_full    = np.zeros((config.Nt_coarse, config.N_fine + 2))
-        ref_Ts_full[0] = config.get_T0(config.nodes_fine)
-        idx = npi.indices(np.around(config.nodes_fine,   decimals=10),
-                          np.around(config.nodes_coarse, decimals=10))
-        for i in range(1, config.Nt_coarse):
-            old_time = np.around(config.dt_coarse*(i-1), decimals=10)
-            new_time = np.around(config.dt_coarse*i,     decimals=10)
-            if i <= config.Nt_coarse * (config.N_train_examples + config.N_val_examples) or (not config.do_simulation_test):
+        unc_Ts    = np.zeros((cfg.Nt_coarse, cfg.N_coarse + 2))
+        unc_Ts[0] = cfg.get_T0(cfg.nodes_coarse)
+        ref_Ts    = np.zeros((cfg.Nt_coarse, cfg.N_coarse + 2))
+        ref_Ts[0] = cfg.get_T0(cfg.nodes_coarse)
+        IC_Ts     = np.zeros((cfg.Nt_coarse, cfg.N_coarse + 2))
+        IC_Ts[0]  = cfg.get_T0(cfg.nodes_coarse)
+        ref_Ts_full    = np.zeros((cfg.Nt_coarse, cfg.N_fine + 2))
+        ref_Ts_full[0] = cfg.get_T0(cfg.nodes_fine)
+        idx = npi.indices(np.around(cfg.nodes_fine,   decimals=10),
+                          np.around(cfg.nodes_coarse, decimals=10))
+        for i in range(1, cfg.Nt_coarse):
+            old_time = np.around(cfg.dt_coarse*(i-1), decimals=10)
+            new_time = np.around(cfg.dt_coarse*i,     decimals=10)
+            if i <= cfg.Nt_coarse * (cfg.N_train_examples + cfg.N_val_examples) or (not cfg.do_simulation_test):
                 unc_IC = ref_Ts[i-1]
             else:
                 unc_IC = unc_Ts[i-1]
             IC_Ts[i]  = unc_IC
             unc_Ts[i] = physics.simulate(
-                config.nodes_coarse, config.faces_coarse,
-                unc_IC, config.get_T_a, config.get_T_b,
-                config.get_k_approx, config.get_cV, config.rho, config.A,
-                config.get_q_hat_approx, np.zeros_like(config.nodes_coarse[1:-1]),
-                config.dt_coarse, old_time, new_time, False
+                cfg.nodes_coarse, cfg.faces_coarse,
+                unc_IC, cfg.get_T_a, cfg.get_T_b,
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                cfg.get_q_hat_approx, np.zeros_like(cfg.nodes_coarse[1:-1]),
+                cfg.dt_coarse, old_time, new_time, False
             )
-            if config.exact_solution_available:
-                ref_Ts[i] = config.get_T_exact(config.nodes_coarse, new_time)
+            if cfg.exact_solution_available:
+                ref_Ts[i] = cfg.get_T_exact(cfg.nodes_coarse, new_time)
             else:
                 ref_Ts_full[i] = physics.simulate(
-                    config.nodes_fine, config.faces_fine,
-                    ref_Ts_full[i-1], config.get_T_a, config.get_T_b,
-                    config.get_k, config.get_cV, config.rho, config.A,
-                    config.get_q_hat, np.zeros_like(config.nodes_fine[1:-1]),
-                    config.dt_fine, old_time, new_time, False
+                    cfg.nodes_fine, cfg.faces_fine,
+                    ref_Ts_full[i-1], cfg.get_T_a, cfg.get_T_b,
+                    cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                    cfg.get_q_hat, np.zeros_like(cfg.nodes_fine[1:-1]),
+                    cfg.dt_fine, old_time, new_time, False
                 )
-                for j in range(config.N_coarse + 2):
+                for j in range(cfg.N_coarse + 2):
                     ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
 
         # Calculate correction source terms.
-        sources = np.zeros((config.Nt_coarse, config.N_coarse))
-        for i in range(1, config.Nt_coarse): # Intentionally leaves the first entry all-zeros.
-            old_time = np.around(config.dt_coarse * (i - 1), decimals=10)
-            new_time = np.around(config.dt_coarse * i, decimals=10)
+        sources = np.zeros((cfg.Nt_coarse, cfg.N_coarse))
+        for i in range(1, cfg.Nt_coarse): # Intentionally leaves the first entry all-zeros.
+            old_time = np.around(cfg.dt_coarse * (i - 1), decimals=10)
+            new_time = np.around(cfg.dt_coarse * i, decimals=10)
             sources[i] = physics.get_corrective_src_term(
-                config.nodes_coarse, config.faces_coarse,
+                cfg.nodes_coarse, cfg.faces_coarse,
                 ref_Ts[i], ref_Ts[i-1],
-                config.get_T_a, config.get_T_b,
-                config.get_k_approx, config.get_cV, config.rho, config.A, config.get_q_hat_approx,
-                config.dt_coarse, old_time, False
+                cfg.get_T_a, cfg.get_T_b,
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A, cfg.get_q_hat_approx,
+                cfg.dt_coarse, old_time, False
             )
             corrected = physics.simulate(
-                config.nodes_coarse, config.faces_coarse,
-                ref_Ts[i-1], config.get_T_a, config.get_T_b,
-                config.get_k_approx, config.get_cV, config.rho, config.A,
-                config.get_q_hat_approx, sources[i],
-                config.dt_coarse, old_time, new_time, False
+                cfg.nodes_coarse, cfg.faces_coarse,
+                ref_Ts[i-1], cfg.get_T_a, cfg.get_T_b,
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                cfg.get_q_hat_approx, sources[i],
+                cfg.dt_coarse, old_time, new_time, False
             )
             np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=1e-10)
         print("Correction source terms generated and verified.")
 
         # Store data
         simulation_data = {
-            'x':   config.nodes_coarse,
+            'x':   cfg.nodes_coarse,
             'ICs': IC_Ts,
             'unc': unc_Ts,
             'ref': ref_Ts,
@@ -118,8 +117,8 @@ def create_datasets():
     unc = simulation_data['unc'][1:,:]
     ref = simulation_data['ref'][1:,:]
     src = simulation_data['src'][1:,:] # The entry removed here is all-zeros.
-    times = np.linspace(config.dt_coarse, config.t_end, config.Nt_coarse - 1, endpoint=True)
-    assert times[1] == 2*config.dt_coarse
+    times = np.linspace(cfg.dt_coarse, cfg.t_end, cfg.Nt_coarse - 1, endpoint=True)
+    assert times[1] == 2*cfg.dt_coarse
 
     # Shuffle data.
     assert ICs.shape[0] == unc.shape[0] == ref.shape[0] == src.shape[0] == times.shape[0]
@@ -131,44 +130,44 @@ def create_datasets():
     times = times[permutation]
 
     # Split data into training, validation and test set.
-    train_ICs = ICs[:config.N_train_examples, :]
-    train_unc = unc[:config.N_train_examples,:]
-    train_ref = ref[:config.N_train_examples,:]
-    train_src = src[:config.N_train_examples,:]
-    train_times = times[:config.N_train_examples]
+    train_ICs = ICs[:cfg.N_train_examples, :]
+    train_unc = unc[:cfg.N_train_examples,:]
+    train_ref = ref[:cfg.N_train_examples,:]
+    train_src = src[:cfg.N_train_examples,:]
+    train_times = times[:cfg.N_train_examples]
 
-    val_ICs   = ICs[config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
-    val_unc   = unc[config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
-    val_ref   = ref[config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
-    val_src   = src[config.N_train_examples:config.N_train_examples + config.N_val_examples,:]
-    val_times = times[config.N_train_examples:config.N_train_examples + config.N_val_examples]
+    val_ICs   = ICs[cfg.N_train_examples:cfg.N_train_examples + cfg.N_val_examples,:]
+    val_unc   = unc[cfg.N_train_examples:cfg.N_train_examples + cfg.N_val_examples,:]
+    val_ref   = ref[cfg.N_train_examples:cfg.N_train_examples + cfg.N_val_examples,:]
+    val_src   = src[cfg.N_train_examples:cfg.N_train_examples + cfg.N_val_examples,:]
+    val_times = times[cfg.N_train_examples:cfg.N_train_examples + cfg.N_val_examples]
 
-    test_ICs  = ICs[config.N_train_examples + config.N_val_examples:,:]
-    test_unc  = unc[config.N_train_examples + config.N_val_examples:,:]
-    test_ref  = ref[config.N_train_examples + config.N_val_examples:,:]
-    test_src  = src[config.N_train_examples + config.N_val_examples:,:]
-    test_times = times[config.N_train_examples + config.N_val_examples:]
+    test_ICs  = ICs[cfg.N_train_examples + cfg.N_val_examples:,:]
+    test_unc  = unc[cfg.N_train_examples + cfg.N_val_examples:,:]
+    test_ref  = ref[cfg.N_train_examples + cfg.N_val_examples:,:]
+    test_src  = src[cfg.N_train_examples + cfg.N_val_examples:,:]
+    test_times = times[cfg.N_train_examples + cfg.N_val_examples:]
 
-    assert train_ICs.shape[0] == config.N_train_examples
-    assert train_unc.shape[0] == config.N_train_examples
-    assert train_ref.shape[0] == config.N_train_examples
-    assert train_src.shape[0] == config.N_train_examples
-    assert train_times.shape[0] == config.N_train_examples
+    assert train_ICs.shape[0] == cfg.N_train_examples
+    assert train_unc.shape[0] == cfg.N_train_examples
+    assert train_ref.shape[0] == cfg.N_train_examples
+    assert train_src.shape[0] == cfg.N_train_examples
+    assert train_times.shape[0] == cfg.N_train_examples
 
-    assert val_ICs.shape[0]   == config.N_val_examples
-    assert val_unc.shape[0]   == config.N_val_examples
-    assert val_ref.shape[0]   == config.N_val_examples
-    assert val_src.shape[0]   == config.N_val_examples
-    assert val_times.shape[0] == config.N_val_examples
+    assert val_ICs.shape[0]   == cfg.N_val_examples
+    assert val_unc.shape[0]   == cfg.N_val_examples
+    assert val_ref.shape[0]   == cfg.N_val_examples
+    assert val_src.shape[0]   == cfg.N_val_examples
+    assert val_times.shape[0] == cfg.N_val_examples
 
-    assert test_ICs.shape[0]  == config.N_test_examples
-    assert test_unc.shape[0]  == config.N_test_examples
-    assert test_ref.shape[0]  == config.N_test_examples
-    assert test_src.shape[0]  == config.N_test_examples
-    assert test_times.shape[0] == config.N_test_examples
+    assert test_ICs.shape[0]  == cfg.N_test_examples
+    assert test_unc.shape[0]  == cfg.N_test_examples
+    assert test_ref.shape[0]  == cfg.N_test_examples
+    assert test_src.shape[0]  == cfg.N_test_examples
+    assert test_times.shape[0] == cfg.N_test_examples
 
     # Augment training data.
-    if config.augment_training_data:
+    if cfg.augment_training_data:
         # Shift augmentation.
 
         train_ICs_orig = train_ICs.copy()
@@ -176,17 +175,17 @@ def create_datasets():
         train_ref_orig = train_ref.copy()
         train_src_orig = train_src.copy()
         train_times_orig = train_times.copy()
-        for i in range(config.N_shift_steps):
+        for i in range(cfg.N_shift_steps):
             # IC temperature
-            train_ICs_aug = train_ICs_orig + (i + 1) * config.shift_step_size
+            train_ICs_aug = train_ICs_orig + (i + 1) * cfg.shift_step_size
             train_ICs = np.concatenate((train_ICs, train_ICs_aug), axis=0)
 
             # Uncorrected temperature
-            train_unc_aug = train_unc_orig + (i + 1) * config.shift_step_size
+            train_unc_aug = train_unc_orig + (i + 1) * cfg.shift_step_size
             train_unc = np.concatenate((train_unc, train_unc_aug), axis=0)
 
             # Reference temperature
-            train_ref_aug = train_ref_orig + (i + 1) * config.shift_step_size
+            train_ref_aug = train_ref_orig + (i + 1) * cfg.shift_step_size
             train_ref = np.concatenate((train_ref, train_ref_aug), axis=0)
 
             # Correction source term
@@ -298,7 +297,9 @@ def create_datasets():
 ########################################################################################################################
 # Writing and loading datasets to/from disk.
 
-def save_datasets(dataset_train, dataset_val, dataset_test):
+def save_datasets(cfg, dataset_train, dataset_val, dataset_test):
+    datasets_location = cfg.datasets_dir
+    data_tag = cfg.data_tag
     if dataset_train is not None:
         torch.save(dataset_train, os.path.join(datasets_location, data_tag + '_train.pt'))
     print("Saved training set to:", os.path.join(datasets_location, data_tag + '_train.pt'))
@@ -309,7 +310,9 @@ def save_datasets(dataset_train, dataset_val, dataset_test):
         torch.save(dataset_test,  os.path.join(datasets_location, data_tag + '_test.pt' ))
     print("Saved test set to:", os.path.join(datasets_location, data_tag + '_test.pt'))
 
-def load_datasets(load_train, load_val, load_test):
+def load_datasets(cfg, load_train, load_val, load_test):
+    datasets_location = cfg.datasets_dir
+    data_tag = cfg.data_tag
     if load_train:
         try:
             dataset_train = torch.load(os.path.join(datasets_location, data_tag + '_train.pt'))
@@ -354,19 +357,20 @@ def load_datasets_from_path(train_path, val_path, test_path):
             dataset_test = torch.load(test_path)
         except:
             print("WARNING: Training dataset not found.")
-            dataset_train = None
+            dataset_test = None
     return dataset_train, dataset_val, dataset_test
 
 
 ########################################################################################################################
 
-def main():
-    dataset_train, dataset_val, dataset_test = create_datasets()
-    save_datasets(dataset_train, dataset_val, dataset_test)
+def main(cfg):
+    dataset_train, dataset_val, dataset_test = create_datasets(cfg)
+    save_datasets(cfg, dataset_train, dataset_val, dataset_test)
 
 ########################################################################################################################
 
 if __name__ == "__main__":
-    main()
+    configuration = config.Config(None)
+    main(configuration)
 
 ########################################################################################################################
