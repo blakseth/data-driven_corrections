@@ -24,25 +24,27 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-run_names  = [["testing_new_config_class"]]
-systems    = ["1"]
-data_tags  = ["system1_config_test"]
+group_name = "testing_several_runs_at_once"
+run_names  = [["testing_several_runs_at_once_s1", "testing_several_runs_at_once_s2A"]]
+systems    = ["1", "2A"]
+data_tags  = ["test1", "test2A"]
 model_keys = [4]
 assert len(systems) == len(data_tags) == len(run_names[0])
-assert len(run_names) == len(systems)
+assert len(run_names) == len(model_keys)
 
 
 ########################################################################################################################
 # Create config object.
 
 class Config:
-    def __init__(self, run_name, system, data_tag, model_key, do_train, do_test):
+    def __init__(self, group_name, run_name, system, data_tag, model_key, do_train, do_test):
         # ---------------------------------------------------------------------------------------------------------------
         # Run configuration.
-        self.run_name = run_name
-        self.system   = system
-        self.data_tag = data_tag
-        self.model_key     = model_key
+        self.group_name = group_name
+        self.run_name   = run_name
+        self.system     = system
+        self.data_tag   = data_tag
+        self.model_key  = model_key
         self.model_is_hybrid = True
 
         model_types = [
@@ -71,7 +73,8 @@ class Config:
         self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
-        self.run_dir      = os.path.join(self.results_dir, run_name)
+        self.group_dir    = os.path.join(self.results_dir, group_name)
+        self.run_dir      = os.path.join(self.group_dir, run_name)
         self.cp_main_dir  = os.path.join(self.base_dir, 'checkpoints')
         self.cp_load_dir  = os.path.join(self.cp_main_dir, '')
         self.cp_save_dir  = os.path.join(self.cp_main_dir, run_name)
