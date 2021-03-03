@@ -24,11 +24,12 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "print_test"
-run_names  = [["print_test_s1", "print_test_s2A"]]
+group_name = "test_config_save2"
+run_names  = [["ens_s1", "ens_s2A"],
+              ["single_s1", "single_s2A"]]
 systems    = ["1", "2A"]
 data_tags  = ["test1", "test2A"]
-model_keys = [4]
+model_keys = [4, 0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -687,10 +688,6 @@ class Config:
         ########################################################################################################################
         # Model configuration.
 
-        self.num_layers = 5
-
-        self.hidden_layer_size = 9
-
         self.loss_func = 'MSE'
 
         self.optimizer = 'adam'
@@ -701,6 +698,36 @@ class Config:
 
         self.use_dropout = False
         self.dropout_prob = 0.1
+
+        self.model_specific_params = []
+        if self.model_name == 'GlobalDense':
+            self.num_layers = 5
+            self.hidden_layer_size = 60
+            # [No. fc layers, No. nodes in each hidden layer]
+            self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+        elif self.model_name == 'LocalDense':
+            self.num_layers = 5
+            self.hidden_layer_size = 9
+            # [No. layers in each network, No. nodes in each hidden layer of each network]
+            self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+        elif self.model_name == 'GlobalCNN':
+            self.num_conv_layers = 5
+            self.kernel_size = 3
+            self.num_channels = 20
+            self.num_fc_layers = 1
+            self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+        elif self.model_name == 'EnsembleLocalDense':
+            self.num_layers = 5
+            self.hidden_layer_size = 9
+            self.num_networks = self.N_coarse
+            self.model_specific_params = [self.num_networks, self.num_layers, self.hidden_layer_size]
+        elif self.model_name == 'EnsembleGlobalCNN':
+            self.num_conv_layers = 5
+            self.kernel_size = 3
+            self.num_channels = 20
+            self.num_fc_layers = 1
+            self.num_networks = self.N_coarse
+            self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
 
         ########################################################################################################################
         # Training configuration.
@@ -722,89 +749,21 @@ class Config:
 
 
 ########################################################################################################################
-# Save configuration
-"""
-def save_config():
-    os.makedirs(run_dir, exist_ok=True)
-    config_save_file = open(os.path.join(run_dir, "config_save.txt"), "w")
-    config_save_file.write(
-        f"Run configuration----------------------------------------------\n"
-        f"run_name                  = {run_name}\n"
-        f"systems                   = {system}\n"
-        f"data_tag                  = {data_tag}\n"
-        f"model_name                = {model_name}\n"
-        f"model_is_hybrid           = {model_is_hybrid}\n"
-        f"augment_training_data     = {augment_training_data}\n"
-        f"ensemble_size             = {ensemble_size}\n"
-        f"do_train                  = {do_train}\n"
-        f"do_test                   = {do_test}\n"
-        f"load_model_from_save      = {load_model_from_save}\n"
-        f"resume_training_from_save = {resume_training_from_save}\n"
-        f"model_load_path           = {model_load_path}\n"
-        f"\n"
-        f"Environment configuration--------------------------------------\n"
-        f"base_dir     = {base_dir}\n"
-        f"datasets_dir = {datasets_dir}\n"
-        f"results_dir  = {results_dir}\n"
-        f"run_dir      = {run_dir}\n"
-        f"cp_main_dir  = {cp_main_dir}\n"
-        f"cp_load_dir  = {cp_load_dir}\n"
-        f"cp_save_dir  = {cp_save_dir}\n"
-        f"\n"
-        f"Simulation configuration---------------------------------------\n"
-        f"x_a                       = {x_a}\n"
-        f"x_b                       = {x_b}\n"
-        f"N_coarse                  = {N_coarse}\n"
-        f"dx_coarse                 = {dx_coarse}\n"
-        f"nodes_coarse              = {nodes_coarse}\n"
-        f"nodes_coarse              = {nodes_coarse}\n"
-        f"faces_coarse              = {faces_coarse}\n"
-        f"is_steady                 = {is_steady}\n"
-        f"exact_solution_available  = {exact_solution_available}\n"
-        f"dt_coarse                 = {dt_coarse}\n"
-        f"dt                        = {dt}\n"
-        f"\n"
-        f"Data configuration---------------------------------------------\n"
-        f"data_tag                  = {data_tag}\n"
-        f"T_min_train               = {T_min_train}\n"
-        f"T_max_train               = {T_max_train}\n"
-        f"T_min_test                = {T_min_test}\n"
-        f"T_max_test                = {T_max_test}\n"
-        f"T_0                       = {get_T0(nodes_coarse)}\n"
-        f"N_train_examples          = {N_train_examples}\n"
-        f"N_val_examples            = {N_val_examples}\n"
-        f"N_test_examples           = {N_test_examples}\n"
-        f"do_simulation_test        = {do_simulation_test}\n"
-        f"Physics configuration------------------------------------------\n"
-        f"area                      = {area}\n"
-        f"c_v                       = {c_V}\n"
-        f"rho                       = {rho}\n"
-        f"q_hat                     = {q_hat}\n"
-        f"k_profile_type            = {k_profile_type}\n"
-        f"k                         = {get_k(nodes_coarse)}\n"
-        f"Architecture configuration-------------------------------------\n"
-        f"model name                = {model_name}\n"
-        f"input size                = {input_size}\n"
-        f"output_size               = {output_size}\n"
-        f"hidden_size               = {hidden_size}\n"
-        f"num_layers                = {num_layers}\n"
-        f"use_dropout               = {use_dropout}\n"
-        f"act_type                  = {act_type}\n"
-        f"model_type                = {model_type}\n"
-        f"Training configuration-----------------------------------------\n"
-        f"num_train_it              = {num_train_it}\n"
-        f"print_train_loss_period   = {print_train_loss_period}\n"
-        f"save_model_period         = {save_model_period}\n"
-        f"validation_period         = {validation_period}\n"
-        f"train_batch_size          = {train_batch_size}\n"
-        f"optimizer_name            = {optimizer_name}\n"
-        f"learning_rate             = {learning_rate}\n"
-        f"use_shift_data_aug        = {use_shift_data_augmentation}\n"
-        f"N_shift_steps             = {N_shift_steps}\n"
-        f"use_mirror_data_aug       = {use_mirror_data_augmentation}\n"
-        f"normalize_loss_by_target  = {normalize_loss_by_target}\n"
-        f"normalize_loss_by_guess   = {normalize_loss_by_guess}\n"
-    )
-    config_save_file.close()
-"""
+# Save configuration.
+
+def save_config(cfg):
+    variable_names = [attr for attr in dir(cfg) if not callable(getattr(cfg, attr)) and not attr.startswith("__")]
+    variable_values = [getattr(cfg, variable) for variable in variable_names]
+
+    length_of_longest_var_name = len(max(variable_names, key=len))
+    spaced_variable_names = [("{:<" + str(length_of_longest_var_name) + "}").format(name) for name in variable_names]
+
+    cfg_string = "Configuration of run " + cfg.run_name + "\n\n"
+    for i in range(len(variable_names)):
+        cfg_string += spaced_variable_names[i] + " = " + str(variable_values[i]) + "\n"
+
+    os.makedirs(cfg.run_dir, exist_ok=True)
+    with open(os.path.join(cfg.run_dir, "config_save.txt"), "w") as f:
+        f.write(cfg_string)
+
 ########################################################################################################################

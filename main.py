@@ -73,7 +73,7 @@ def main():
 
             #-------------------------------------------------------------------------------------------------------------------
             # Save configurations.
-            #config.save_config()
+            config.save_config(cfg)
 
             #-------------------------------------------------------------------------------------------------------------------
             # Create datasets.
@@ -93,21 +93,10 @@ def main():
             print("----------------------------")
             print("Initiating model definition.")
             for i in range(cfg.ensemble_size):
-                model_specific_params = []
-                if cfg.model_name == 'GlobalDense':
-                    model_specific_params = [cfg.num_layers, cfg.hidden_layer_size]
-                elif cfg.model_name == 'LocalDense':
-                    model_specific_params = [cfg.num_layers, 9]
-                elif cfg.model_name == 'GlobalCNN':
-                    model_specific_params = [cfg.num_layers, 3, 20, 1]
-                elif cfg.model_name == 'EnsembleLocalDense':
-                    model_specific_params = [cfg.N_coarse, cfg.num_layers, cfg.hidden_layer_size]
-                elif cfg.model_name == 'EnsembleGlobalCNN':
-                    # [No. networks, No. conv layers, Kernel size, No. channels, No. FC layers at end]
-                    model_specific_params = [cfg.N_coarse, cfg.num_layers, 3, 20, 1]
-                model = models.create_new_model(cfg, model_specific_params)
+                model = models.create_new_model(cfg, cfg.model_specific_params)
                 ensemble.append(model)
                 if i == 0 and sys_num == 0:
+                    print("")
                     if cfg.model_name[:8] == 'Ensemble':
                         print("Ensemble model containing " + str(len(model.nets)) + " networks as shown below.")
                         print(model.nets[0].net)
