@@ -24,12 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "test_config_save4"
-run_names  = [["ens_s1", "ens_s2A"],
-              ["single_s1", "single_s2A"]]
-systems    = ["1", "2A"]
-data_tags  = ["test1", "test2A"]
-model_keys = [4, 0]
+group_name = "test_all_models"
+run_names  = [["0"], ["1"], ["2"], ["3"], ["4"]]
+systems    = ["1"]
+data_tags  = ["1"]
+model_keys = [0, 1, 2, 3, 4]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 

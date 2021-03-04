@@ -96,10 +96,13 @@ def main():
                 model = models.create_new_model(cfg, cfg.model_specific_params)
                 ensemble.append(model)
                 if i == 0 and sys_num == 0:
-                    print("")
+                    print("\n" + cfg.model_name + "\n")
                     if cfg.model_name[:8] == 'Ensemble':
                         print("Ensemble model containing " + str(len(model.nets)) + " networks as shown below.")
                         print(model.nets[0].net)
+                    elif cfg.model_name[:5] == 'Local':
+                        print("Ensemble model containing " + str(len(model.net.nets)) + " networks as shown below.")
+                        print(model.net.nets[0])
                     else:
                         print(model.net)
             print("\nCompleted model definition.")
