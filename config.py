@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "test_config_save2"
+group_name = "test_config_save4"
 run_names  = [["ens_s1", "ens_s2A"],
               ["single_s1", "single_s2A"]]
 systems    = ["1", "2A"]
@@ -68,6 +68,9 @@ class Config:
         self.resume_training_from_save = False
         self.model_load_path = None  # os.path.join(cp_load_dir, 'G_150000.pth')
 
+        self.run_vars = set([attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")])
+        other_vars = self.run_vars
+
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
@@ -79,6 +82,9 @@ class Config:
         self.cp_main_dir  = os.path.join(self.base_dir, 'checkpoints')
         self.cp_load_dir  = os.path.join(self.cp_main_dir, '')
         self.cp_save_dir  = os.path.join(self.cp_main_dir, run_name)
+
+        self.env_vars = set([attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
+        other_vars = other_vars.union(self.env_vars)
 
         #---------------------------------------------------------------------------------------------------------------
         # Domain configuration.
@@ -629,6 +635,10 @@ class Config:
         self.get_k_approx     = get_k_approx
         self.get_cV           = get_cV
 
+        self.dom_vars = set([attr for attr in dir(self) if
+                             not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
+        other_vars = other_vars.union(self.dom_vars)
+
         #---------------------------------------------------------------------------------------------------------------
         # Discretization.
 
@@ -656,7 +666,11 @@ class Config:
         self.Nt_fine = int(self.t_end / self.dt_fine) + 1
         self.Nt_coarse = int(self.t_end / self.dt_coarse) + 1
 
-        ########################################################################################################################
+        self.disc_vars = set([attr for attr in dir(self) if
+                             not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
+        other_vars = other_vars.union(self.disc_vars)
+
+        #---------------------------------------------------------------------------------------------------------------
         # Data configuration.
 
         self.do_simulation_test = False
@@ -685,7 +699,11 @@ class Config:
             self.N_test_examples
         ]) - 1
 
-        ########################################################################################################################
+        self.data_vars = set([attr for attr in dir(self) if
+                             not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
+        other_vars = other_vars.union(self.data_vars)
+
+        #---------------------------------------------------------------------------------------------------------------
         # Model configuration.
 
         self.loss_func = 'MSE'
@@ -729,7 +747,11 @@ class Config:
             self.num_networks = self.N_coarse
             self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
 
-        ########################################################################################################################
+        self.mod_vars = set([attr for attr in dir(self) if
+                             not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
+        other_vars = other_vars.union(self.mod_vars)
+
+        #---------------------------------------------------------------------------------------------------------------
         # Training configuration.
 
         self.max_train_it = int(1e2)
@@ -746,21 +768,64 @@ class Config:
 
         self.overfit_limit = 10
 
+        self.train_vars = set([attr for attr in dir(self) if
+                             not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
 
 
 ########################################################################################################################
 # Save configuration.
 
 def save_config(cfg):
+    names_of_var_lists = {
+        "run_vars",
+        "env_vars",
+        "dom_vars",
+        "disc_vars",
+        "data_vars",
+        "mod_vars",
+        "train_vars"
+    }
+
     variable_names = [attr for attr in dir(cfg) if not callable(getattr(cfg, attr)) and not attr.startswith("__")]
-    variable_values = [getattr(cfg, variable) for variable in variable_names]
-
     length_of_longest_var_name = len(max(variable_names, key=len))
-    spaced_variable_names = [("{:<" + str(length_of_longest_var_name) + "}").format(name) for name in variable_names]
+    format_str = "{:<" + str(length_of_longest_var_name) + "}"
 
-    cfg_string = "Configuration of run " + cfg.run_name + "\n\n"
-    for i in range(len(variable_names)):
-        cfg_string += spaced_variable_names[i] + " = " + str(variable_values[i]) + "\n"
+    cfg_string = "Configuration of run " + cfg.run_name + "\n"
+
+    cfg_string += "\nRun configuration--------------------------------------\n"
+    run_vars = sorted(list(cfg.run_vars - names_of_var_lists))
+    for var in run_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
+
+    cfg_string += "\nEnvironment configuration------------------------------\n"
+    env_vars = sorted(list(cfg.env_vars - names_of_var_lists))
+    for var in env_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
+
+    cfg_string += "\nDomain configuration-----------------------------------\n"
+    dom_vars = sorted(list(cfg.dom_vars - names_of_var_lists))
+    for var in dom_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
+
+    cfg_string += "\nDiscretization configuration---------------------------\n"
+    disc_vars = sorted(list(cfg.disc_vars - names_of_var_lists))
+    for var in disc_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
+
+    cfg_string += "\nData configuration-------------------------------------\n"
+    data_vars = sorted(list(cfg.data_vars - names_of_var_lists))
+    for var in data_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
+
+    cfg_string += "\nModel configuration------------------------------------\n"
+    mod_vars = sorted(list(cfg.mod_vars - names_of_var_lists))
+    for var in mod_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
+
+    cfg_string += "\nTraining configuration---------------------------------\n"
+    train_vars = sorted(list(cfg.train_vars - names_of_var_lists))
+    for var in train_vars:
+        cfg_string += format_str.format(var) + " = " + str(getattr(cfg, var)) + "\n"
 
     os.makedirs(cfg.run_dir, exist_ok=True)
     with open(os.path.join(cfg.run_dir, "config_save.txt"), "w") as f:
