@@ -21,6 +21,7 @@ import datasets
 import test
 import train
 import models
+import parameter_grid_search
 
 ########################################################################################################################
 
@@ -29,15 +30,27 @@ def main():
     # Parse arguments.
     parser = argparse.ArgumentParser(description="Set purpose of run.")
     parser.add_argument("--dataset",  default=False, action="store_true", help="Create new datasets from raw data.")
-    parser.add_argument("--train",    default=False, action="store_true", help="Train ESRGAN.")
-    parser.add_argument("--test",     default=False, action="store_true", help="Test pre-trained ESRGAN.")
-    parser.add_argument("--use",      default=False, action="store_true", help="Use pre-trained ESRGAN on LR data.")
+    parser.add_argument("--train",    default=False, action="store_true", help="Train ML model.")
+    parser.add_argument("--test",     default=False, action="store_true", help="Test pre-trained ML model.")
+    parser.add_argument("--use",      default=False, action="store_true", help="Use pre-trained ML model on new data.")
+    parser.add_argument("--grs",      default=False, action="store_true", help="Perform parameter grid search.")
     args = parser.parse_args()
 
-    #-------------------------------------------------------------------------------------------------------------------
-    # Configuration setup.
-
     print("\nEXECUTION INITIATED\n")
+
+    if args.grs:
+        for model_num in range(len(config.model_keys)):
+            cfg = config.Config(
+                group_name = config.group_name,
+                run_name   = config.run_names[model_num][0],
+                system     = config.systems[0],
+                data_tag   = config.data_tags[0],
+                model_key  = config.model_keys[model_num],
+                do_train   = False,
+                do_test    = False
+            )
+            parameter_grid_search.grid_search(cfg)
+        return
 
     group_name = config.group_name
     for model_num in range(len(config.model_keys)):
@@ -46,6 +59,9 @@ def main():
             print("Model  number:", model_num)
             print("System number:", sys_num)
             print("********************************************************\n")
+
+            # -------------------------------------------------------------------------------------------------------------------
+            # Configuration setup.
             cfg = config.Config(
                 group_name = group_name,
                 run_name   = config.run_names[model_num][sys_num],

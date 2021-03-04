@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "test_all_models"
-run_names  = [["0"], ["1"], ["2"], ["3"], ["4"]]
+group_name = "test_grid_search"
+run_names  = [["0"]]
 systems    = ["1"]
 data_tags  = ["1"]
-model_keys = [0, 1, 2, 3, 4]
+model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -722,22 +722,30 @@ class Config:
             self.hidden_layer_size = 60
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_layers, self.hidden_layer_size]
         elif self.model_name == 'LocalDense':
             self.num_layers = 5
             self.hidden_layer_size = 9
             # [No. layers in each network, No. nodes in each hidden layer of each network]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_layers, self.hidden_layer_size]
         elif self.model_name == 'GlobalCNN':
             self.num_conv_layers = 5
             self.kernel_size = 3
             self.num_channels = 20
             self.num_fc_layers = 1
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+            def get_model_specific_params():
+                return [self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
         elif self.model_name == 'EnsembleLocalDense':
             self.num_layers = 5
             self.hidden_layer_size = 9
             self.num_networks = self.N_coarse
             self.model_specific_params = [self.num_networks, self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_networks, self.num_layers, self.hidden_layer_size]
         elif self.model_name == 'EnsembleGlobalCNN':
             self.num_conv_layers = 5
             self.kernel_size = 3
@@ -745,6 +753,12 @@ class Config:
             self.num_fc_layers = 1
             self.num_networks = self.N_coarse
             self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+            def get_model_specific_params():
+                return [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+        else:
+            raise Exception("Invalid model selection.")
+
+        self.get_model_specific_params = get_model_specific_params
 
         self.mod_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
