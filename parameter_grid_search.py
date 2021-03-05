@@ -71,12 +71,40 @@ def grid_search(cfg):
     axes   = None
     labels = None
     if cfg.model_name == "GlobalDense":
-        learning_rates = [1e-4]#, 1e-5]
-        dropout_probs = [0.0]#, 0.1, 0.2]
-        widths = (cfg.N_coarse * np.asarray([3, 5])).astype(int)
-        depths = [3, 6, 10, 20]
+        learning_rates = [1e-4, 1e-5]
+        dropout_probs = [0.0, 0.2]
+        widths = (cfg.N_coarse * np.asarray([2, 3, 4, 5, 7])).astype(int)
+        depths = [3, 4, 5, 6, 8, 10]
         axes   = [learning_rates, dropout_probs, widths, depths]
         labels = "learning rate,\tdropout prob.,\twidth,\tdepth"
+    elif cfg.model_name == "GlobalCNN":
+        learning_rates = [1e-4, 1e-5]
+        conv_nums = [3, 5, 7, 9, 12]
+        channel_nums = [10, 15, 20, 25, 30, 40]
+        fc_nums = [1, 2]
+        axes = [learning_rates, conv_nums, channel_nums, fc_nums]
+        labels = "learning rate,\tNo. conv layers,  No. conv channels,  No. fc layers"
+    elif cfg.model_name == "LocalDense":
+        learning_rates = [1e-4, 1e-5]
+        dropout_probs = [0.0, 0.2]
+        widths = [3, 5, 7, 10, 15]
+        depths = [3, 5, 7, 10, 15]
+        axes = [learning_rates, dropout_probs, widths, depths]
+        labels = "learning rate,\tdropout prob.,\twidth,\tdepth"
+    elif cfg.model_name == "EnsembleLocalDense":
+        learning_rates = [1e-4, 1e-5]
+        dropout_probs = [0.0, 0.2]
+        widths = [3, 5, 7, 10, 15]
+        depths = [3, 5, 7, 10, 15]
+        axes = [learning_rates, dropout_probs, widths, depths]
+        labels = "learning rate,\tdropout prob.,\twidth,\tdepth"
+    elif cfg.model_name == "EnsembleGlobalCNN":
+        learning_rates = [1e-4, 1e-5]
+        conv_nums = [3, 5, 7, 9, 12]
+        channel_nums = [10, 15, 20, 25, 30, 40]
+        axes = [learning_rates, conv_nums, channel_nums]
+        labels = "learning rate,\tNo. conv layers,  No. conv channels"
+
     combos = list(itertools.product(*axes))
 
     for combo in combos:
@@ -84,16 +112,40 @@ def grid_search(cfg):
         print(labels)
         print(combo)
         print("")
+
+        if cfg.model_name == "GlobalDense":
+            cfg.learning_rate = combo[0]
+            cfg.dropout_prob = combo[1]
+            cfg.hidden_layer_size = combo[2]
+            cfg.num_layers = combo[3]
+        elif cfg.model_name == "GlobalCNN":
+            cfg.learning_rate = combo[0]
+            cfg.num_conv_layers = combo[1]
+            cfg.num_channels = combo[2]
+            cfg.num_fc_layers = combo[3]
+        elif cfg.model_name == "LocalDense":
+            cfg.learning_rate = combo[0]
+            cfg.dropout_prob = combo[1]
+            cfg.hidden_layer_size = combo[2]
+            cfg.num_layers = combo[3]
+        elif cfg.model_name == "EnsembleLocalDense":
+            cfg.learning_rate = combo[0]
+            cfg.dropout_prob = combo[1]
+            cfg.hidden_layer_size = combo[2]
+            cfg.num_layers = combo[3]
+        elif cfg.model_name == "EnsembleGlobalCNN":
+            cfg.learning_rate = combo[0]
+            cfg.num_conv_layers = combo[1]
+            cfg.num_channels = combo[2]
+
         final_val_losses = np.zeros(len(dataloaders))
+
         for system_num in range(len(dataloaders)):
             print("System num:", system_num)
-            cfg.learning_rate     = combo[0]
-            cfg.dropout_prob      = combo[1]
-            cfg.hidden_layer_size = combo[2]
-            cfg.num_layers        = combo[3]
             model = models.create_new_model(cfg, cfg.get_model_specific_params())
             data_dict = train.train(cfg, model, 0, dataloaders[system_num][0], dataloaders[system_num][1])
             final_val_losses[system_num] = data_dict["Validation loss"][1][-1]
+
         final_val_losses_sum = np.sum(final_val_losses)
         search_data.append({"str": labels + "\n" + str(combo), "sum": final_val_losses_sum, "losses": final_val_losses})
 
@@ -102,8 +154,8 @@ def grid_search(cfg):
 
     with open(os.path.join(cfg.run_dir, "grid_search_results" + ".txt"), "w") as f:
         print("\n")
-        print("Parameter grid search for model " + cfg.model_name + "\n")
-        f.write("Parameter grid search for model " + cfg.model_name + "\n\n")
+        print("Results from parameter grid search for model " + cfg.model_name + "\n")
+        f.write("Results from parameter grid search for model " + cfg.model_name + "\n\n")
         for data_dict in search_data:
             print("Parameters:\t", data_dict["str"])
             print("Losses:\t", data_dict["losses"])

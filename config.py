@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "test_grid_search"
-run_names  = [["0"]]
+group_name = "test_grid_search6"
+run_names  = [["0"], ["1"], ["2"], ["3"], ["4"]]
 systems    = ["1"]
 data_tags  = ["1"]
-model_keys = [0]
+model_keys = [0, 1, 2, 3, 4]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -711,10 +711,10 @@ class Config:
         self.learning_rate = 1e-4
 
         self.act_type = 'lrelu'
-        self.act_param = 0.2
+        self.act_param = 0.01
 
-        self.use_dropout = False
-        self.dropout_prob = 0.1
+        self.use_dropout = True
+        self.dropout_prob = 0.0
 
         self.model_specific_params = []
         if self.model_name == 'GlobalDense':

@@ -39,6 +39,9 @@ def main():
     print("\nEXECUTION INITIATED\n")
 
     if args.grs:
+        print("-----------------------------------------------")
+        print("-----------------------------------------------")
+        print("Initiating parameter grid search.\n")
         for model_num in range(len(config.model_keys)):
             cfg = config.Config(
                 group_name = config.group_name,
@@ -49,7 +52,12 @@ def main():
                 do_train   = False,
                 do_test    = False
             )
+            print("- - - - - - - - - - - - - - - - - - - - - - - -")
+            print("- - - - - - - - - - - - - - - - - - - - - - - -")
+            print("Finding optimal parameters for model " + cfg.model_name)
             parameter_grid_search.grid_search(cfg)
+            print("")
+        print("Initiating parameter grid search.\n\nEXECUTION COMPLETED")
         return
 
     group_name = config.group_name
