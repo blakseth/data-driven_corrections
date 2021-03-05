@@ -28,15 +28,15 @@ def grid_search(cfg):
     os.makedirs(cfg.run_dir, exist_ok=False)
     # Load datasets and create dataloaders.
     dataset_paths = [
-        [os.path.join(cfg.datasets_dir, 'system2B_sst_aug_train.pt'),
-         os.path.join(cfg.datasets_dir, 'system2B_sst_aug_val.pt'),
-         os.path.join(cfg.datasets_dir, 'system2B_sst_aug_test.pt')],
-        [os.path.join(cfg.datasets_dir, 'system5B_sst_aug_train.pt'),
-         os.path.join(cfg.datasets_dir, 'system5B_sst_aug_val.pt'),
-         os.path.join(cfg.datasets_dir, 'system5B_sst_aug_test.pt')],
-        [os.path.join(cfg.datasets_dir, 'system8B_sst_aug_train.pt'),
-         os.path.join(cfg.datasets_dir, 'system8B_sst_aug_val.pt'),
-         os.path.join(cfg.datasets_dir, 'system8B_sst_aug_test.pt')]
+        [os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_train.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_val.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_test.pt')],
+        [os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_train.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_val.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_test.pt')],
+        [os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_train.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_val.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_test.pt')]
     ]
     dataloaders = []
     for i in range(len(dataset_paths)):

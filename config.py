@@ -24,10 +24,10 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "test_grid_search6"
-run_names  = [["0"], ["1"], ["2"], ["3"], ["4"]]
-systems    = ["1"]
-data_tags  = ["1"]
+group_name = "trial_grs_on_idun"
+run_names  = [["grs_model0"], ["grs_model1"], ["grs_model2"], ["grs_model3"], ["grs_model4"]]
+systems    = ["N/A"]
+data_tags  = ["N/A"]
 model_keys = [0, 1, 2, 3, 4]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
