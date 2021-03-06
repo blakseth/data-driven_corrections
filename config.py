@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 
 group_name = "trial_grs_on_idun"
 run_names  = [["grs_model0"], ["grs_model1"], ["grs_model2"], ["grs_model3"], ["grs_model4"]]
-systems    = ["N/A"]
+systems    = ["1"]
 data_tags  = ["N/A"]
 model_keys = [0, 1, 2, 3, 4]
 assert len(systems) == len(data_tags) == len(run_names[0])
