@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "trial_grs_on_idun"
-run_names  = [["grs_model0"], ["grs_model1"], ["grs_model2"], ["grs_model3"], ["grs_model4"]]
-systems    = ["1"]
-data_tags  = ["N/A"]
-model_keys = [0, 1, 2, 3, 4]
+group_name = "2021-03-08_make_histograms"
+run_names  = [["histograms"]]
+systems    = ["9"]
+data_tags  = ["system9_sst_no_aug_xt"]
+model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -52,7 +52,8 @@ class Config:
             'GlobalCNN',
             'LocalDense',
             'EnsembleLocalDense',
-            'EnsembleGlobalCNN'
+            'EnsembleGlobalCNN',
+            'LocalDense_xt',
         ]
         self.model_name = model_types[model_key]
 
@@ -73,8 +74,8 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
-        self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -673,6 +674,10 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Data configuration.
 
+        self.use_local_x = True
+        self.use_local_t = True
+        self.use_temp    = True
+
         self.do_simulation_test = False
 
         # Dataset sizes (unaugmented).
@@ -756,6 +761,13 @@ class Config:
             self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
             def get_model_specific_params():
                 return [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+        elif self.model_name == 'LocalDense_xt':
+            self.num_layers = 20
+            self.hidden_layer_size = 12
+            # [No. layers in each network, No. nodes in each hidden layer of each network]
+            self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_layers, self.hidden_layer_size]
         else:
             raise Exception("Invalid model selection.")
 
@@ -771,14 +783,14 @@ class Config:
         self.max_train_it = int(1e6)
         self.min_train_it = int(5e3)
 
-        self.save_train_loss_period = int(1e1)  # Number of training iterations per save of training losses.
-        self.print_train_loss_period = int(2e1) # Number of training iterations per save of training losses.
+        self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
+        self.print_train_loss_period = int(1e3) # Number of training iterations per save of training losses.
         self.save_model_period = int(5e10)  # Number of training iterations per model save.
         self.validation_period = int(1e2)  # Number of training iterations per validation.
 
         self.batch_size_train = 32
-        self.batch_size_val = self.N_val_examples
-        self.batch_size_test = self.N_test_examples
+        self.batch_size_val = self.N_val_examples * self.N_coarse
+        self.batch_size_test = self.N_test_examples * self.N_coarse
 
         self.overfit_limit = 10
 

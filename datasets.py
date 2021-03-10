@@ -42,6 +42,14 @@ def create_datasets(cfg):
     if os.path.exists(save_filepath) and False:
         simulation_data = joblib.load(save_filepath)
     else:
+        #if cfg.use_local_x and cfg.use_local_t:
+        #    ins = np.zeros((cfg.Nt_coarse * cfg.N_coarse), 5)
+        #elif cfg.use_local_x:
+        #    ins = np.zeros((cfg.Nt_coarse * cfg.N_coarse), 4)
+        #else:
+        #    raise Exception("Wrong configuration for this branch.")
+        #ref_Ts_xt = np.zeros((cfg.Nt_coarse * cfg.N_coarse), 1)
+        #srcs_xt   = np.zeros((cfg.Nt_coarse * cfg.N_coarse), 1)
         unc_Ts    = np.zeros((cfg.Nt_coarse, cfg.N_coarse + 2))
         unc_Ts[0] = cfg.get_T0(cfg.nodes_coarse)
         ref_Ts    = np.zeros((cfg.Nt_coarse, cfg.N_coarse + 2))
@@ -67,6 +75,10 @@ def create_datasets(cfg):
                 cfg.get_q_hat_approx, np.zeros_like(cfg.nodes_coarse[1:-1]),
                 cfg.dt_coarse, old_time, new_time, False
             )
+            #for j in range(cfg.N_coarse):
+            #    ins[i*cfg.N_coarse + j][:3] = unc_Ts[i, j:j+3]
+            #    ins[i*cfg.N_coarse + j][4]  = cfg.nodes_coarse[j+1]
+            #    ins[i*cfg.N_coarse + j][5]  = new_time
             if cfg.exact_solution_available:
                 ref_Ts[i] = cfg.get_T_exact(cfg.nodes_coarse, new_time)
             else:
@@ -79,6 +91,8 @@ def create_datasets(cfg):
                 )
                 for j in range(cfg.N_coarse + 2):
                     ref_Ts[i][j] = ref_Ts_full[i][idx[j]]
+            #for j in range(cfg.N_coarse):
+            #    ref_Ts_xt[i*cfg.N_coarse + j][0] = ref_Ts[i, j+1]
 
         # Calculate correction source terms.
         sources = np.zeros((cfg.Nt_coarse, cfg.N_coarse))
@@ -100,6 +114,8 @@ def create_datasets(cfg):
                 cfg.dt_coarse, old_time, new_time, False
             )
             np.testing.assert_allclose(corrected, ref_Ts[i], rtol=1e-10, atol=1e-10)
+            #for j in range(cfg.N_coarse):
+            #    srcs_xt[i*cfg.N_coarse + j][0] = sources[i, j+1]
         print("Correction source terms generated and verified.")
 
         # Store data
@@ -130,7 +146,7 @@ def create_datasets(cfg):
     times = times[permutation]
 
     # Split data into training, validation and test set.
-    train_ICs = ICs[:cfg.N_train_examples, :]
+    train_ICs = ICs[:cfg.N_train_examples,:]
     train_unc = unc[:cfg.N_train_examples,:]
     train_ref = ref[:cfg.N_train_examples,:]
     train_src = src[:cfg.N_train_examples,:]
@@ -148,17 +164,90 @@ def create_datasets(cfg):
     test_src  = src[cfg.N_train_examples + cfg.N_val_examples:,:]
     test_times = times[cfg.N_train_examples + cfg.N_val_examples:]
 
-    assert train_ICs.shape[0] == cfg.N_train_examples
-    assert train_unc.shape[0] == cfg.N_train_examples
-    assert train_ref.shape[0] == cfg.N_train_examples
-    assert train_src.shape[0] == cfg.N_train_examples
-    assert train_times.shape[0] == cfg.N_train_examples
+    print(train_unc[0])
+    print(train_unc[1])
 
-    assert val_ICs.shape[0]   == cfg.N_val_examples
-    assert val_unc.shape[0]   == cfg.N_val_examples
-    assert val_ref.shape[0]   == cfg.N_val_examples
-    assert val_src.shape[0]   == cfg.N_val_examples
-    assert val_times.shape[0] == cfg.N_val_examples
+    if cfg.use_local_x or cfg.use_local_t:
+        train_ICs_xt = []
+        train_unc_xt = []
+        train_ref_xt = []
+        train_src_xt = []
+        train_times_xt = []
+
+        val_ICs_xt = []
+        val_unc_xt = []
+        val_ref_xt = []
+        val_src_xt = []
+        val_times_xt = []
+
+        for i in range(train_unc.shape[0]):
+            for j in range(cfg.N_coarse):
+                if cfg.use_local_x and not cfg.use_local_t:
+                    to_append = np.zeros(4)
+                    #print("train_unc[i, j:j+3]", train_unc[i, j:j+3])
+                    to_append[:3] = train_unc[i, j:j+3]
+                    to_append[3]  = cfg.nodes_coarse[j+1]
+                elif cfg.use_local_x and cfg.use_local_x:
+                    to_append = np.zeros(5)
+                    to_append[:3] = train_unc[i, j:j+3]
+                    to_append[3]  = cfg.nodes_coarse[j+1]
+                    to_append[4]  = train_times[i]
+                else:
+                    raise Exception("Ohhhh noooo! Something went terribly wrong here.")
+                if not cfg.use_temp:
+                    to_append[:3] = np.zeros(3)
+                train_unc_xt.append(to_append)
+                train_ref_xt.append([train_ref[i, j+1]])
+                train_src_xt.append([train_src[i, j]])
+                train_ICs_xt.append([train_ICs[i, j+1]])
+                train_times_xt.append(train_times[i])
+
+        for i in range(val_unc.shape[0]):
+            for j in range(cfg.N_coarse):
+                if cfg.use_local_x and not cfg.use_local_t:
+                    to_append = np.zeros(4)
+                    to_append[:3] = val_unc[i, j:j+3]
+                    to_append[3]  = cfg.nodes_coarse[j+1]
+                elif cfg.use_local_x and cfg.use_local_x:
+                    to_append = np.zeros(5)
+                    to_append[:3] = val_unc[i, j:j+3]
+                    to_append[3]  = cfg.nodes_coarse[j+1]
+                    to_append[4]  = val_times[i]
+                else:
+                    raise Exception("Ohhhh noooo! Something went terribly wrong here.")
+                if not cfg.use_temp:
+                    to_append[:3] = np.zeros(3)
+                val_unc_xt.append(to_append)
+                val_ref_xt.append([val_ref[i, j+1]])
+                val_src_xt.append([val_src[i, j]])
+                val_ICs_xt.append([val_ICs[i, j+1]])
+                val_times_xt.append(val_times[i])
+
+        train_ICs_xt = np.asarray(train_ICs_xt)
+        train_unc_xt = np.asarray(train_unc_xt)
+        train_ref_xt = np.asarray(train_ref_xt)
+        train_src_xt = np.asarray(train_src_xt)
+        train_times_xt = np.asarray(train_times_xt)
+
+        val_ICs_xt = np.asarray(val_ICs_xt)
+        val_unc_xt = np.asarray(val_unc_xt)
+        val_ref_xt = np.asarray(val_ref_xt)
+        val_src_xt = np.asarray(val_src_xt)
+        val_times_xt = np.asarray(val_times_xt)
+    else:
+        raise Exception("Invalid config for this branch.")
+
+    assert train_ICs_xt.shape[0] == cfg.N_train_examples * cfg.N_coarse
+    assert train_unc_xt.shape[0] == cfg.N_train_examples * cfg.N_coarse
+    assert train_ref_xt.shape[0] == cfg.N_train_examples * cfg.N_coarse
+    assert train_src_xt.shape[0] == cfg.N_train_examples * cfg.N_coarse
+    assert train_times_xt.shape[0] == cfg.N_train_examples * cfg.N_coarse
+
+    assert val_ICs_xt.shape[0]   == cfg.N_val_examples * cfg.N_coarse
+    assert val_unc_xt.shape[0]   == cfg.N_val_examples * cfg.N_coarse
+    assert val_ref_xt.shape[0]   == cfg.N_val_examples * cfg.N_coarse
+    assert val_src_xt.shape[0]   == cfg.N_val_examples * cfg.N_coarse
+    assert val_times_xt.shape[0] == cfg.N_val_examples * cfg.N_coarse
 
     assert test_ICs.shape[0]  == cfg.N_test_examples
     assert test_unc.shape[0]  == cfg.N_test_examples
@@ -167,91 +256,72 @@ def create_datasets(cfg):
     assert test_times.shape[0] == cfg.N_test_examples
 
     # Augment training data.
-    if cfg.augment_training_data:
-        # Shift augmentation.
-
-        train_ICs_orig = train_ICs.copy()
-        train_unc_orig = train_unc.copy()
-        train_ref_orig = train_ref.copy()
-        train_src_orig = train_src.copy()
-        train_times_orig = train_times.copy()
-        for i in range(cfg.N_shift_steps):
-            # IC temperature
-            train_ICs_aug = train_ICs_orig + (i + 1) * cfg.shift_step_size
-            train_ICs = np.concatenate((train_ICs, train_ICs_aug), axis=0)
-
-            # Uncorrected temperature
-            train_unc_aug = train_unc_orig + (i + 1) * cfg.shift_step_size
-            train_unc = np.concatenate((train_unc, train_unc_aug), axis=0)
-
-            # Reference temperature
-            train_ref_aug = train_ref_orig + (i + 1) * cfg.shift_step_size
-            train_ref = np.concatenate((train_ref, train_ref_aug), axis=0)
-
-            # Correction source term
-            train_src = np.concatenate((train_src, train_src_orig), axis=0)
-
-            # Time levels
-            train_times = np.concatenate((train_times, train_times_orig), axis=0)
-
-        # Mirror augmentation.
-
-        # IC temperature
-        train_ICs_mirror = np.flip(train_ICs, axis=1).copy()
-        train_ICs = np.concatenate((train_ICs, train_ICs_mirror), axis=0)
-
-        # Uncorrected temperature
-        train_unc_mirror = np.flip(train_unc, axis=1).copy()
-        train_unc = np.concatenate((train_unc, train_unc_mirror), axis=0)
-
-        # Reference temperature
-        train_ref_mirror = np.flip(train_ref, axis=1).copy()
-        train_ref = np.concatenate((train_ref, train_ref_mirror), axis=0)
-
-        # Correction source term
-        train_src_mirror = np.flip(train_src, axis=1).copy()
-        train_src = np.concatenate((train_src, train_src_mirror), axis=0)
-
-        # Time levels
-        train_times = np.concatenate((train_times, train_times), axis=0)
+    if cfg.augment_training_data and False: # Data augmentation is not to be used in this branch
+        pass
 
     # Calculate statistical properties of training data.
-    train_unc_mean = np.mean(train_unc)
-    train_ref_mean = np.mean(train_ref)
-    train_src_mean = np.mean(train_src)
+    train_unc_mean = np.mean(train_unc_xt[:,:3])
+    x_mean = np.mean(train_unc_xt[:,3])
+    if cfg.use_local_t:
+        t_mean = np.mean(train_unc_xt[:,4])
+    train_ref_mean = np.mean(train_ref_xt)
+    train_src_mean = np.mean(train_src_xt)
 
-    train_unc_std = np.std(train_unc)
-    train_ref_std = np.std(train_ref)
-    train_src_std = np.std(train_src)
+    train_unc_std = np.std(train_unc_xt[:,:3])
+    x_std = np.std(train_unc_xt[:,3])
+    if cfg.use_local_t:
+        t_std = np.std(train_unc_xt[:,4])
+    train_ref_std = np.std(train_ref_xt)
+    train_src_std = np.std(train_src_xt)
+
+    if not cfg.use_temp:
+        assert train_unc_mean == 0.0
+        assert np.mean(val_unc_xt[:,:3]) == 0.0
+
+    for i in range(cfg.N_coarse * 2):
+        print(train_unc_xt[i])
 
     # z_normalize data.
-    train_unc_normalized = util.z_normalize(train_unc, train_unc_mean, train_unc_std)
-    val_unc_normalized   = util.z_normalize(val_unc,   train_unc_mean, train_unc_std)
-    test_unc_normalized  = util.z_normalize(test_unc,  train_unc_mean, train_unc_std)
+    train_unc_normalized_xt = np.zeros_like(train_unc_xt)
+    if cfg.use_temp:
+        train_unc_normalized_xt[:,:3] = util.z_normalize(train_unc_xt[:,:3], train_unc_mean, train_unc_std)
+    train_unc_normalized_xt[:, 3] = util.z_normalize(train_unc_xt[:, 3], x_mean, x_std)
+    if cfg.use_local_t:
+        train_unc_normalized_xt[:, 4] = util.z_normalize(train_unc_xt[:, 4], t_mean, t_std)
+    val_unc_normalized_xt = np.zeros_like(val_unc_xt)
+    if cfg.use_temp:
+        val_unc_normalized_xt[:, :3] = util.z_normalize(val_unc_xt[:, :3], train_unc_mean, train_unc_std)
+    val_unc_normalized_xt[:, 3] = util.z_normalize(val_unc_xt[:, 3], x_mean, x_std)
+    if cfg.use_local_t:
+        val_unc_normalized_xt[:, 4] = util.z_normalize(val_unc_xt[:, 4], t_mean, t_std)
+    test_unc_normalized     = util.z_normalize(test_unc,     train_unc_mean, train_unc_std)
 
-    train_ref_normalized = util.z_normalize(train_ref, train_ref_mean, train_ref_std)
-    val_ref_normalized   = util.z_normalize(val_ref,   train_ref_mean, train_ref_std)
-    test_ref_normalized  = util.z_normalize(test_ref,  train_ref_mean, train_ref_std)
+    train_ref_normalized_xt = util.z_normalize(train_ref_xt, train_ref_mean, train_ref_std)
+    val_ref_normalized_xt   = util.z_normalize(val_ref_xt,   train_ref_mean, train_ref_std)
+    test_ref_normalized     = util.z_normalize(test_ref,  train_ref_mean, train_ref_std)
 
-    train_src_normalized = util.z_normalize(train_src, train_src_mean, train_src_std)
-    val_src_normalized   = util.z_normalize(val_src,   train_src_mean, train_src_std)
+    train_src_normalized_xt = util.z_normalize(train_src_xt, train_src_mean, train_src_std)
+    val_src_normalized_xt   = util.z_normalize(val_src_xt,   train_src_mean, train_src_std)
     test_src_normalized  = util.z_normalize(test_src,  train_src_mean, train_src_std)
+
+    for i in range(cfg.N_coarse * 2):
+        print(train_unc_normalized_xt[i])
 
     # Note that the ICs are not to be used in conjunction with the NN directly,
     # so there is no need to normalize them. Same goes for time levels.
 
     # Convert data from Numpy array to Torch tensor.
-    train_ICs_tensor = torch.from_numpy(train_ICs)
-    train_unc_tensor = torch.from_numpy(train_unc_normalized)
-    train_ref_tensor = torch.from_numpy(train_ref_normalized)
-    train_src_tensor = torch.from_numpy(train_src_normalized)
-    train_times_tensor = torch.from_numpy(train_times)
+    train_ICs_tensor = torch.from_numpy(train_ICs_xt)
+    train_unc_tensor = torch.from_numpy(train_unc_normalized_xt)
+    train_ref_tensor = torch.from_numpy(train_ref_normalized_xt)
+    train_src_tensor = torch.from_numpy(train_src_normalized_xt)
+    train_times_tensor = torch.from_numpy(train_times_xt)
 
-    val_ICs_tensor   = torch.from_numpy(val_ICs)
-    val_unc_tensor   = torch.from_numpy(val_unc_normalized)
-    val_ref_tensor   = torch.from_numpy(val_ref_normalized)
-    val_src_tensor   = torch.from_numpy(val_src_normalized)
-    val_times_tensor = torch.from_numpy(val_times)
+    val_ICs_tensor   = torch.from_numpy(val_ICs_xt)
+    val_unc_tensor   = torch.from_numpy(val_unc_normalized_xt)
+    val_ref_tensor   = torch.from_numpy(val_ref_normalized_xt)
+    val_src_tensor   = torch.from_numpy(val_src_normalized_xt)
+    val_times_tensor = torch.from_numpy(val_times_xt)
 
     test_ICs_tensor  = torch.from_numpy(test_ICs)
     test_unc_tensor  = torch.from_numpy(test_unc_normalized)
@@ -271,9 +341,9 @@ def create_datasets(cfg):
 
     # Pad with zeros to satisfy requirements of Torch's TensorDataset.
     # (Assumes that all datasets contain 6 or more data examples.)
-    assert train_unc.shape[0] >= 6 and val_unc.shape[0] >= 6 and test_unc.shape[0] >= 6
-    stats_train = np.zeros(train_unc.shape[0])
-    stats_val   = np.zeros(val_unc.shape[0])
+    assert train_unc_xt.shape[0] >= 6 and val_unc_xt.shape[0] >= 6 and test_unc.shape[0] >= 6
+    stats_train = np.zeros(train_unc_xt.shape[0])
+    stats_val   = np.zeros(val_unc_xt.shape[0])
     stats_test  = np.zeros(test_unc.shape[0])
     stats_train[:6] = stats
     stats_val[:6]   = stats

@@ -124,7 +124,7 @@ def main():
                     if cfg.model_name[:8] == 'Ensemble':
                         print("Ensemble model containing " + str(len(model.nets)) + " networks as shown below.")
                         print(model.nets[0].net)
-                    elif cfg.model_name[:5] == 'Local':
+                    elif cfg.model_name == 'LocalDense':
                         print("Ensemble model containing " + str(len(model.net.nets)) + " networks as shown below.")
                         print(model.net.nets[0])
                     else:
@@ -174,7 +174,10 @@ def main():
                     if cfg.do_simulation_test:
                         error_dict, plot_data_dict = test.simulation_test(cfg, model, i)
                     else:
-                        error_dict, plot_data_dict = test.single_step_test(cfg, model, i)
+                        if cfg.use_local_x:
+                            error_dict, plot_data_dict = test.test_xt(cfg, model, i)
+                        else:
+                            error_dict, plot_data_dict = test.single_step_test(cfg, model, i)
                     error_dicts.append(error_dict)
                     plot_data_dicts.append(plot_data_dict)
                 print("")

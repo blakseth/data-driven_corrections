@@ -215,6 +215,138 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
 ########################################################################################################################
 # Testing ML-model.
 
+def test_xt(cfg, model, num):
+    if cfg.model_name[:8] == "Ensemble":
+        for m in range(len(model.nets)):
+            model.nets[m].net.eval()
+    else:
+        model.net.eval()
+
+    _, _, dataset_test = load_datasets(cfg, False, False, True)
+
+    unc_tensor = dataset_test[:][0].detach()
+    ref_tensor = dataset_test[:][1].detach()
+    stats = dataset_test[:6][3].detach().numpy()
+    ICs = dataset_test[:][4].detach().numpy()
+    times = dataset_test[:][5].detach().numpy()
+
+    unc_mean = stats[0]
+    unc_std = stats[3]
+    ref_mean = stats[1]
+    ref_std = stats[4]
+    src_mean = stats[2]
+    src_std = stats[5]
+    x_mean = np.mean(cfg.nodes_coarse)
+    x_std = np.std(cfg.nodes_coarse)
+    t_mean = np.mean(times)
+    t_std = np.std(times)
+
+    unc = util.z_unnormalize(unc_tensor.numpy(), unc_mean, unc_std)
+    ref = util.z_unnormalize(ref_tensor.numpy(), unc_mean, unc_std)
+
+    L2_errors_unc = np.zeros(cfg.N_test_examples)
+    L2_errors_cor = np.zeros(cfg.N_test_examples)
+
+    num_profile_plots = cfg.profile_save_steps.shape[0]
+    plot_data_dict = {
+        'x': cfg.nodes_coarse,
+        'unc': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'ref': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'cor': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'time': np.zeros(num_profile_plots)
+    }
+    if cfg.model_is_hybrid and cfg.exact_solution_available:
+        plot_data_dict['src'] = np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0] - 2))
+    for i in range(cfg.N_test_examples):
+        old_time = np.around(times[i] - cfg.dt_coarse, decimals=10)
+        new_time = np.around(times[i], decimals=10)
+        # print("New time:", new_time)
+
+        new_unc = unc[i]
+        new_unc_tensor = torch.unsqueeze(unc_tensor[i], 0)
+        IC = ICs[i]  # The profile at old_time which was used to generate new_unc, which is a profile at new_time.
+
+        new_cor = np.zeros_like(new_unc)
+        if cfg.model_is_hybrid:
+            new_src = np.zeros(cfg.N_coarse)
+            for j in range(cfg.N_coarse):
+                if cfg.use_local_t:
+                    net_input = torch.zeros((new_unc_tensor.shape[0], 5))
+                    if cfg.use_temp:
+                        net_input[0][:3] = new_unc_tensor[:, j:j+3]
+                    net_input[0][3] = (cfg.nodes_coarse[j+1] - x_mean) / x_std
+                    net_input[0][4] = (new_time - t_mean) / t_std
+                else:
+                    if cfg.use_temp:
+                        net_input = torch.zeros((new_unc_tensor.shape[0], 4))
+                    net_input[0][:3] = new_unc_tensor[:, j:j+3]
+                    net_input[0][3] = (cfg.nodes_coarse[j+1] - x_mean) / x_std
+
+                new_src[j] = util.z_unnormalize(torch.squeeze(model.net(net_input.double()), 0).detach().numpy(), src_mean,
+                                             src_std)
+            new_cor = physics.simulate(
+                cfg.nodes_coarse, cfg.faces_coarse,
+                IC, cfg.get_T_a, cfg.get_T_b,
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                cfg.get_q_hat_approx, new_src,
+                cfg.dt_coarse, old_time, new_time, False
+            )
+        else:
+            new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
+            new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
+            for j in range(cfg.N_coarse):
+                if cfg.use_local_t:
+                    net_input = torch.zeros((new_unc_tensor.shape[0], 5))
+                    if cfg.use_temp:
+                        net_input[0][:3] = new_unc_tensor[:, j:j+3]
+                    net_input[0][3] = (cfg.nodes_coarse[j+1] - x_mean) / x_std
+                    net_input[0][4] = (new_time - t_mean) / t_std
+                else:
+                    net_input = torch.zeros((new_unc_tensor.shape[0], 4))
+                    if cfg.use_temp:
+                        net_input[0][:3] = new_unc_tensor[:, j:j+3]
+                    net_input[0][3] = (cfg.nodes_coarse[j+1] - x_mean) / x_std
+                new_cor[j+1] = util.z_unnormalize(model.net(net_input.double()).detach().numpy(), ref_mean, ref_std)
+
+        # lin_unc = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_unc)
+        # lin_cor = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_cor)
+
+        if cfg.exact_solution_available:
+            # ref_func = lambda x: cfg.get_T_exact(x, new_time)
+            new_ref = cfg.get_T_exact(cfg.nodes_coarse, new_time)
+        else:
+            new_ref = util.z_unnormalize(ref_tensor[i].detach().numpy(), ref_mean, ref_std)
+            # ref_func = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_ref)
+
+        # ref_norm = util.get_L2_norm(cfg.faces_coarse, ref_func)
+        # unc_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
+        # cor_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
+        ref_norm = util.get_disc_L2_norm(new_ref)
+        unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
+        cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
+
+        L2_errors_unc[i] = unc_error_norm
+        L2_errors_cor[i] = cor_error_norm
+
+        if i < num_profile_plots:
+            plot_data_dict['unc'][i] = new_unc
+            plot_data_dict['ref'][i] = new_ref
+            plot_data_dict['cor'][i] = new_cor
+            if cfg.model_is_hybrid and cfg.exact_solution_available:
+                plot_data_dict['src'][i] = new_src
+            plot_data_dict['time'][i] = new_time
+
+    error_dict = {
+        'unc': L2_errors_unc,
+        'cor': L2_errors_cor,
+        'unc_mean': np.mean(L2_errors_unc),
+        'unc_std': np.std(L2_errors_unc),
+        'cor_mean': np.mean(L2_errors_cor),
+        'cor_std': np.std(L2_errors_cor)
+    }
+
+    return error_dict, plot_data_dict
+
 def single_step_test(cfg, model, num):
     if cfg.model_name[:8] == "Ensemble":
         for m in range(len(model.nets)):

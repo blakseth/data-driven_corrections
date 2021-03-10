@@ -257,6 +257,13 @@ def create_new_model(cfg, model_specific_params):
         return EnsembleWrapper(cfg, 'DenseModule', 3, 1, model_specific_params)
     elif cfg.model_name == 'EnsembleGlobalCNN':
         return EnsembleWrapper(cfg, 'CNNModule', cfg.N_coarse + 2, 1, model_specific_params)
+    elif cfg.model_name == 'LocalDense_xt':
+        if cfg.use_local_x and not cfg.use_local_t:
+            return Model(cfg, 'DenseModule', 4, 1, model_specific_params)
+        elif cfg.use_local_x and cfg.use_local_t:
+            return Model(cfg, 'DenseModule', 5, 1, model_specific_params)
+        else:
+            raise Exception("Invalid model selection.")
     else:
         raise Exception("Invalid model selection.")
 
