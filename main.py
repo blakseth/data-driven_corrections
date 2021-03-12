@@ -173,6 +173,8 @@ def main():
                     print("\nTesting instance " + str(i))
                     if cfg.do_simulation_test:
                         error_dict, plot_data_dict = test.simulation_test(cfg, model, i)
+                    elif cfg.parametrized_system:
+                        error_dict, plot_data_dict = test.parametrized_simulation_test(cfg, model)
                     else:
                         error_dict, plot_data_dict = test.single_step_test(cfg, model, i)
                     error_dicts.append(error_dict)

@@ -24,11 +24,11 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "trial_grs_on_idun"
-run_names  = [["grs_model0"], ["grs_model1"], ["grs_model2"], ["grs_model3"], ["grs_model4"]]
-systems    = ["1"]
-data_tags  = ["N/A"]
-model_keys = [0, 1, 2, 3, 4]
+group_name = "debugging_parametrized_datasets10"
+run_names  = [["debug"]]
+systems    = ["1_param"]
+data_tags  = ["1_param_no_aug_more"]
+model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -58,7 +58,9 @@ class Config:
 
         self.augment_training_data = False
 
-        self.ensemble_size = 2
+        self.parametrized_system = True
+
+        self.ensemble_size = 1
 
         self.do_train = do_train
         self.do_test = do_test
@@ -73,8 +75,8 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
-        self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -110,6 +112,35 @@ class Config:
                 return -2 * np.ones_like(x)
             def get_q_hat_approx(x, t):
                 return 0.8 * get_q_hat(x, t)
+            def get_k(x):
+                return np.ones_like(x) * k_ref
+            def get_k_approx(x):
+                return get_k(x)
+            def get_cV(x):
+                return np.ones_like(x) * cV_ref
+        elif self.system == "1_param":
+            exact_solution_available = True
+            t_end     = 5.0
+            x_a       = 0.0
+            x_b       = 1.0
+            A         = 1.0
+            rho       = 1.0
+            k_ref     = 1.0
+            cV_ref    = 1.0
+            q_hat_ref = 1.0
+            alphas = np.linspace(0.1, 2.0, 20, endpoint=True)
+            def get_T_exact(x, t, alpha):
+                return t + 0.5 * alpha * (x ** 2)
+            def get_T0(x, alpha):
+                return get_T_exact(x, 0, alpha)
+            def get_T_a(t, alpha):
+                return get_T_exact(x_a, t, alpha)
+            def get_T_b(t, alpha):
+                return get_T_exact(x_b, t, alpha)
+            def get_q_hat(x, t, alpha):
+                return -(1 + alpha) * np.ones_like(x)
+            def get_q_hat_approx(x, t, alpha):
+                return np.zeros_like(x)
             def get_k(x):
                 return np.ones_like(x) * k_ref
             def get_k_approx(x):
@@ -428,6 +459,37 @@ class Config:
                 return get_k(x)
             def get_cV(x):
                 return np.ones_like(x) * cV_ref
+        elif self.system == "9_param":
+            exact_solution_available = True
+            t_end = 2.0
+            x_a = 0.0
+            x_b = 1.0
+            A = 1.0
+            rho = 1.0
+            k_ref = 1.0
+            cV_ref = 1.0
+            q_hat_ref = 1.0
+            alphas = np.linspace(0.1, 2.0, 20, endpoint=True)
+            def get_T_exact(x, t, alpha):
+                return 1 + alpha*np.cos(2 * np.pi * x * (t ** 2))
+            def get_T0(x, alpha):
+                return get_T_exact(x, 0, alpha)
+            def get_T_a(t, alpha):
+                return get_T_exact(x_a, t, alpha)
+            def get_T_b(t, alpha):
+                return get_T_exact(x_b, t, alpha)
+            def get_q_hat(x, t, alpha):
+                term1 = 4 * np.pi * x * t * np.sin(2 * np.pi * x * (t**2))
+                term2 = 4 * (np.pi**2) * (t**4) * np.cos(2 * np.pi * x * (t**2))
+                return alpha * (term1 + term2)
+            def get_q_hat_approx(x, t, alpha):
+                return np.zeros_like(x)
+            def get_k(x):
+                return np.ones_like(x) * k_ref
+            def get_k_approx(x):
+                return get_k(x)
+            def get_cV(x):
+                return np.ones_like(x) * cV_ref
         elif self.system == "10":
             exact_solution_available = True
             t_end = 5.0
@@ -634,6 +696,8 @@ class Config:
         self.get_k            = get_k
         self.get_k_approx     = get_k_approx
         self.get_cV           = get_cV
+        if self.parametrized_system:
+            self.alphas           = alphas
 
         self.dom_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
@@ -683,20 +747,28 @@ class Config:
         self.N_train_examples = int(self.train_examples_ratio * self.Nt_coarse)
         self.N_val_examples = int(self.val_examples_ratio * self.Nt_coarse)
         self.N_test_examples = int(self.test_examples_ratio * self.Nt_coarse)
+        if self.parametrized_system:
+            self.N_train_examples *= self.alphas.shape[0]
+            self.N_val_examples *= self.alphas.shape[0]
+            self.N_test_examples *= self.alphas.shape[0]
 
         # Parameters for shift data augmentation.
         self.N_shift_steps = 5
         self.shift_step_size = 5
 
         # Test iterations at which temperature profiles are saved.
+        if self.parametrized_system:
+            base = self.Nt_coarse - 1
+        else:
+            base = self.N_test_examples
         self.profile_save_steps = np.asarray([
             1,
-            int(self.N_test_examples**(1/5)),
-            int(self.N_test_examples**(1/3)),
-            int(np.sqrt(self.N_test_examples)),
-            int(self.N_test_examples**(5/7)),
-            int(self.N_test_examples**(6/7)),
-            self.N_test_examples
+            int(base**(1/5)),
+            int(base**(1/3)),
+            int(np.sqrt(base)),
+            int(base**(5/7)),
+            int(base**(6/7)),
+            base
         ]) - 1
 
         self.data_vars = set([attr for attr in dir(self) if
@@ -771,8 +843,8 @@ class Config:
         self.max_train_it = int(1e6)
         self.min_train_it = int(5e3)
 
-        self.save_train_loss_period = int(1e1)  # Number of training iterations per save of training losses.
-        self.print_train_loss_period = int(2e1) # Number of training iterations per save of training losses.
+        self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
+        self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.
         self.save_model_period = int(5e10)  # Number of training iterations per model save.
         self.validation_period = int(1e2)  # Number of training iterations per validation.
 

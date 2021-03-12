@@ -28,24 +28,46 @@ import util
 
 def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
     # Visualize error stats.
-    iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
+    if cfg.parametrized_system:
+        iterations = np.arange(1, error_stats_dict['unc'].shape[1] + 1, 1)
+    else:
+        iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
 
-    plt.figure()
-    plt.semilogy(iterations, error_stats_dict['unc'],      'r-', linewidth=2.0, label="Uncorrected")
-    plt.semilogy(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
-    plt.fill_between(iterations,
-                     error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
-                     error_stats_dict['cor_mean'] - error_stats_dict['cor_std'],
-                     facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
-    plt.xlim([0, len(error_stats_dict['unc'])])
-    plt.xlabel("Test iterations", fontsize=20)
-    plt.ylabel(r"$L_2$ Error",    fontsize=20)
-    plt.xticks(fontsize=17)
-    plt.yticks(fontsize=17)
-    plt.grid()
-    plt.legend(prop={'size': 17})
-    plt.savefig(os.path.join(cfg.run_dir, "error_stats.pdf"), bbox_inches='tight')
-    plt.close()
+    if cfg.parametrized_system:
+        for a, alpha in enumerate(plot_stats_dict['alphas']):
+            plt.figure()
+            plt.semilogy(iterations, error_stats_dict['unc'][a], 'r-', linewidth=2.0, label="Uncorrected")
+            plt.semilogy(iterations, error_stats_dict['cor_mean'][a], 'b-', linewidth=2.0, label="Corrected, mean")
+            plt.fill_between(iterations,
+                             error_stats_dict['cor_mean'][a] + error_stats_dict['cor_std'][a],
+                             error_stats_dict['cor_mean'][a] - error_stats_dict['cor_std'][a],
+                             facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+            plt.xlim([0, len(error_stats_dict['unc'][a])])
+            plt.xlabel("Test iterations", fontsize=20)
+            plt.ylabel(r"$L_2$ Error", fontsize=20)
+            plt.xticks(fontsize=17)
+            plt.yticks(fontsize=17)
+            plt.grid()
+            plt.legend(prop={'size': 17})
+            plt.savefig(os.path.join(cfg.run_dir, "error_stats_alpha" + str(alpha) + ".pdf"), bbox_inches='tight')
+            plt.close()
+    else:
+        plt.figure()
+        plt.semilogy(iterations, error_stats_dict['unc'],      'r-', linewidth=2.0, label="Uncorrected")
+        plt.semilogy(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.fill_between(iterations,
+                         error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
+                         error_stats_dict['cor_mean'] - error_stats_dict['cor_std'],
+                         facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+        plt.xlim([0, len(error_stats_dict['unc'])])
+        plt.xlabel("Test iterations", fontsize=20)
+        plt.ylabel(r"$L_2$ Error",    fontsize=20)
+        plt.xticks(fontsize=17)
+        plt.yticks(fontsize=17)
+        plt.grid()
+        plt.legend(prop={'size': 17})
+        plt.savefig(os.path.join(cfg.run_dir, "error_stats.pdf"), bbox_inches='tight')
+        plt.close()
 
     if cfg.exact_solution_available:
         t0 = (cfg.train_examples_ratio + cfg.test_examples_ratio)*cfg.t_end
@@ -53,6 +75,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         x_dense = np.linspace(cfg.x_a, cfg.x_b, num=1001, endpoint=True)
     if 'time' in plot_stats_dict.keys():
         plot_times = plot_stats_dict['time']
+        print("plot_times:", plot_times)
 
     if 'cor_means_mean' in error_stats_dict.keys():
         labels = ['ML-corrected', 'Uncorrected']
@@ -91,42 +114,49 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             f.write("devs: " + str(devs) + "\n")
 
     # Visualize temperature profiles.
-    for i in range(plot_stats_dict['unc'].shape[0]):
-        plt.figure()
-        plt.scatter(plot_stats_dict['x'], plot_stats_dict['unc'][i],
-                    s=40, facecolors='none', edgecolors='r', label="Uncorrected")
-        plt.scatter(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], s=40,
-                    facecolors='none', edgecolors='b', label="Corrected, mean")
-        if cfg.exact_solution_available:
-            plt.plot(x_dense, cfg.get_T_exact(x_dense, plot_times[i]), 'k-', linewidth=2.0, label="Reference")
-        else:
-            plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
-        #plt.fill_between(plot_stats_dict['x'],
-        #                 plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
-        #                 plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
-        #                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
-        plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
-        plt.xlabel(r"$x$ (m)", fontsize=20)
-        plt.ylabel(r"$T$ (K)", fontsize=20)
-        plt.xticks(fontsize=17)
-        plt.yticks(fontsize=17)
-        plt.grid()
-        plt.legend(prop={'size': 17})
-        plt.savefig(os.path.join(cfg.run_dir, "profiles" + str(i) + ".pdf"), bbox_inches='tight')
-        plt.close()
+    if cfg.parametrized_system:
+        for a, alpha in enumerate(plot_stats_dict['alphas']):
+            for i in range(plot_stats_dict['unc'][a].shape[0]):
+                plt.figure()
+                plt.scatter(plot_stats_dict['x'], plot_stats_dict['unc'][a][i],
+                            s=40, facecolors='none', edgecolors='r', label="Uncorrected")
+                plt.scatter(plot_stats_dict['x'], plot_stats_dict['cor_mean'][a][i], s=40,
+                            facecolors='none', edgecolors='b', label="Corrected, mean")
+                if cfg.exact_solution_available:
+                    plt.plot(x_dense, cfg.get_T_exact(x_dense, plot_times[i], alpha), 'k-',
+                             linewidth=2.0, label="Reference")
+                    print("ref2:", cfg.get_T_exact(x_dense, plot_times[i], alpha))
+                else:
+                    plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][a][i], 'k-', linewidth=2.0, label="Reference")
 
-    # Visualize correction source terms (if applicable).
-    if 'src_mean' in plot_stats_dict.keys():
-        for i in range(plot_stats_dict['src_mean'].shape[0]):
+                # plt.fill_between(plot_stats_dict['x'],
+                #                 plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
+                #                 plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
+                #                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+                plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
+                plt.xlabel(r"$x$ (m)", fontsize=20)
+                plt.ylabel(r"$T$ (K)", fontsize=20)
+                plt.xticks(fontsize=17)
+                plt.yticks(fontsize=17)
+                plt.grid()
+                plt.legend(prop={'size': 17})
+                plt.savefig(os.path.join(cfg.run_dir, "profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"), bbox_inches='tight')
+                plt.close()
+    else:
+        for i in range(plot_stats_dict['unc'].shape[0]):
             plt.figure()
-            plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
-            plt.plot(x_dense,
-                     cfg.get_q_hat(x_dense, plot_times[i]) - cfg.get_q_hat_approx(x_dense, plot_times[i]),
-                     'k-', linewidth=2.0, label="Reference")
-            plt.fill_between(plot_stats_dict['x'][1:-1],
-                             plot_stats_dict['src_mean'][i] + plot_stats_dict['src_std'][i],
-                             plot_stats_dict['src_mean'][i] - plot_stats_dict['src_std'][i],
-                             facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+            plt.scatter(plot_stats_dict['x'], plot_stats_dict['unc'][i],
+                        s=40, facecolors='none', edgecolors='r', label="Uncorrected")
+            plt.scatter(plot_stats_dict['x'], plot_stats_dict['cor_mean'][i], s=40,
+                        facecolors='none', edgecolors='b', label="Corrected, mean")
+            if cfg.exact_solution_available:
+                plt.plot(x_dense, cfg.get_T_exact(x_dense, plot_times[i]), 'k-', linewidth=2.0, label="Reference")
+            else:
+                plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][i], 'k-', linewidth=2.0, label="Reference")
+            #plt.fill_between(plot_stats_dict['x'],
+            #                 plot_stats_dict['cor_mean'][i] + plot_stats_dict['cor_std'][i],
+            #                 plot_stats_dict['cor_mean'][i] - plot_stats_dict['cor_std'][i],
+            #                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
             plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
             plt.xlabel(r"$x$ (m)", fontsize=20)
             plt.ylabel(r"$T$ (K)", fontsize=20)
@@ -134,8 +164,54 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             plt.yticks(fontsize=17)
             plt.grid()
             plt.legend(prop={'size': 17})
-            plt.savefig(os.path.join(cfg.run_dir, "src_profiles" + str(i) + ".pdf"), bbox_inches='tight')
+            plt.savefig(os.path.join(cfg.run_dir, "profiles_t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"), bbox_inches='tight')
             plt.close()
+
+    # Visualize correction source terms (if applicable).
+    if 'src_mean' in plot_stats_dict.keys():
+        if cfg.parametrized_system:
+            for a, alpha in enumerate(plot_stats_dict['alphas']):
+                for i in range(plot_stats_dict['src_mean'][a].shape[0]):
+                    plt.figure()
+                    plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][a][i], 'b-', linewidth=2.0,
+                             label="Corrected, mean")
+                    plt.plot(x_dense,
+                             cfg.get_q_hat(x_dense, plot_times[i], alpha) - cfg.get_q_hat_approx(x_dense, plot_times[i], alpha),
+                             'k-', linewidth=2.0, label="Reference")
+                    plt.fill_between(plot_stats_dict['x'][1:-1],
+                                     plot_stats_dict['src_mean'][a][i] + plot_stats_dict['src_std'][a][i],
+                                     plot_stats_dict['src_mean'][a][i] - plot_stats_dict['src_std'][a][i],
+                                     facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+                    plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
+                    plt.xlabel(r"$x$ (m)", fontsize=20)
+                    plt.ylabel(r"$T$ (K)", fontsize=20)
+                    plt.xticks(fontsize=17)
+                    plt.yticks(fontsize=17)
+                    plt.grid()
+                    plt.legend(prop={'size': 17})
+                    plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"),
+                                bbox_inches='tight')
+                    plt.close()
+        else:
+            for i in range(plot_stats_dict['src_mean'].shape[0]):
+                plt.figure()
+                plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][i], 'b-', linewidth=2.0, label="Corrected, mean")
+                plt.plot(x_dense,
+                         cfg.get_q_hat(x_dense, plot_times[i]) - cfg.get_q_hat_approx(x_dense, plot_times[i]),
+                         'k-', linewidth=2.0, label="Reference")
+                plt.fill_between(plot_stats_dict['x'][1:-1],
+                                 plot_stats_dict['src_mean'][i] + plot_stats_dict['src_std'][i],
+                                 plot_stats_dict['src_mean'][i] - plot_stats_dict['src_std'][i],
+                                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+                plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
+                plt.xlabel(r"$x$ (m)", fontsize=20)
+                plt.ylabel(r"$T$ (K)", fontsize=20)
+                plt.xticks(fontsize=17)
+                plt.yticks(fontsize=17)
+                plt.grid()
+                plt.legend(prop={'size': 17})
+                plt.savefig(os.path.join(cfg.run_dir, "src_profiles_t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"), bbox_inches='tight')
+                plt.close()
 
     #plt.show()
 
@@ -159,51 +235,94 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
                 f.write(str(i) + ": " + str(error_dict['cor'][i]) + "\t\t" + str(error_dict['unc'][i]) + "\n")
         f.close()
 
-    # Calculate statistical properties of errors.
-    cor_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
-    cor_error_mean = np.mean(cor_errors, axis=0)
-    cor_error_std  = np.std(cor_errors,  axis=0)
-    if 'cor_mean' in error_dicts[0].keys():
-        cor_means = np.asarray([error_dicts[i]['cor_mean'] for i in range(len(error_dicts))])
-        cor_means_mean = np.mean(cor_means, axis=0)
-    if 'cor_std' in error_dicts[0].keys():
-        cor_stds = np.asarray([error_dicts[i]['cor_std'] for i in range(len(error_dicts))])
-        cor_stds_mean = np.mean(cor_stds, axis=0)
+    if cfg.parametrized_system:
+        cor_error_means_list = []
+        cor_error_stds_list  = []
+        cor_plot_means_list  = []
+        cor_plot_stds_list   = []
+        if 'src' in plot_data_dicts[0].keys():
+            src_plot_means_list = []
+            src_plot_stds_list  = []
+        for a, alpha in enumerate(plot_data_dicts[0]['alphas']):
+            # Calculate statistical properties of errors.
+            cor_errors = np.asarray([error_dicts[i]['cor'][a] for i in range(len(error_dicts))])
+            cor_error_means_list.append(np.mean(cor_errors, axis=0))
+            cor_error_stds_list.append(np.std(cor_errors, axis=0))
 
-    # Calculate statistical properties of plot data
-    cor_plots = np.asarray([plot_data_dicts[i]['cor'] for i in range(len(plot_data_dicts))])
-    cor_plot_mean = np.mean(cor_plots, axis=0)
-    cor_plot_std  = np.std(cor_plots,  axis=0)
-    if 'src' in plot_data_dicts[0].keys():
-        src_plots = np.asarray([plot_data_dicts[i]['src'] for i in range(len(plot_data_dicts))])
-        src_plot_mean = np.mean(src_plots, axis=0)
-        src_plot_std  = np.std(src_plots,  axis=0)
+            # Calculate statistical properties of plot data
+            cor_plots = np.asarray([plot_data_dicts[i]['cor'][a] for i in range(len(plot_data_dicts))])
+            cor_plot_means_list.append(np.mean(cor_plots, axis=0))
+            cor_plot_stds_list.append(np.std(cor_plots, axis=0))
+            if 'src' in plot_data_dicts[0].keys():
+                src_plots = np.asarray([plot_data_dicts[i]['src'][a] for i in range(len(plot_data_dicts))])
+                src_plot_means_list.append(np.mean(src_plots, axis=0))
+                src_plot_stds_list.append(np.std(src_plots, axis=0))
 
-    # Pickle statistical properties.
-    error_stats_dict = {
-        'cor_mean': cor_error_mean,
-        'cor_std':  cor_error_std,
-        'unc':      error_dicts[0]['unc']
-    }
-    if 'cor_mean' in error_dicts[0].keys():
-        error_stats_dict['cor_means_mean'] = cor_means_mean
-    if 'cor_std' in error_dicts[0].keys():
-        error_stats_dict['cor_stds_mean'] = cor_stds_mean
-    if 'unc_mean' in error_dicts[0].keys():
-        error_stats_dict['unc_means_mean'] = error_dicts[0]['unc_mean']
-    if 'unc_std' in error_dicts[0].keys():
-        error_stats_dict['unc_stds_mean'] = error_dicts[0]['unc_std']
-    plot_stats_dict = {
-        'cor_mean': cor_plot_mean,
-        'cor_std':  cor_plot_std,
-        'unc':      plot_data_dicts[0]['unc'], # These are the same for all model instances, ...
-        'ref':      plot_data_dicts[0]['ref'], # ... so the choice of retrieving them from ...
-        'x':        plot_data_dicts[0]['x'],   # ... the first instance is arbitrary.
-        'time':     plot_data_dicts[0]['time']
-    }
-    if 'src' in plot_data_dicts[0].keys():
-        plot_stats_dict['src_mean'] = src_plot_mean
-        plot_stats_dict['src_std']  = src_plot_std
+        # Pickle statistical properties.
+        error_stats_dict = {
+            'cor_mean': np.asarray(cor_error_means_list),
+            'cor_std': np.asarray(cor_error_stds_list),
+            'unc': error_dicts[0]['unc']
+        }
+        plot_stats_dict = {
+            'cor_mean': np.asarray(cor_plot_means_list),
+            'cor_std': np.asarray(cor_plot_stds_list),
+            'unc': np.asarray([plot_data_dicts[0]['unc'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),  # These are the same for all model instances, ...
+            'ref': np.asarray([plot_data_dicts[0]['ref'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),  # ... so the choice of retrieving them from ...
+            'x': plot_data_dicts[0]['x'],      # ... the first instance is arbitrary.
+            'time': plot_data_dicts[0]['time'],
+            'alphas': plot_data_dicts[0]['alphas']
+        }
+        if 'src' in plot_data_dicts[0].keys():
+            plot_stats_dict['src_mean'] = np.asarray(src_plot_means_list)
+            plot_stats_dict['src_std'] = np.asarray(src_plot_stds_list)
+    else:
+        # Calculate statistical properties of errors.
+        cor_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
+        cor_error_mean = np.mean(cor_errors, axis=0)
+        cor_error_std  = np.std(cor_errors,  axis=0)
+        if 'cor_mean' in error_dicts[0].keys():
+            cor_means = np.asarray([error_dicts[i]['cor_mean'] for i in range(len(error_dicts))])
+            cor_means_mean = np.mean(cor_means, axis=0)
+        if 'cor_std' in error_dicts[0].keys():
+            cor_stds = np.asarray([error_dicts[i]['cor_std'] for i in range(len(error_dicts))])
+            cor_stds_mean = np.mean(cor_stds, axis=0)
+
+        # Calculate statistical properties of plot data
+        cor_plots = np.asarray([plot_data_dicts[i]['cor'] for i in range(len(plot_data_dicts))])
+        cor_plot_mean = np.mean(cor_plots, axis=0)
+        cor_plot_std  = np.std(cor_plots,  axis=0)
+        if 'src' in plot_data_dicts[0].keys():
+            src_plots = np.asarray([plot_data_dicts[i]['src'] for i in range(len(plot_data_dicts))])
+            src_plot_mean = np.mean(src_plots, axis=0)
+            src_plot_std  = np.std(src_plots,  axis=0)
+
+        # Pickle statistical properties.
+        error_stats_dict = {
+            'cor_mean': cor_error_mean,
+            'cor_std':  cor_error_std,
+            'unc':      error_dicts[0]['unc']
+        }
+        if 'cor_mean' in error_dicts[0].keys():
+            error_stats_dict['cor_means_mean'] = cor_means_mean
+        if 'cor_std' in error_dicts[0].keys():
+            error_stats_dict['cor_stds_mean'] = cor_stds_mean
+        if 'unc_mean' in error_dicts[0].keys():
+            error_stats_dict['unc_means_mean'] = error_dicts[0]['unc_mean']
+        if 'unc_std' in error_dicts[0].keys():
+            error_stats_dict['unc_stds_mean'] = error_dicts[0]['unc_std']
+        plot_stats_dict = {
+            'cor_mean': cor_plot_mean,
+            'cor_std':  cor_plot_std,
+            'unc':      plot_data_dicts[0]['unc'], # These are the same for all model instances, ...
+            'ref':      plot_data_dicts[0]['ref'], # ... so the choice of retrieving them from ...
+            'x':        plot_data_dicts[0]['x'],   # ... the first instance is arbitrary.
+            'time':     plot_data_dicts[0]['time'],
+        }
+        if 'src' in plot_data_dicts[0].keys():
+            plot_stats_dict['src_mean'] = src_plot_mean
+            plot_stats_dict['src_std']  = src_plot_std
+
     with open(os.path.join(cfg.run_dir, "error_data_stats" + ".pkl"), "wb") as f:
         pickle.dump(error_stats_dict, f)
     with open(os.path.join(cfg.run_dir, "plot_data_stats" + ".pkl"), "wb") as f:
@@ -330,6 +449,147 @@ def single_step_test(cfg, model, num):
         'unc_std': np.std(L2_errors_unc),
         'cor_mean': np.mean(L2_errors_cor),
         'cor_std': np.std(L2_errors_cor)
+    }
+
+    return error_dict, plot_data_dict
+
+def parametrized_simulation_test(cfg, model):
+    model.net.eval()
+
+    if cfg.model_name[:8] == "Ensemble":
+        for m in range(len(model.nets)):
+            model.nets[m].net.eval()
+    else:
+        model.net.eval()
+
+    _, _, dataset_test = load_datasets(cfg, False, False, True)
+
+    num_param_values = int(cfg.alphas.shape[0] * cfg.test_examples_ratio)
+    unc_tensor = dataset_test[:][0].detach()
+    ref_tensor = dataset_test[:][1].detach()
+    stats      = dataset_test[:6][3].detach().numpy()
+    ICs        = dataset_test[:][4].detach().numpy()
+    times      = dataset_test[:][5].detach().numpy()
+    alphas     = dataset_test[:num_param_values][6].detach().numpy()
+    print("alphas", alphas)
+
+    unc_mean = stats[0]
+    unc_std  = stats[3]
+    ref_mean = stats[1]
+    ref_std  = stats[4]
+    src_mean = stats[2]
+    src_std  = stats[5]
+
+    unc = util.z_unnormalize(unc_tensor.numpy(), unc_mean, unc_std)
+    ref = util.z_unnormalize(ref_tensor.numpy(), unc_mean, unc_std)
+
+    L2_errors_unc = np.zeros((num_param_values, cfg.Nt_coarse - 1))
+    L2_errors_cor = np.zeros((num_param_values, cfg.Nt_coarse - 1))
+
+    num_profile_plots = cfg.profile_save_steps.shape[0]
+    plot_data_dict = {
+        'x': cfg.nodes_coarse,
+        'unc': np.zeros((num_param_values, num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'ref': np.zeros((num_param_values, num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'cor': np.zeros((num_param_values, num_profile_plots, cfg.nodes_coarse.shape[0])),
+        'time': np.zeros(num_profile_plots),
+        'alphas': alphas
+    }
+    if cfg.model_is_hybrid and cfg.exact_solution_available:
+        plot_data_dict['src'] = np.zeros((num_param_values, num_profile_plots, cfg.nodes_coarse.shape[0] - 2))
+
+    for a, alpha in enumerate(alphas):
+        IC = ICs[a * (cfg.Nt_coarse - 1)]
+        print("IC:", IC)
+        old_unc = IC
+        old_cor = IC
+        plot_num = 0
+        for i in range(cfg.Nt_coarse - 1):
+            index = a * (cfg.Nt_coarse - 1) + i
+            old_time = np.around(times[index] - cfg.dt_coarse, decimals=10)
+            new_time = np.around(times[index], decimals=10)
+
+            new_unc = physics.simulate(
+                cfg.nodes_coarse, cfg.faces_coarse,
+                old_unc, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                lambda x,t: cfg.get_q_hat_approx(x,t,alpha), np.zeros(cfg.N_coarse),
+                cfg.dt_coarse, old_time, new_time, False
+            )
+            if i == 0:
+                print("First unc:", new_unc)
+            new_unc_tensor = torch.from_numpy(util.z_normalize(new_unc, unc_mean, unc_std))
+
+            if cfg.exact_solution_available:
+                new_ref = cfg.get_T_exact(cfg.nodes_coarse, new_time, alpha)
+                #print("new_ref:", new_ref)
+            else:
+                raise Exception("Invalid config.")
+
+            new_cor = np.zeros_like(new_unc)
+            if cfg.model_name[:8] == "Ensemble":
+                if cfg.model_is_hybrid:
+                    new_src = np.zeros(new_unc.shape[0] - 2)
+                    for m in range(len(model.nets)):
+                        new_src[m] = util.z_unnormalize(
+                            torch.squeeze(model.nets[m].net(new_unc_tensor[:, m:m + 3]), 0).detach().numpy(), src_mean,
+                            src_std)
+                    new_cor = physics.simulate(
+                        cfg.nodes_coarse, cfg.faces_coarse,
+                        old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                        cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                        lambda x,t: cfg.get_q_hat_approx(x, t, alpha), new_src,
+                        cfg.dt_coarse, old_time, new_time, False
+                    )
+                else:
+                    new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
+                    new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
+                    for m in range(len(model.nets)):
+                        new_cor[m + 1] = util.z_unnormalize(
+                            torch.squeeze(model.nets[m].net(new_unc_tensor[:, m:m + 3]), 0).detach().numpy(), src_mean,
+                            src_std)
+            else:
+                if cfg.model_is_hybrid:
+                    new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor), 0).detach().numpy(), src_mean,
+                                                 src_std)
+                    new_cor = physics.simulate(
+                        cfg.nodes_coarse, cfg.faces_coarse,
+                        old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                        cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                        lambda x, t: cfg.get_q_hat_approx(x, t, alpha), new_src,
+                        cfg.dt_coarse, old_time, new_time, False
+                    )
+                else:
+                    new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
+                    new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
+                    new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor).detach().numpy(), ref_mean, ref_std)
+
+            if i == 0:
+                print("First cor:", new_cor)
+
+            ref_norm = util.get_disc_L2_norm(new_ref)
+            unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
+            cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
+
+            L2_errors_unc[a][i] = unc_error_norm
+            L2_errors_cor[a][i] = cor_error_norm
+
+            if i in cfg.profile_save_steps:
+                plot_data_dict['unc'][a][plot_num] = new_unc
+                plot_data_dict['ref'][a][plot_num] = new_ref
+                plot_data_dict['cor'][a][plot_num] = new_cor
+                if cfg.model_is_hybrid and cfg.exact_solution_available:
+                    plot_data_dict['src'][a][plot_num] = new_src
+                if a == 0:
+                    plot_data_dict['time'][plot_num] = new_time
+                plot_num += 1
+
+            old_cor = new_cor
+            old_unc = new_unc
+
+    error_dict = {
+        'unc': L2_errors_unc,
+        'cor': L2_errors_cor
     }
 
     return error_dict, plot_data_dict
