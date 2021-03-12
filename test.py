@@ -29,44 +29,78 @@ import util
 def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
     # Visualize error stats.
     if cfg.parametrized_system:
-        iterations = np.arange(1, error_stats_dict['unc'].shape[1] + 1, 1)
+        iterations = np.arange(1, error_stats_dict['unc_L2'].shape[1] + 1, 1)
     else:
-        iterations = np.arange(1, len(error_stats_dict['unc']) + 1, 1)
+        iterations = np.arange(1, len(error_stats_dict['unc_L2']) + 1, 1)
 
     if cfg.parametrized_system:
         for a, alpha in enumerate(plot_stats_dict['alphas']):
             plt.figure()
-            plt.semilogy(iterations, error_stats_dict['unc'][a], 'r-', linewidth=2.0, label="Uncorrected")
-            plt.semilogy(iterations, error_stats_dict['cor_mean'][a], 'b-', linewidth=2.0, label="Corrected, mean")
+            plt.semilogy(iterations, error_stats_dict['unc_L2'][a], 'r-', linewidth=2.0, label="Uncorrected")
+            plt.semilogy(iterations, error_stats_dict['cor_mean_L2'][a], 'b-', linewidth=2.0, label="Corrected, mean")
             plt.fill_between(iterations,
-                             error_stats_dict['cor_mean'][a] + error_stats_dict['cor_std'][a],
-                             error_stats_dict['cor_mean'][a] - error_stats_dict['cor_std'][a],
+                             error_stats_dict['cor_mean_L2'][a] + error_stats_dict['cor_std_L2'][a],
+                             error_stats_dict['cor_mean_L2'][a] - error_stats_dict['cor_std_L2'][a],
                              facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
-            plt.xlim([0, len(error_stats_dict['unc'][a])])
+            plt.xlim([0, len(error_stats_dict['unc_L2'][a])])
             plt.xlabel("Test iterations", fontsize=20)
-            plt.ylabel(r"$L_2$ Error", fontsize=20)
+            plt.ylabel(r"$l_2$ Error", fontsize=20)
             plt.xticks(fontsize=17)
             plt.yticks(fontsize=17)
             plt.grid()
             plt.legend(prop={'size': 17})
-            plt.savefig(os.path.join(cfg.run_dir, "error_stats_alpha" + str(alpha) + ".pdf"), bbox_inches='tight')
+            plt.savefig(os.path.join(cfg.run_dir, "l2_error_stats_alpha" + str(alpha) + ".pdf"), bbox_inches='tight')
+            plt.close()
+
+            plt.figure()
+            plt.semilogy(iterations, error_stats_dict['unc_Linfty'][a], 'r-', linewidth=2.0, label="Uncorrected")
+            plt.semilogy(iterations, error_stats_dict['cor_mean_Linfty'][a], 'b-', linewidth=2.0, label="Corrected, mean")
+            plt.fill_between(iterations,
+                             error_stats_dict['cor_mean_Linfty'][a] + error_stats_dict['cor_std_Linfty'][a],
+                             error_stats_dict['cor_mean_Linfty'][a] - error_stats_dict['cor_std_Linfty'][a],
+                             facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+            plt.xlim([0, len(error_stats_dict['unc_Linfty'][a])])
+            plt.xlabel("Test iterations", fontsize=20)
+            plt.ylabel(r"$l_2$ Error", fontsize=20)
+            plt.xticks(fontsize=17)
+            plt.yticks(fontsize=17)
+            plt.grid()
+            plt.legend(prop={'size': 17})
+            plt.savefig(os.path.join(cfg.run_dir, "linfty_error_stats_alpha" + str(alpha) + ".pdf"), bbox_inches='tight')
             plt.close()
     else:
         plt.figure()
-        plt.semilogy(iterations, error_stats_dict['unc'],      'r-', linewidth=2.0, label="Uncorrected")
-        plt.semilogy(iterations, error_stats_dict['cor_mean'], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.semilogy(iterations, error_stats_dict['unc_L2'],      'r-', linewidth=2.0, label="Uncorrected")
+        plt.semilogy(iterations, error_stats_dict['cor_mean_L2'], 'b-', linewidth=2.0, label="Corrected, mean")
         plt.fill_between(iterations,
-                         error_stats_dict['cor_mean'] + error_stats_dict['cor_std'],
-                         error_stats_dict['cor_mean'] - error_stats_dict['cor_std'],
+                         error_stats_dict['cor_mean_L2'] + error_stats_dict['cor_std_L2'],
+                         error_stats_dict['cor_mean_L2'] - error_stats_dict['cor_std_L2'],
                          facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
-        plt.xlim([0, len(error_stats_dict['unc'])])
+        plt.xlim([0, len(error_stats_dict['unc_L2'])])
         plt.xlabel("Test iterations", fontsize=20)
-        plt.ylabel(r"$L_2$ Error",    fontsize=20)
+        plt.ylabel(r"$l_2$ Error",    fontsize=20)
         plt.xticks(fontsize=17)
         plt.yticks(fontsize=17)
         plt.grid()
         plt.legend(prop={'size': 17})
-        plt.savefig(os.path.join(cfg.run_dir, "error_stats.pdf"), bbox_inches='tight')
+        plt.savefig(os.path.join(cfg.run_dir, "l2_error_stats.pdf"), bbox_inches='tight')
+        plt.close()
+
+        plt.figure()
+        plt.semilogy(iterations, error_stats_dict['unc_Linfty'], 'r-', linewidth=2.0, label="Uncorrected")
+        plt.semilogy(iterations, error_stats_dict['cor_mean_Linfty'], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.fill_between(iterations,
+                         error_stats_dict['cor_mean_Linfty'] + error_stats_dict['cor_std_Linfty'],
+                         error_stats_dict['cor_mean_Linfty'] - error_stats_dict['cor_std_Linfty'],
+                         facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+        plt.xlim([0, len(error_stats_dict['unc_Linfty'])])
+        plt.xlabel("Test iterations", fontsize=20)
+        plt.ylabel(r"$l_2$ Error", fontsize=20)
+        plt.xticks(fontsize=17)
+        plt.yticks(fontsize=17)
+        plt.grid()
+        plt.legend(prop={'size': 17})
+        plt.savefig(os.path.join(cfg.run_dir, "l2_error_stats.pdf"), bbox_inches='tight')
         plt.close()
 
     if cfg.exact_solution_available:
@@ -228,16 +262,27 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
 
     # Save raw error data in a text file for easy manual inspection.
     with open(os.path.join(cfg.run_dir, "error_data_raw" + ".txt"), "w") as f:
-        f.write("L2 error (corrected)\t\tL2 error (uncorrected)\n")
-        for num, error_dict in enumerate(error_dicts):
-            f.write("\nModel instance " + str(num) + "\n")
-            for i in range(error_dict['unc'].shape[0]):
-                f.write(str(i) + ": " + str(error_dict['cor'][i]) + "\t\t" + str(error_dict['unc'][i]) + "\n")
-        f.close()
+        if cfg.parametrized_system:
+            for a, alpha in enumerate(plot_data_dicts[0]['alphas']):
+                f.write("alpha: " + str(alpha))
+                f.write("l2 error (corrected)\t\tl2 error (uncorrected)\t\tl_inf error (corrected)\t\tl_inf error (uncorrected)\n")
+                for num, error_dict in enumerate(error_dicts):
+                    f.write("\nModel instance " + str(num) + "\n")
+                    for i in range(error_dict['unc_L2'][a].shape[0]):
+                        f.write(str(i) + ": " + str(error_dict['cor_L2'][a][i]) + "\t\t" + str(error_dict['unc_L2'][a][i]) + "\t\t" + str(error_dict['cor_Linfty'][a][i]) + "\t\t" + str(error_dict['unc_Linfty'][a][i]) + "\n")
+                f.write("\n")
+        else:
+            f.write("l2 error (corrected)\t\tl2 error (uncorrected)\t\tl_inf error (corrected)\t\tl_inf error (uncorrected)\n")
+            for num, error_dict in enumerate(error_dicts):
+                f.write("\nModel instance " + str(num) + "\n")
+                for i in range(error_dict['unc_L2'].shape[0]):
+                    f.write(str(i) + ": " + str(error_dict['cor_L2'][i]) + "\t\t" + str(error_dict['unc_L2'][i]) + "\t\t" + str(error_dict['cor_Linfty'][i]) + "\t\t" + str(error_dict['unc_Linfty'][i]) +"\n")
 
     if cfg.parametrized_system:
-        cor_error_means_list = []
-        cor_error_stds_list  = []
+        cor_L2_error_means_list = []
+        cor_L2_error_stds_list  = []
+        cor_Linfty_error_means_list = []
+        cor_Linfty_error_stds_list = []
         cor_plot_means_list  = []
         cor_plot_stds_list   = []
         if 'src' in plot_data_dicts[0].keys():
@@ -245,9 +290,12 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             src_plot_stds_list  = []
         for a, alpha in enumerate(plot_data_dicts[0]['alphas']):
             # Calculate statistical properties of errors.
-            cor_errors = np.asarray([error_dicts[i]['cor'][a] for i in range(len(error_dicts))])
-            cor_error_means_list.append(np.mean(cor_errors, axis=0))
-            cor_error_stds_list.append(np.std(cor_errors, axis=0))
+            cor_L2_errors = np.asarray([error_dicts[i]['cor_L2'][a] for i in range(len(error_dicts))])
+            cor_L2_error_means_list.append(np.mean(cor_L2_errors, axis=0))
+            cor_L2_error_stds_list.append(np.std(cor_L2_errors, axis=0))
+            cor_Linfty_errors = np.asarray([error_dicts[i]['cor_Linfty'][a] for i in range(len(error_dicts))])
+            cor_Linfty_error_means_list.append(np.mean(cor_Linfty_errors, axis=0))
+            cor_Linfty_error_stds_list.append(np.std(cor_Linfty_errors, axis=0))
 
             # Calculate statistical properties of plot data
             cor_plots = np.asarray([plot_data_dicts[i]['cor'][a] for i in range(len(plot_data_dicts))])
@@ -260,9 +308,12 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
 
         # Pickle statistical properties.
         error_stats_dict = {
-            'cor_mean': np.asarray(cor_error_means_list),
-            'cor_std': np.asarray(cor_error_stds_list),
-            'unc': error_dicts[0]['unc']
+            'cor_mean_L2': np.asarray(cor_L2_error_means_list),
+            'cor_std_L2': np.asarray(cor_L2_error_stds_list),
+            'unc_L2': error_dicts[0]['unc_L2'],
+            'cor_mean_Linfty': np.asarray(cor_Linfty_error_means_list),
+            'cor_std_Linfty': np.asarray(cor_Linfty_error_stds_list),
+            'unc_Linfty': error_dicts[0]['unc_Linfty']
         }
         plot_stats_dict = {
             'cor_mean': np.asarray(cor_plot_means_list),
@@ -278,9 +329,13 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             plot_stats_dict['src_std'] = np.asarray(src_plot_stds_list)
     else:
         # Calculate statistical properties of errors.
-        cor_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
-        cor_error_mean = np.mean(cor_errors, axis=0)
-        cor_error_std  = np.std(cor_errors,  axis=0)
+        cor_L2_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
+        cor_L2_error_mean = np.mean(cor_L2_errors, axis=0)
+        cor_L2_error_std  = np.std(cor_L2_errors,  axis=0)
+        cor_Linfty_errors = np.asarray([error_dicts[i]['cor'] for i in range(len(error_dicts))])
+        cor_Linfty_error_mean = np.mean(cor_Linfty_errors, axis=0)
+        cor_Linfty_error_std = np.std(cor_Linfty_errors, axis=0)
+
         if 'cor_mean' in error_dicts[0].keys():
             cor_means = np.asarray([error_dicts[i]['cor_mean'] for i in range(len(error_dicts))])
             cor_means_mean = np.mean(cor_means, axis=0)
@@ -299,9 +354,12 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
 
         # Pickle statistical properties.
         error_stats_dict = {
-            'cor_mean': cor_error_mean,
-            'cor_std':  cor_error_std,
-            'unc':      error_dicts[0]['unc']
+            'cor_mean_L2': cor_L2_error_mean,
+            'cor_std_L2':  cor_L2_error_std,
+            'cor_mean_Linfty': cor_Linfty_error_mean,
+            'cor_std_Linfty': cor_Linfty_error_std,
+            'unc_L2':      error_dicts[0]['unc_L2'],
+            'unc_Linfty': error_dicts[0]['unc_Linfty']
         }
         if 'cor_mean' in error_dicts[0].keys():
             error_stats_dict['cor_means_mean'] = cor_means_mean
@@ -361,6 +419,8 @@ def single_step_test(cfg, model, num):
 
     L2_errors_unc = np.zeros(cfg.N_test_examples)
     L2_errors_cor = np.zeros(cfg.N_test_examples)
+    Linfty_errors_unc = np.zeros(cfg.N_test_examples)
+    Linfty_errors_cor = np.zeros(cfg.N_test_examples)
 
     num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
@@ -427,12 +487,17 @@ def single_step_test(cfg, model, num):
         #ref_norm = util.get_L2_norm(cfg.faces_coarse, ref_func)
         #unc_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
         #cor_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
-        ref_norm = util.get_disc_L2_norm(new_ref)
-        unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
-        cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
+        ref_norm_L2 = util.get_disc_L2_norm(new_ref)
+        unc_error_norm_L2 = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm_L2
+        cor_error_norm_L2 = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm_L2
+        ref_norm_Linfty = util.get_disc_Linfty_norm(new_ref)
+        unc_error_norm_Linfty = util.get_disc_Linfty_norm(new_unc - new_ref) / ref_norm_Linfty
+        cor_error_norm_Linfty = util.get_disc_Linfty_norm(new_cor - new_ref) / ref_norm_Linfty
 
-        L2_errors_unc[i] = unc_error_norm
-        L2_errors_cor[i] = cor_error_norm
+        L2_errors_unc[i] = unc_error_norm_L2
+        L2_errors_cor[i] = cor_error_norm_L2
+        Linfty_errors_unc[i] = unc_error_norm_Linfty
+        Linfty_errors_cor[i] = cor_error_norm_Linfty
 
         if i < num_profile_plots:
             plot_data_dict['unc'][i] = new_unc
@@ -443,8 +508,10 @@ def single_step_test(cfg, model, num):
             plot_data_dict['time'][i] = new_time
 
     error_dict = {
-        'unc': L2_errors_unc,
-        'cor': L2_errors_cor,
+        'unc_L2': L2_errors_unc,
+        'cor_L2': L2_errors_cor,
+        'unc_Linfty': Linfty_errors_unc,
+        'cor_Linfty': Linfty_errors_cor,
         'unc_mean': np.mean(L2_errors_unc),
         'unc_std': np.std(L2_errors_unc),
         'cor_mean': np.mean(L2_errors_cor),
@@ -485,6 +552,8 @@ def parametrized_simulation_test(cfg, model):
 
     L2_errors_unc = np.zeros((num_param_values, cfg.Nt_coarse - 1))
     L2_errors_cor = np.zeros((num_param_values, cfg.Nt_coarse - 1))
+    Linfty_errors_unc = np.zeros((num_param_values, cfg.Nt_coarse - 1))
+    Linfty_errors_cor = np.zeros((num_param_values, cfg.Nt_coarse - 1))
 
     num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
@@ -567,12 +636,17 @@ def parametrized_simulation_test(cfg, model):
             if i == 0:
                 print("First cor:", new_cor)
 
-            ref_norm = util.get_disc_L2_norm(new_ref)
-            unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
-            cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
+            ref_norm_L2 = util.get_disc_L2_norm(new_ref)
+            unc_error_norm_L2 = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm_L2
+            cor_error_norm_L2 = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm_L2
+            ref_norm_Linfty = util.get_disc_Linfty_norm(new_ref)
+            unc_error_norm_Linfty = util.get_disc_Linfty_norm(new_unc - new_ref) / ref_norm_Linfty
+            cor_error_norm_Linfty = util.get_disc_Linfty_norm(new_cor - new_ref) / ref_norm_Linfty
 
-            L2_errors_unc[a][i] = unc_error_norm
-            L2_errors_cor[a][i] = cor_error_norm
+            L2_errors_unc[a][i] = unc_error_norm_L2
+            L2_errors_cor[a][i] = cor_error_norm_L2
+            Linfty_errors_unc[a][i] = unc_error_norm_Linfty
+            Linfty_errors_cor[a][i] = cor_error_norm_Linfty
 
             if i in cfg.profile_save_steps:
                 plot_data_dict['unc'][a][plot_num] = new_unc
@@ -588,8 +662,10 @@ def parametrized_simulation_test(cfg, model):
             old_unc = new_unc
 
     error_dict = {
-        'unc': L2_errors_unc,
-        'cor': L2_errors_cor
+        'unc_L2': L2_errors_unc,
+        'cor_L2': L2_errors_cor,
+        'unc_Linfty': Linfty_errors_unc,
+        'cor_Linfty': Linfty_errors_cor
     }
 
     return error_dict, plot_data_dict
@@ -615,6 +691,8 @@ def simulation_test(cfg, model, num):
 
     L2_errors_unc = np.zeros(cfg.N_test_examples)
     L2_errors_cor = np.zeros(cfg.N_test_examples)
+    Linfty_errors_unc = np.zeros(cfg.N_test_examples)
+    Linfty_errors_cor = np.zeros(cfg.N_test_examples)
 
     plot_steps = cfg.profile_save_steps
     plot_data_dict = {
@@ -683,12 +761,17 @@ def simulation_test(cfg, model, num):
         #ref_norm = util.get_L2_norm(cfg.faces_coarse, ref_func)
         #unc_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_unc(x) - ref_func(x)) / ref_norm
         #cor_error_norm = util.get_L2_norm(cfg.faces_coarse, lambda x: lin_cor(x) - ref_func(x)) / ref_norm
-        ref_norm = util.get_disc_L2_norm(new_ref)
-        unc_error_norm = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm
-        cor_error_norm = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm
+        ref_norm_L2 = util.get_disc_L2_norm(new_ref)
+        unc_error_norm_L2 = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm_L2
+        cor_error_norm_L2 = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm_L2
+        ref_norm_Linfty = util.get_disc_Linfty_norm(new_ref)
+        unc_error_norm_Linfty = util.get_disc_Linfty_norm(new_unc - new_ref) / ref_norm_Linfty
+        cor_error_norm_Linfty = util.get_disc_Linfty_norm(new_cor - new_ref) / ref_norm_Linfty
 
-        L2_errors_unc[i] = unc_error_norm
-        L2_errors_cor[i] = cor_error_norm
+        L2_errors_unc[i] = unc_error_norm_L2
+        L2_errors_cor[i] = cor_error_norm_L2
+        Linfty_errors_unc[i] = unc_error_norm_Linfty
+        Linfty_errors_cor[i] = cor_error_norm_Linfty
 
         if i in plot_steps:
             plot_data_dict['unc'][plot_num] = new_unc
@@ -706,8 +789,10 @@ def simulation_test(cfg, model, num):
         old_cor = new_cor
 
     error_dict = {
-        'unc': L2_errors_unc,
-        'cor': L2_errors_cor
+        'unc_L2': L2_errors_unc,
+        'cor_L2': L2_errors_cor,
+        'unc_Linfty': Linfty_errors_unc,
+        'cor_Linfty': Linfty_errors_cor
     }
 
     plt.figure()
