@@ -57,7 +57,7 @@ def main():
             print("Finding optimal parameters for model " + cfg.model_name)
             parameter_grid_search.grid_search(cfg)
             print("")
-        print("Initiating parameter grid search.\n\nEXECUTION COMPLETED")
+        print("Completed parameter grid search.\n\nEXECUTION COMPLETED")
         return
 
     group_name = config.group_name
@@ -71,6 +71,7 @@ def main():
             # -------------------------------------------------------------------------------------------------------------------
             # Configuration setup.
             cfg = config.Config(
+                use_GPU    = config.use_GPU,
                 group_name = group_name,
                 run_name   = config.run_names[model_num][sys_num],
                 system     = config.systems[sys_num],

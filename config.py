@@ -24,7 +24,8 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "debugging_linfty4"
+use_GPU    = True
+group_name = "debugging_device"
 run_names  = [["debug"]]
 systems    = ["1_param"]
 data_tags  = ["1_param_no_aug_more"]
@@ -37,9 +38,11 @@ assert len(run_names) == len(model_keys)
 # Create config object.
 
 class Config:
-    def __init__(self, group_name, run_name, system, data_tag, model_key, do_train, do_test):
+    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test):
         # ---------------------------------------------------------------------------------------------------------------
         # Run configuration.
+        self.use_GPU    = use_GPU
+        self.device     = torch.device("cuda" if (torch.cuda.is_available() and use_GPU) else "cpu")
         self.group_name = group_name
         self.run_name   = run_name
         self.system     = system

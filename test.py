@@ -446,7 +446,7 @@ def single_step_test(cfg, model, num):
             if cfg.model_is_hybrid:
                 new_src = np.zeros(new_unc.shape[0] - 2)
                 for m in range(len(model.nets)):
-                    new_src[m] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3]),0).detach().numpy(), src_mean, src_std)
+                    new_src[m] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3].to(cfg.device)),0).detach().numpy(), src_mean, src_std)
                 new_cor = physics.simulate(
                     cfg.nodes_coarse, cfg.faces_coarse,
                     IC, cfg.get_T_a, cfg.get_T_b,
@@ -458,10 +458,10 @@ def single_step_test(cfg, model, num):
                 new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
                 new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
                 for m in range(len(model.nets)):
-                    new_cor[m+1] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3]),0).detach().numpy(), src_mean, src_std)
+                    new_cor[m+1] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3].to(cfg.device)),0).detach().numpy(), src_mean, src_std)
         else:
             if cfg.model_is_hybrid:
-                new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor),0).detach().numpy(), src_mean, src_std)
+                new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor.to(cfg.device)),0).detach().numpy(), src_mean, src_std)
                 new_cor = physics.simulate(
                     cfg.nodes_coarse, cfg.faces_coarse,
                     IC, cfg.get_T_a, cfg.get_T_b,
@@ -472,7 +472,7 @@ def single_step_test(cfg, model, num):
             else:
                 new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
                 new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
-                new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor).detach().numpy(), ref_mean, ref_std)
+                new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor.to(cfg.device)).detach().numpy(), ref_mean, ref_std)
 
         #lin_unc = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_unc)
         #lin_cor = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_cor)
@@ -601,7 +601,7 @@ def parametrized_simulation_test(cfg, model):
                     new_src = np.zeros(new_unc.shape[0] - 2)
                     for m in range(len(model.nets)):
                         new_src[m] = util.z_unnormalize(
-                            torch.squeeze(model.nets[m].net(new_unc_tensor[:, m:m + 3]), 0).detach().numpy(), src_mean,
+                            torch.squeeze(model.nets[m].net(new_unc_tensor[:, m:m + 3].to(cfg.device)), 0).detach().numpy(), src_mean,
                             src_std)
                     new_cor = physics.simulate(
                         cfg.nodes_coarse, cfg.faces_coarse,
@@ -615,11 +615,11 @@ def parametrized_simulation_test(cfg, model):
                     new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
                     for m in range(len(model.nets)):
                         new_cor[m + 1] = util.z_unnormalize(
-                            torch.squeeze(model.nets[m].net(new_unc_tensor[:, m:m + 3]), 0).detach().numpy(), src_mean,
+                            torch.squeeze(model.nets[m].net(new_unc_tensor[:, m:m + 3].to(cfg.device)), 0).detach().numpy(), src_mean,
                             src_std)
             else:
                 if cfg.model_is_hybrid:
-                    new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor), 0).detach().numpy(), src_mean,
+                    new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor.to(cfg.device)), 0).detach().numpy(), src_mean,
                                                  src_std)
                     new_cor = physics.simulate(
                         cfg.nodes_coarse, cfg.faces_coarse,
@@ -631,7 +631,7 @@ def parametrized_simulation_test(cfg, model):
                 else:
                     new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
                     new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
-                    new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor).detach().numpy(), ref_mean, ref_std)
+                    new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor.to(cfg.device)).detach().numpy(), ref_mean, ref_std)
 
             if i == 0:
                 print("First cor:", new_cor)
@@ -733,7 +733,7 @@ def simulation_test(cfg, model, num):
 
         new_cor = np.zeros_like(old_cor)
         if cfg.model_is_hybrid:
-            new_src = util.z_unnormalize(model.net(new_unc_).detach().numpy(), src_mean, src_std)
+            new_src = util.z_unnormalize(model.net(new_unc_.to(cfg.device)).detach().numpy(), src_mean, src_std)
             new_cor = physics.simulate(
                 cfg.nodes_coarse, cfg.faces_coarse,
                 old_cor, cfg.get_T_a, cfg.get_T_b,
@@ -744,7 +744,7 @@ def simulation_test(cfg, model, num):
         else:
             new_cor[0]  = cfg.get_T_a(new_time)   # Since BCs are not ...
             new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
-            new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_).detach().numpy(), ref_mean, ref_std)
+            new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_.to(cfg.device)).detach().numpy(), ref_mean, ref_std)
 
         #lin_unc = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_unc)
         #lin_cor = lambda x: util.linearize_between_nodes(x, cfg.nodes_coarse, new_cor)

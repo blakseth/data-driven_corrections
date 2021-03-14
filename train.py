@@ -22,6 +22,13 @@ import torch
 # Training ML-model.
 
 def train(cfg, model, num, dataloader_train, dataloader_val):
+    print("CUDA availability:", torch.cuda.is_available())
+    if torch.cuda.is_available():
+        print("Current device:", torch.cuda.current_device(),
+              "- num devices:", torch.cuda.device_count(),
+              "- device name:", torch.cuda.get_device_name(0))
+
+
     it_per_epoch = len(dataloader_train)
     num_epochs = cfg.max_train_it // it_per_epoch + 1
 
@@ -37,9 +44,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
             it += 1
 
-            unc_data = data[0] # unc = uncorrected.
-            ref_data = data[1] # ref = reference.
-            src_data = data[2] # src = source.
+            unc_data = data[0].to(cfg.device) # unc = uncorrected.
+            ref_data = data[1].to(cfg.device) # ref = reference.
+            src_data = data[2].to(cfg.device) # src = source.
 
             if cfg.model_name[:8] == "Ensemble":
                 for m in range(len(model.nets)):
@@ -73,9 +80,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                         model.nets[m].net.eval()
                         with torch.no_grad():
                             for j, val_data in enumerate(dataloader_val):
-                                unc_data_val = val_data[0][:,m:m+3].clone()
-                                ref_data_val = val_data[1][:,m+1:m+2].clone()
-                                src_data_val = val_data[2][:,m:m+1].clone()
+                                unc_data_val = val_data[0].to(cfg.device)[:,m:m+3].clone()
+                                ref_data_val = val_data[1].to(cfg.device)[:,m+1:m+2].clone()
+                                src_data_val = val_data[2].to(cfg.device)[:,m:m+1].clone()
                                 out_data_val = model.nets[m].net(unc_data_val)
                                 if cfg.model_is_hybrid:
                                     val_loss = model.nets[m].loss(out_data_val, src_data_val)
@@ -125,9 +132,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                     model.net.eval()
                     with torch.no_grad():
                         for j, val_data in enumerate(dataloader_val):
-                            unc_data_val = val_data[0]
-                            ref_data_val = val_data[1]
-                            src_data_val = val_data[2]
+                            unc_data_val = val_data[0].to(cfg.device)
+                            ref_data_val = val_data[1].to(cfg.device)
+                            src_data_val = val_data[2].to(cfg.device)
                             out_data_val = model.net(unc_data_val)
                             if cfg.model_is_hybrid:
                                 val_loss = model.loss(out_data_val, src_data_val)

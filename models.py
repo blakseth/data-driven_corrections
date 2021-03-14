@@ -209,6 +209,7 @@ class Model:
             self.net = ConvolutionModule(cfg, num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers)
         else:
             raise Exception("Invalid model selection.")
+        self.net = self.net.to(cfg.device)
 
         # Defining loss function.
         if cfg.loss_func == 'MSE':
