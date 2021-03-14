@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 ########################################################################################################################
 # Configuration parameters
 
-group_name = "debugging_linfty"
+group_name = "debugging_linfty4"
 run_names  = [["debug"]]
 systems    = ["1_param"]
 data_tags  = ["1_param_no_aug_more"]

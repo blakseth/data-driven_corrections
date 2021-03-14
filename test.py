@@ -49,7 +49,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             plt.yticks(fontsize=17)
             plt.grid()
             plt.legend(prop={'size': 17})
-            plt.savefig(os.path.join(cfg.run_dir, "l2_error_stats_alpha" + str(alpha) + ".pdf"), bbox_inches='tight')
+            plt.savefig(os.path.join(cfg.run_dir, "l2_error_stats_alpha" + str(np.around(alpha, decimals=5)) + ".pdf"), bbox_inches='tight')
             plt.close()
 
             plt.figure()
@@ -66,7 +66,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             plt.yticks(fontsize=17)
             plt.grid()
             plt.legend(prop={'size': 17})
-            plt.savefig(os.path.join(cfg.run_dir, "linfty_error_stats_alpha" + str(alpha) + ".pdf"), bbox_inches='tight')
+            plt.savefig(os.path.join(cfg.run_dir, "linfty_error_stats_alpha" + str(np.around(alpha, decimals=5)) + ".pdf"), bbox_inches='tight')
             plt.close()
     else:
         plt.figure()
@@ -264,7 +264,7 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
     with open(os.path.join(cfg.run_dir, "error_data_raw" + ".txt"), "w") as f:
         if cfg.parametrized_system:
             for a, alpha in enumerate(plot_data_dicts[0]['alphas']):
-                f.write("alpha: " + str(alpha))
+                f.write("alpha: " + str(np.around(alpha, decimals=5)) + "\n")
                 f.write("l2 error (corrected)\t\tl2 error (uncorrected)\t\tl_inf error (corrected)\t\tl_inf error (uncorrected)\n")
                 for num, error_dict in enumerate(error_dicts):
                     f.write("\nModel instance " + str(num) + "\n")
