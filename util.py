@@ -95,7 +95,7 @@ def get_disc_L2_norm(vector):
     return np.sqrt(np.sum(vector**2))
 
 def get_disc_Linfty_norm(vector):
-    return np.amax(vector)
+    return np.amax(np.abs(vector))
 
 ########################################################################################################################
 
