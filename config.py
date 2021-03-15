@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "debugging_device"
-run_names  = [["debug"]]
-systems    = ["1_param"]
-data_tags  = ["1_param_no_aug_more"]
+group_name = "2021-03-15_test_Google_colab"
+run_names  = [["GlobalDense_s1p", "GlobalDense_s9p"]]
+systems    = ["1_param", "9_param"]
+data_tags  = ["s1_param", "s9_param"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -78,8 +78,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
+        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
