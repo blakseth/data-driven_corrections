@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-15_test_Google_colab"
+group_name = "2021-03-15_test_google_colab2"
 run_names  = [["GlobalDense_s1p", "GlobalDense_s9p"]]
 systems    = ["1_param", "9_param"]
 data_tags  = ["s1_param", "s9_param"]
