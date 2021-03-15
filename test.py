@@ -587,7 +587,7 @@ def parametrized_simulation_test(cfg, model):
             )
             if i == 0:
                 print("First unc:", new_unc)
-            new_unc_tensor = torch.from_numpy(util.z_normalize(new_unc, unc_mean, unc_std))
+            new_unc_tensor = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc, unc_mean, unc_std)), dim=0)
 
             if cfg.exact_solution_available:
                 new_ref = cfg.get_T_exact(cfg.nodes_coarse, new_time, alpha)
