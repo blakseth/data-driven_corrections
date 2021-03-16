@@ -32,15 +32,13 @@ def create_parametrized_datasets(cfg):
     datasets_location = cfg.datasets_dir
     data_tag = cfg.data_tag
 
-    # Shuffle alphas.
-    permutation = np.random.permutation(cfg.alphas.shape[0])
-    shuffled_alphas = cfg.alphas[permutation]
+    print("ALPHAS:", cfg.alphas)
 
     unc_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
     ref_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
     IC_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
     sources = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse))
-    for a, alpha in enumerate(shuffled_alphas):
+    for a, alpha in enumerate(cfg.alphas):
         unc_Ts[a][0] = cfg.get_T0(cfg.nodes_coarse, alpha)
         ref_Ts[a][0] = cfg.get_T0(cfg.nodes_coarse, alpha)
         IC_Ts[a][0] = cfg.get_T0(cfg.nodes_coarse, alpha)
@@ -90,7 +88,7 @@ def create_parametrized_datasets(cfg):
         'unc': unc_Ts,
         'ref': ref_Ts,
         'src': sources,
-        'alphas': shuffled_alphas
+        'alphas': cfg.alphas
     }
     print()
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
@@ -112,13 +110,14 @@ def create_parametrized_datasets(cfg):
     train_src = np.zeros((cfg.N_train_examples, cfg.N_coarse))
     train_times = np.zeros(cfg.N_train_examples)
     train_alphas = []
-    for a in range(int(cfg.alphas.shape[0] * cfg.train_examples_ratio)):
+    for a in range(cfg.N_train_alphas):
+        print("a", a)
         train_ICs[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ICs[a, :, :]
         train_unc[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = unc[a, :, :]
         train_ref[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ref[a, :, :]
         train_src[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = src[a, :, :]
         train_times[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1)] = times
-        train_alphas.append(shuffled_alphas[a])
+        train_alphas.append(cfg.alphas[a])
     train_alphas = np.asarray(train_alphas)
 
     val_ICs = np.zeros((cfg.N_val_examples, cfg.N_coarse + 2))
@@ -127,14 +126,15 @@ def create_parametrized_datasets(cfg):
     val_src = np.zeros((cfg.N_val_examples, cfg.N_coarse))
     val_times = np.zeros(cfg.N_val_examples)
     val_alphas = []
-    for a in range(int(cfg.alphas.shape[0] * cfg.val_examples_ratio)):
-        offset = int(cfg.alphas.shape[0] * cfg.train_examples_ratio)
+    for a in range(cfg.N_val_alphas):
+        print("a", a)
+        offset = cfg.N_train_alphas
         val_ICs[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ICs[a + offset, :, :]
         val_unc[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = unc[a + offset, :, :]
         val_ref[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ref[a + offset, :, :]
         val_src[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = src[a + offset, :, :]
         val_times[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1)] = times
-        val_alphas.append(shuffled_alphas[a + offset])
+        val_alphas.append(cfg.alphas[a + offset])
     val_alphas = np.asarray(val_alphas)
 
     test_ICs = np.zeros((cfg.N_test_examples, cfg.N_coarse + 2))
@@ -143,15 +143,19 @@ def create_parametrized_datasets(cfg):
     test_src = np.zeros((cfg.N_test_examples, cfg.N_coarse))
     test_times = np.zeros(cfg.N_test_examples)
     test_alphas = []
-    for a in range(int(cfg.alphas.shape[0] * cfg.test_examples_ratio)):
-        offset = int(cfg.alphas.shape[0] * (cfg.train_examples_ratio + cfg.val_examples_ratio))
+    for a in range(cfg.N_test_alphas):
+        print("a", a)
+        offset = cfg.N_train_alphas + cfg.N_val_alphas
         test_ICs[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ICs[a + offset, :, :]
         test_unc[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = unc[a + offset, :, :]
         test_ref[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ref[a + offset, :, :]
         test_src[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = src[a + offset, :, :]
         test_times[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1)] = times
-        test_alphas.append(shuffled_alphas[a + offset])
+        test_alphas.append(cfg.alphas[a + offset])
     test_alphas = np.asarray(test_alphas)
+    print("train_alphas", train_alphas)
+    print("val_alphas", val_alphas)
+    print("test_alphas", test_alphas)
 
     # Augment training data.
 
@@ -279,6 +283,7 @@ def create_parametrized_datasets(cfg):
     train_alphas_padded[:train_alphas.shape[0]] = train_alphas
     val_alphas_padded[:val_alphas.shape[0]]     = val_alphas
     test_alphas_padded[:test_alphas.shape[0]]   = test_alphas
+    print("test_alphas_padded[:10]", test_alphas_padded[:10])
 
     # Convert stats arrays to tensors
     train_alphas_tensor = torch.from_numpy(train_alphas_padded)

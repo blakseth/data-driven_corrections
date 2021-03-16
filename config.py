@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-15_test_google_colab2"
+group_name = "2021-03-16_test_alpha rewrite2"
 run_names  = [["GlobalDense_s1p", "GlobalDense_s9p"]]
 systems    = ["1_param", "9_param"]
 data_tags  = ["s1_param", "s9_param"]
@@ -78,9 +78,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -94,6 +94,16 @@ class Config:
 
         #---------------------------------------------------------------------------------------------------------------
         # Domain configuration.
+
+        if self.parametrized_system:
+            lin_alphas   = np.linspace(0.1, 2.0, 20, endpoint=True)
+            permutation  = np.random.RandomState(seed=42).permutation(lin_alphas.shape[0])
+            lin_alphas   = lin_alphas[permutation]
+            extra_alphas = np.asarray([-0.5, 2.5])
+            self.alphas  = np.concatenate((lin_alphas, extra_alphas), axis=0)
+        else:
+            self.alphas = np.asarray([1.0])
+
         if self.system == "1":
             exact_solution_available = True
             t_end     = 5.0
@@ -132,7 +142,6 @@ class Config:
             k_ref     = 1.0
             cV_ref    = 1.0
             q_hat_ref = 1.0
-            alphas = np.linspace(0.1, 2.0, 20, endpoint=True)
             def get_T_exact(x, t, alpha):
                 return t + 0.5 * alpha * (x ** 2)
             def get_T0(x, alpha):
@@ -473,7 +482,6 @@ class Config:
             k_ref = 1.0
             cV_ref = 1.0
             q_hat_ref = 1.0
-            alphas = np.linspace(0.1, 2.0, 20, endpoint=True)
             def get_T_exact(x, t, alpha):
                 return 1 + alpha*np.cos(2 * np.pi * x * (t ** 2))
             def get_T0(x, alpha):
@@ -700,8 +708,6 @@ class Config:
         self.get_k            = get_k
         self.get_k_approx     = get_k_approx
         self.get_cV           = get_cV
-        if self.parametrized_system:
-            self.alphas           = alphas
 
         self.dom_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
@@ -752,9 +758,16 @@ class Config:
         self.N_val_examples = int(self.val_examples_ratio * self.Nt_coarse)
         self.N_test_examples = int(self.test_examples_ratio * self.Nt_coarse)
         if self.parametrized_system:
-            self.N_train_examples *= self.alphas.shape[0]
-            self.N_val_examples *= self.alphas.shape[0]
-            self.N_test_examples *= self.alphas.shape[0]
+            self.N_train_examples *= lin_alphas.shape[0]
+            self.N_val_examples *= lin_alphas.shape[0]
+            self.N_test_examples *= lin_alphas.shape[0]
+            self.N_test_examples += self.Nt_coarse * extra_alphas.shape[0]
+        self.N_train_alphas = int(self.train_examples_ratio * lin_alphas.shape[0])
+        self.N_val_alphas   = int(self.val_examples_ratio   * lin_alphas.shape[0])
+        self.N_test_alphas  = int(self.test_examples_ratio  * lin_alphas.shape[0]) + extra_alphas.shape[0]
+        print("N_train_alphas", self.N_train_alphas)
+        print("N_val_alphas", self.N_val_alphas)
+        print("N_test_alphas", self.N_test_alphas)
 
         # Parameters for shift data augmentation.
         self.N_shift_steps = 5

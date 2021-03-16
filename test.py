@@ -531,7 +531,7 @@ def parametrized_simulation_test(cfg, model):
 
     _, _, dataset_test = load_datasets(cfg, False, False, True)
 
-    num_param_values = int(cfg.alphas.shape[0] * cfg.test_examples_ratio)
+    num_param_values = cfg.N_test_alphas
     unc_tensor = dataset_test[:][0].detach()
     ref_tensor = dataset_test[:][1].detach()
     stats      = dataset_test[:6][3].detach().numpy()
