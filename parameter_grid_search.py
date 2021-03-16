@@ -35,6 +35,7 @@ def grid_search(cfg):
          os.path.join(cfg.datasets_dir, 's5B_param_src_zero_val.pt'),
          os.path.join(cfg.datasets_dir, 's5B_param_src_zero_test.pt')]
     ]
+    print("First dataset path:", dataset_paths[0][0])
     dataloaders = []
     for i in range(len(dataset_paths)):
         train_set, val_set, test_set = load_datasets_from_path(
