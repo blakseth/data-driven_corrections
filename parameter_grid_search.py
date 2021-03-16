@@ -28,15 +28,12 @@ def grid_search(cfg):
     os.makedirs(cfg.run_dir, exist_ok=False)
     # Load datasets and create dataloaders.
     dataset_paths = [
-        [os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_train.pt'),
-         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_val.pt'),
-         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_test.pt')],
-        [os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_train.pt'),
-         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_val.pt'),
-         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_test.pt')],
-        [os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_train.pt'),
-         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_val.pt'),
-         os.path.join(cfg.datasets_dir, 's2B_no-aug_sst_test.pt')]
+        [os.path.join(cfg.datasets_dir, 's2B_param_src_zero_train.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_param_src_zero_val.pt'),
+         os.path.join(cfg.datasets_dir, 's2B_param_src_zero_test.pt')],
+        [os.path.join(cfg.datasets_dir, 's5B_param_src_zero_train.pt'),
+         os.path.join(cfg.datasets_dir, 's5B_param_src_zero_val.pt'),
+         os.path.join(cfg.datasets_dir, 's5B_param_src_zero_test.pt')]
     ]
     dataloaders = []
     for i in range(len(dataset_paths)):
@@ -65,6 +62,7 @@ def grid_search(cfg):
             pin_memory=True
         )
         dataloaders.append([dataloader_train, dataloader_val, dataloader_test])
+    system_weights = [7e3, 1]
 
     search_data = []
 
@@ -144,7 +142,7 @@ def grid_search(cfg):
             print("System num:", system_num)
             model = models.create_new_model(cfg, cfg.get_model_specific_params())
             data_dict = train.train(cfg, model, 0, dataloaders[system_num][0], dataloaders[system_num][1])
-            final_val_losses[system_num] = data_dict["Validation loss"][1][-1]
+            final_val_losses[system_num] = data_dict["Validation loss"][1][-1] * system_weights[system_num]
 
         final_val_losses_sum = np.sum(final_val_losses)
         search_data.append({"str": labels + "\n" + str(combo), "sum": final_val_losses_sum, "losses": final_val_losses})
