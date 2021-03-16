@@ -44,6 +44,7 @@ def main():
         print("Initiating parameter grid search.\n")
         for model_num in range(len(config.model_keys)):
             cfg = config.Config(
+                use_GPU    = config.use_GPU,
                 group_name = config.group_name,
                 run_name   = config.run_names[model_num][0],
                 system     = config.systems[0],
