@@ -106,6 +106,8 @@ def grid_search(cfg):
 
     combos = list(itertools.product(*axes))
 
+    run_num = 0
+
     for combo in combos:
         print("\n-------------------------------------------------------")
         print(labels)
@@ -142,8 +144,9 @@ def grid_search(cfg):
         for system_num in range(len(dataloaders)):
             print("System num:", system_num)
             model = models.create_new_model(cfg, cfg.get_model_specific_params())
-            data_dict = train.train(cfg, model, 0, dataloaders[system_num][0], dataloaders[system_num][1])
+            data_dict = train.train(cfg, model, run_num, dataloaders[system_num][0], dataloaders[system_num][1])
             final_val_losses[system_num] = data_dict["Validation loss"][1][-1] * system_weights[system_num]
+            run_num += 1
 
         final_val_losses_sum = np.sum(final_val_losses)
         search_data.append({"str": labels + "\n" + str(combo), "sum": final_val_losses_sum, "losses": final_val_losses})
