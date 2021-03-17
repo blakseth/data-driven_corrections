@@ -63,7 +63,7 @@ def grid_search(cfg):
             pin_memory=True
         )
         dataloaders.append([dataloader_train, dataloader_val, dataloader_test])
-    system_weights = [7e3, 1]
+    system_weights = [1e4, 1]
 
     search_data = []
 
