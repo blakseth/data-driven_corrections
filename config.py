@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-17_time_without_prints_larger"
-run_names  = [["Create2B", "Create5B"]]
-systems    = ["2B", "5B"]
-data_tags  = ["s2B_param_src_zero", "s5B_param_src_zero"]
+group_name = "2021-03-17_grs"
+run_names  = [["GlobalDense"]]
+systems    = ["2B"]
+data_tags  = ["s2B_param_src_zero"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
