@@ -150,8 +150,8 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 val_epoch_since_improvement = 0
                             else:
                                 val_epoch_since_improvement += 1
-
-    end = time. time()
+    torch.cuda.synchronize(cfg.device)
+    end = time.time()
     print ("Time elapsed:", end - start)
 
     if cfg.model_name[:8] == "Ensemble":

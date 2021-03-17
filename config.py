@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-17_time_without_prints"
+group_name = "2021-03-17_time_without_prints_larger"
 run_names  = [["Create2B", "Create5B"]]
 systems    = ["2B", "5B"]
 data_tags  = ["s2B_param_src_zero", "s5B_param_src_zero"]
