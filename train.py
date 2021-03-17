@@ -35,8 +35,8 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
     it = 0
 
-    lowest_val_los = np.inf
-    val_epoch_since_improvement = 0
+    lowest_val_los = torch.tensor(float("Inf")).to(cfg.device)
+    val_epoch_since_improvement = torch.tensor(0.0).to(cfg.device)
 
     start = time.time()
 
@@ -65,11 +65,11 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                     else:
                         loss = model.nets[m].loss(out_stencil, ref_stencil)
 
-                    if it % cfg.print_train_loss_period == 0 and m == 0:
-                        print(it, loss.item())
-                    if it % cfg.save_train_loss_period == 0:
-                        model.nets[m].train_losses.append(loss.item())
-                        model.nets[m].train_iterations.append(it)
+                    #if it % cfg.print_train_loss_period == 0 and m == 0:
+                    #    print(it, loss.item())
+                    #if it % cfg.save_train_loss_period == 0:
+                    #    model.nets[m].train_losses.append(loss.item())
+                    #    model.nets[m].train_iterations.append(it)
 
                     model.nets[m].net.zero_grad()
 
@@ -78,7 +78,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                     model.nets[m].optimizer.step()
 
                 if it % cfg.validation_period == 0:
-                    total_val_loss = 0.0
+                    total_val_loss = torch.tensor(0.0).to(cfg.device)
                     for m in range(len(model.nets)):
                         model.nets[m].net.eval()
                         with torch.no_grad():
@@ -92,8 +92,8 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 else:
                                     val_loss = model.nets[m].loss(out_data_val, ref_data_val)
                                 total_val_loss += val_loss
-                                model.nets[m].val_losses.append(val_loss.item())
-                                model.nets[m].val_iterations.append(it)
+                                #model.nets[m].val_losses.append(val_loss.item())
+                                #model.nets[m].val_iterations.append(it)
                     #print(it, "val", total_val_loss)
                     if total_val_loss < lowest_val_los:
                         lowest_val_los = total_val_loss
@@ -119,11 +119,11 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                     print("loss:", loss)
                 """
 
-                if it % cfg.print_train_loss_period == 0:
-                    print(it, loss.item())
-                if it % cfg.save_train_loss_period == 0:
-                    model.train_losses.append(loss.item())
-                    model.train_iterations.append(it)
+                #if it % cfg.print_train_loss_period == 0:
+                #    print(it, loss.item())
+                #if it % cfg.save_train_loss_period == 0:
+                #    model.train_losses.append(loss.item())
+                #    model.train_iterations.append(it)
 
                 model.net.zero_grad()
 
@@ -143,8 +143,8 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 val_loss = model.loss(out_data_val, src_data_val)
                             else:
                                 val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
-                            model.val_losses.append(val_loss.item())
-                            model.val_iterations.append(it)
+                            #model.val_losses.append(val_loss.item())
+                            #model.val_iterations.append(it)
                             if val_loss < lowest_val_los:
                                 lowest_val_los = val_loss
                                 val_epoch_since_improvement = 0
