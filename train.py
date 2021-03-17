@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
+import time
 import torch
 
 ########################################################################################################################
@@ -36,6 +37,8 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
     lowest_val_los = np.inf
     val_epoch_since_improvement = 0
+
+    start = time.time()
 
     for epoch in range(num_epochs):
         for i, data in enumerate(dataloader_train):
@@ -147,6 +150,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 val_epoch_since_improvement = 0
                             else:
                                 val_epoch_since_improvement += 1
+
+    end = time. time()
+    print ("Time elapsed:", end - start)
 
     if cfg.model_name[:8] == "Ensemble":
         train_losses = np.zeros((len(model.nets), len(model.nets[0].train_losses)))

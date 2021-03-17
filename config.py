@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-16_grs"
-run_names  = [["GlobalDense"]]
-systems    = ["2A"]
-data_tags  = ["2A_param_src_zero"]
+group_name = "2021-03-17_time_training_with_prints"
+run_names  = [["Create2B", "Create5B"]]
+systems    = ["2B", "5B"]
+data_tags  = ["s2B_param_src_zero", "s5B_param_src_zero"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -799,8 +799,8 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Training configuration.
 
-        self.max_train_it = int(1e6)
-        self.min_train_it = int(5e3)
+        self.max_train_it = int(2e4)#int(1e6)
+        self.min_train_it = int(2e4)#int(5e3)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
         self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.
