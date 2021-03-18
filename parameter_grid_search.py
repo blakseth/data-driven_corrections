@@ -122,7 +122,6 @@ def grid_search(cfg):
             cfg.learning_rate = combo[0]
             cfg.num_conv_layers = combo[1]
             cfg.num_channels = combo[2]
-            cfg.num_fc_layers = combo[3]
         elif cfg.model_name == "LocalDense":
             cfg.learning_rate = combo[0]
             cfg.dropout_prob = combo[1]
