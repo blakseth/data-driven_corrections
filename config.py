@@ -25,14 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-18_GlobalDense_AllSystems"
-run_names  = [["GlobalDense_s1", "GlobalDense_s2A", "GlobalDense_s3", "GlobalDense_s4", "GlobalDense_s5A", "GlobalDense_s6", "GlobalDense_s7", "GlobalDense_s8A", "GlobalDense_s9", "GlobalDense_s10", "GlobalDense_s11", "GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"]]
-systems    = ["1", "2A", "3", "4", "5A", "6", "7", "8A", "9", "10", "11", "12", "13", "14"]
-data_tags  = ["s1_param_src_zero", "s2A_param_src_zero", "s3_param_src_zero", "s4_param_src_zero", "s5A_param_src_zero", "s6_param_src_zero", "s7_param_src_zero", "s8A_param_src_zero", "s9_param_src_zero", "s10_param_src_zero", "s11_param_src_zero", "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
-model_keys = [0]
-print(len(systems))
-print(len(data_tags))
-print(len(run_names[0]))
+group_name = "2021-03-18_grs"
+run_names  = [["GlobalCNN"]]
+systems    = ["2B"]
+data_tags  = ["s2B_param_src_zero"]
+model_keys = [1]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -66,7 +63,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 5
+        self.ensemble_size = 1
 
         self.do_train = do_train
         self.do_test = do_test
@@ -743,7 +740,7 @@ class Config:
         self.loss_func = 'MSE'
 
         self.optimizer = 'adam'
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-4
 
         self.act_type = 'lrelu'
         self.act_param = 0.01
@@ -814,7 +811,9 @@ class Config:
         self.batch_size_val = self.N_val_examples
         self.batch_size_test = self.N_test_examples
 
-        self.overfit_limit = 20
+        self.overfit_limit = 10
+        if self.learning_rate:
+            self.overfit_limit = 20
 
         self.train_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
