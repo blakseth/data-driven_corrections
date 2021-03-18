@@ -72,8 +72,8 @@ def grid_search(cfg):
     if cfg.model_name == "GlobalDense":
         learning_rates = [1e-4, 1e-5]
         dropout_probs = [0.0, 0.2]
-        widths = (cfg.N_coarse * np.asarray([2, 3, 5, 7, 10])).astype(int)
-        depths = [3, 4, 5, 6, 8, 10]
+        widths = (cfg.N_coarse * np.asarray([3, 5, 7])).astype(int)
+        depths = [3, 6, 9]
         axes   = [learning_rates, dropout_probs, widths, depths]
         labels = "learning rate,\tdropout prob.,\twidth,\tdepth"
     elif cfg.model_name == "GlobalCNN":
