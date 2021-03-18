@@ -70,8 +70,8 @@ def grid_search(cfg):
     axes   = None
     labels = None
     if cfg.model_name == "GlobalDense":
-        learning_rates = [1e-4, 1e-5]
-        dropout_probs = [0.0, 0.2]
+        learning_rates = [1e-5]
+        dropout_probs = [0.0]
         widths = (cfg.N_coarse * np.asarray([3, 5, 7])).astype(int)
         depths = [3, 6, 9]
         axes   = [learning_rates, dropout_probs, widths, depths]
