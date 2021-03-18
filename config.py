@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-18_grs2"
+group_name = "2021-03-18_grs3"
 run_names  = [["GlobalDense"]]
 systems    = ["2B"]
 data_tags  = ["s2B_param_src_zero"]
@@ -811,7 +811,7 @@ class Config:
         self.batch_size_val = self.N_val_examples
         self.batch_size_test = self.N_test_examples
 
-        self.overfit_limit = int(np.sqrt(100/self.learning_rate))
+        self.overfit_limit = 10
 
         self.train_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars

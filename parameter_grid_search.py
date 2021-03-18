@@ -139,6 +139,9 @@ def grid_search(cfg):
             cfg.num_conv_layers = combo[1]
             cfg.num_channels = combo[2]
 
+        if cfg.learning_rate == 1e-5:
+            cfg.overfit_limit = 20
+
         final_val_losses = np.zeros(len(dataloaders))
 
         for system_num in range(len(dataloaders)):
