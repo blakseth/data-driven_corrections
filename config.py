@@ -25,11 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-18_grs"
-run_names  = [["GlobalCNN"]]
-systems    = ["2B"]
-data_tags  = ["s2B_param_src_zero"]
-model_keys = [1]
+group_name = "2021-03-18_GlobalDense_AllSystems"
+run_names  = [["GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"]]
+systems    = ["12", "13", "14"]
+data_tags  = ["s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
+model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -812,7 +812,7 @@ class Config:
         self.batch_size_test = self.N_test_examples
 
         self.overfit_limit = 10
-        if self.learning_rate:
+        if self.learning_rate == 1e-5:
             self.overfit_limit = 20
 
         self.train_vars = set([attr for attr in dir(self) if

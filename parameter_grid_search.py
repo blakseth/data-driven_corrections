@@ -139,6 +139,8 @@ def grid_search(cfg):
 
         if cfg.learning_rate == 1e-5:
             cfg.overfit_limit = 20
+        elif cfg.learning_rate == 1e-4:
+            cfg.overfit_limit = 10
 
         final_val_losses = np.zeros(len(dataloaders))
 
