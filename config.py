@@ -25,11 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-18_GlobalDense_AllSystems"
-run_names  = [["GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"]]
-systems    = ["12", "13", "14"]
-data_tags  = ["s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
-model_keys = [0]
+group_name = "2021-03-18_GlobalCNN_AllSystems"
+run_names  = [["GlobalCNN_s1", "GlobalCNN_s2A", "GlobalCNN_s3", "GlobalCNN_s4", "GlobalCNN_s5A", "GlobalCNN_s6", "GlobalCNN_s7", "GlobalCNN_s8A", "GlobalCNN_s9", "GlobalCNN_s10", "GlobalCNN_s11", "GlobalCNN_s12","GlobalCNN_s13", "GlobalCNN_s14"]]
+systems    = ["1", "2A", "3", "4", "5A", "6", "7", "8", "9", "10", "11", "12", "13", "14"]
+data_tags  = ["s1_param_src_zero", "s2A_param_src_zero", "s3_param_src_zero", "s4_param_src_zero", "s5A_param_src_zero", "s6_param_src_zero", "s7_param_src_zero", "s8A_param_src_zero", "s9_param_src_zero", "s10_param_src_zero", "s11_param_src_zero",  "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
+model_keys = [1]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -740,7 +740,7 @@ class Config:
         self.loss_func = 'MSE'
 
         self.optimizer = 'adam'
-        self.learning_rate = 1e-4
+        self.learning_rate = 1e-5
 
         self.act_type = 'lrelu'
         self.act_param = 0.01
@@ -766,7 +766,7 @@ class Config:
         elif self.model_name == 'GlobalCNN':
             self.num_conv_layers = 5
             self.kernel_size = 3
-            self.num_channels = 20
+            self.num_channels = 40
             self.num_fc_layers = 1
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
             def get_model_specific_params():
