@@ -77,9 +77,9 @@ def grid_search(cfg):
         axes   = [learning_rates, dropout_probs, widths, depths]
         labels = "learning rate,\tdropout prob.,\twidth,\tdepth"
     elif cfg.model_name == "GlobalCNN":
-        learning_rates = [1e-4, 1e-5]
-        conv_nums = [5, 10, 15]
-        channel_nums = [10, 20, 30, 40]
+        learning_rates = [1e-5]#[1e-4, 1e-5]
+        conv_nums = [5, 10]#, 15]
+        channel_nums = [40, 50, 60, 80, 100]#[10, 20, 30, 40]
         axes = [learning_rates, conv_nums, channel_nums]
         labels = "learning rate,\tNo. conv layers,  No. conv channels,  No. fc layers"
     elif cfg.model_name == "LocalDense":

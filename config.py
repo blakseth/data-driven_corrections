@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-18_GlobalCNN_AllSystems"
-run_names  = [["GlobalCNN_s8A", "GlobalCNN_s9", "GlobalCNN_s10", "GlobalCNN_s11", "GlobalCNN_s12","GlobalCNN_s13", "GlobalCNN_s14"]]
-systems    = ["8A", "9", "10", "11", "12", "13", "14"]
-data_tags  = ["s8A_param_src_zero", "s9_param_src_zero", "s10_param_src_zero", "s11_param_src_zero",  "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
+group_name = "2021-03-22_GlobalCNN_extra_grs"
+run_names  = [["GlobalCNN"]]
+systems    = ["2B"]
+data_tags  = ["s8A_param_src_zero"]
 model_keys = [1]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
