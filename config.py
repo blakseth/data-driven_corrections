@@ -79,9 +79,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
