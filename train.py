@@ -62,6 +62,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
                     if cfg.model_is_hybrid:
                         loss = model.nets[m].loss(out_stencil, src_stencil)
+                    elif cfg.model_is_residual:
+                        res_stencil = ref_stencil - unc_stencil[:, 1:-1]
+                        loss = model.nets[m].loss(out_stencil, res_stencil)
                     else:
                         loss = model.nets[m].loss(out_stencil, ref_stencil)
 
@@ -89,6 +92,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 out_data_val = model.nets[m].net(unc_data_val)
                                 if cfg.model_is_hybrid:
                                     val_loss = model.nets[m].loss(out_data_val, src_data_val)
+                                elif cfg.model_is_residual:
+                                    res_data_val = ref_data_val - unc_data_val[:, 1:-1]
+                                    val_loss = model.nets[m].loss(out_data_val, res_data_val)
                                 else:
                                     val_loss = model.nets[m].loss(out_data_val, ref_data_val)
                                 total_val_loss += val_loss
@@ -107,6 +113,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
                 if cfg.model_is_hybrid:
                     loss = model.loss(out_data, src_data)
+                elif cfg.model_is_residual:
+                    res_data = ref_data[:, 1:-1] - unc_data[:, 1:-1]
+                    loss = model.loss(out_data, res_data)
                 else:
                     loss = model.loss(out_data, ref_data[:, 1:-1])
 
@@ -141,6 +150,9 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                             out_data_val = model.net(unc_data_val)
                             if cfg.model_is_hybrid:
                                 val_loss = model.loss(out_data_val, src_data_val)
+                            elif cfg.model_is_residual:
+                                res_data_val = ref_data_val[:, 1:-1] - unc_data_val[:, 1:-1]
+                                val_loss = model.loss(out_data_val, res_data_val)
                             else:
                                 val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
                             model.val_losses.append(val_loss.item())
