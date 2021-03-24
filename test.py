@@ -629,9 +629,9 @@ def parametrized_simulation_test(cfg, model):
                         cfg.dt_coarse, old_time, new_time, False
                     )
                 else:
-                    new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
-                    new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
-                    new_cor[1:-1] = util.z_unnormalize(model.net(unc_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                    new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
+                    new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
+                    new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
 
             if i == 0:
                 print("First cor:", new_cor)

@@ -25,11 +25,12 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-22_GlobalCNN_extra_grs"
-run_names  = [["GlobalCNN"]]
-systems    = ["2B"]
-data_tags  = ["s8A_param_src_zero"]
-model_keys = [1]
+group_name = "2021-03-22_trial_end"
+run_names  = [["GlobalDense_s1", "GlobalDense_s2A", "GlobalDense_s3", "GlobalDense_s4", "GlobalDense_s5A", "GlobalDense_s6", "GlobalDense_s7", "GlobalDense_s8A", "GlobalDense_s9", "GlobalDense_s10", "GlobalDense_s11", "GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"],
+              ["GlobalCNN_s1", "GlobalCNN_s2A", "GlobalCNN_s3", "GlobalCNN_s4", "GlobalCNN_s5A", "GlobalCNN_s6", "GlobalCNN_s7", "GlobalCNN_s8A", "GlobalCNN_s9", "GlobalCNN_s10", "GlobalCNN_s11", "GlobalCNN_s12", "GlobalCNN_s13", "GlobalCNN_s14"]]
+systems    = ["1", "2A", "3", "4", "5A", "6", "7", "8A", "9", "10", "11", "12", "13", "14"]
+data_tags  = ["s1_param_src_zero", "s2A_param_src_zero", "s3_param_src_zero", "s4_param_src_zero", "s5A_param_src_zero", "s6_param_src_zero", "s7_param_src_zero", "s8A_param_src_zero", "s9_param_src_zero", "s10_param_src_zero", "s11_param_src_zero", "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
+model_keys = [0, 1]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -48,7 +49,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_is_hybrid = True
+        self.model_is_hybrid = False
 
         model_types = [
             'GlobalDense',
@@ -78,9 +79,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
