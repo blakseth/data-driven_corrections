@@ -49,7 +49,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_is_hybrid = False
+        self.model_is_hybrid = True
         self.model_is_residual = False
 
         model_types = [
