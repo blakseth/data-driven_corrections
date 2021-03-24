@@ -25,11 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-24_end_rerun"
-run_names  = [["GlobalDense_s10", "GlobalDense_s11", "GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"]]
+group_name = "2021-03-24_hybrid_rerun"
+run_names  = [["GlobalDense_s11", "GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"]]
               #["GlobalCNN_s1", "GlobalCNN_s2A", "GlobalCNN_s3", "GlobalCNN_s4", "GlobalCNN_s5A", "GlobalCNN_s6", "GlobalCNN_s7", "GlobalCNN_s8A", "GlobalCNN_s9", "GlobalCNN_s10", "GlobalCNN_s11", "GlobalCNN_s12", "GlobalCNN_s13", "GlobalCNN_s14"]]
-systems    = ["10", "11", "12", "13", "14"]
-data_tags  = ["s10_param_src_zero", "s11_param_src_zero", "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
+systems    = ["11", "12", "13", "14"]
+data_tags  = ["s11_param_src_zero", "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
