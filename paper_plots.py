@@ -100,11 +100,11 @@ def visualize_profile(x, unc_profile, end_profile, hyb_profile, exact_callable, 
 ########################################################################################################################
 
 def main():
-    hybrid_CNN_dir  = ""
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-24_hybrid_GlobalDense_rerun/GlobalDense_s"
-    end_CNN_dir     = ""
-    end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-24_end_GlobalDense_rerun/GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-03-24_v2"
+    hybrid_CNN_dir  = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalCNN_rerun/GlobalCNN_s"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalDense_rerun/GlobalDense_s"
+    end_CNN_dir     = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalCNN_rerun/GlobalCNN_s"
+    end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalDense_rerun/GlobalDense_s"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-03-26"
 
     os.makedirs(output_dir, exist_ok=False)
 
