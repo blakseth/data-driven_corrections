@@ -534,6 +534,7 @@ def parametrized_simulation_test(cfg, model):
     num_param_values = cfg.N_test_alphas
     unc_tensor = dataset_test[:][0].detach()
     ref_tensor = dataset_test[:][1].detach()
+    res_tensor = dataset_test[:][7].detach()
     stats      = dataset_test[:6][3].detach().numpy()
     ICs        = dataset_test[:][4].detach().numpy()
     times      = dataset_test[:][5].detach().numpy()
@@ -541,14 +542,13 @@ def parametrized_simulation_test(cfg, model):
     print("alphas", alphas)
 
     unc_mean = stats[0]
-    unc_std  = stats[3]
+    unc_std  = stats[4]
     ref_mean = stats[1]
-    ref_std  = stats[4]
+    ref_std  = stats[5]
+    res_mean = stats[2]
+    res_std  = stats[6]
     src_mean = stats[2]
-    src_std  = stats[5]
-
-    unc = util.z_unnormalize(unc_tensor.numpy(), unc_mean, unc_std)
-    ref = util.z_unnormalize(ref_tensor.numpy(), unc_mean, unc_std)
+    src_std  = stats[7]
 
     L2_errors_unc = np.zeros((num_param_values, cfg.Nt_coarse - 1))
     L2_errors_cor = np.zeros((num_param_values, cfg.Nt_coarse - 1))
@@ -608,8 +608,9 @@ def parametrized_simulation_test(cfg, model):
                     new_src = np.zeros(new_unc.shape[0] - 2)
                     for m in range(len(model.nets)):
                         new_src[m] = util.z_unnormalize(
-                            torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(), src_mean,
-                            src_std)
+                            torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(),
+                            src_mean, src_std
+                        )
                     new_cor = physics.simulate(
                         cfg.nodes_coarse, cfg.faces_coarse,
                         old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
@@ -621,20 +622,24 @@ def parametrized_simulation_test(cfg, model):
                     new_res = np.zeros(new_unc.shape[0])
                     for m in range(len(model.nets)):
                         new_res[m + 1] = util.z_unnormalize(
-                            torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(), ref_mean,
-                            ref_std)
+                            torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(),
+                            res_mean, res_std
+                        )
                     new_cor = new_unc_ + new_res
                 else:
                     new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
                     new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
                     for m in range(len(model.nets)):
                         new_cor[m + 1] = util.z_unnormalize(
-                            torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(), ref_mean,
-                            ref_std)
+                            torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(),
+                            ref_mean, ref_std
+                        )
             else:
                 if cfg.model_is_hybrid:
-                    new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor_.to(cfg.device)), 0).detach().cpu().numpy(), src_mean,
-                                                 src_std)
+                    new_src = util.z_unnormalize(
+                        torch.squeeze(model.net(new_unc_tensor_.to(cfg.device)), 0).detach().cpu().numpy(),
+                        src_mean, src_std
+                    )
                     new_cor = physics.simulate(
                         cfg.nodes_coarse, cfg.faces_coarse,
                         old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
@@ -645,7 +650,7 @@ def parametrized_simulation_test(cfg, model):
                 elif cfg.model_is_residual:
                     new_res = np.zeros(new_unc.shape[0])
                     unnomralized_res = model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy()
-                    new_res[1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                    new_res[1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
                     new_cor = new_unc_ + new_res
                     print("unnormalized_res:", unnomralized_res)
                     print("new_res:", new_res)

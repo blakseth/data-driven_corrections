@@ -50,6 +50,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
             unc_data = data[0].to(cfg.device) # unc = uncorrected.
             ref_data = data[1].to(cfg.device) # ref = reference.
             src_data = data[2].to(cfg.device) # src = source.
+            res_data = data[7].to(cfg.device) # res = residual.
 
             if cfg.model_name[:8] == "Ensemble":
                 for m in range(len(model.nets)):
@@ -57,13 +58,13 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
 
                     unc_stencil = unc_data[:, m:m + 3].clone()
                     ref_stencil = ref_data[:, m + 1:m + 2].clone()
+                    res_stencil = res_data[:, m + 1:m + 2].clone()
                     src_stencil = src_data[:, m:m + 1].clone()
                     out_stencil = model.nets[m].net(unc_stencil)
 
                     if cfg.model_is_hybrid:
                         loss = model.nets[m].loss(out_stencil, src_stencil)
                     elif cfg.model_is_residual:
-                        res_stencil = ref_stencil - unc_stencil[:, 1:-1]
                         loss = model.nets[m].loss(out_stencil, res_stencil)
                     else:
                         loss = model.nets[m].loss(out_stencil, ref_stencil)
@@ -88,12 +89,12 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                             for j, val_data in enumerate(dataloader_val):
                                 unc_data_val = val_data[0].to(cfg.device)[:,m:m+3].clone()
                                 ref_data_val = val_data[1].to(cfg.device)[:,m+1:m+2].clone()
+                                res_data_val = val_data[7].to(cfg.device)[:,m+1:m+2].clone()
                                 src_data_val = val_data[2].to(cfg.device)[:,m:m+1].clone()
                                 out_data_val = model.nets[m].net(unc_data_val)
                                 if cfg.model_is_hybrid:
                                     val_loss = model.nets[m].loss(out_data_val, src_data_val)
                                 elif cfg.model_is_residual:
-                                    res_data_val = ref_data_val - unc_data_val[:, 1:-1]
                                     val_loss = model.nets[m].loss(out_data_val, res_data_val)
                                 else:
                                     val_loss = model.nets[m].loss(out_data_val, ref_data_val)
@@ -114,8 +115,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                 if cfg.model_is_hybrid:
                     loss = model.loss(out_data, src_data)
                 elif cfg.model_is_residual:
-                    res_data = ref_data[:, 1:-1] - unc_data[:, 1:-1]
-                    loss = model.loss(out_data, res_data)
+                    loss = model.loss(out_data, res_data[:, 1:-1])
                 else:
                     loss = model.loss(out_data, ref_data[:, 1:-1])
 
@@ -146,13 +146,13 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                         for j, val_data in enumerate(dataloader_val):
                             unc_data_val = val_data[0].to(cfg.device)
                             ref_data_val = val_data[1].to(cfg.device)
+                            res_data_val = val_data[7].to(cfg.device)
                             src_data_val = val_data[2].to(cfg.device)
                             out_data_val = model.net(unc_data_val)
                             if cfg.model_is_hybrid:
                                 val_loss = model.loss(out_data_val, src_data_val)
                             elif cfg.model_is_residual:
-                                res_data_val = ref_data_val[:, 1:-1] - unc_data_val[:, 1:-1]
-                                val_loss = model.loss(out_data_val, res_data_val)
+                                val_loss = model.loss(out_data_val, res_data_val[:, 1:-1])
                             else:
                                 val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
                             model.val_losses.append(val_loss.item())
