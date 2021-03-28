@@ -652,10 +652,10 @@ def parametrized_simulation_test(cfg, model):
                     unnomralized_res = model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy()
                     new_res[1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
                     new_cor = new_unc_ + new_res
-                    print("unnormalized_res:", unnomralized_res)
-                    print("new_res:", new_res)
-                    print("new_unc_:", new_unc_)
-                    print("new_cor:", new_cor)
+                    #print("unnormalized_res:", unnomralized_res)
+                    #print("new_res:", new_res)
+                    #print("new_unc_:", new_unc_)
+                    #print("new_cor:", new_cor)
                 else:
                     new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
                     new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
