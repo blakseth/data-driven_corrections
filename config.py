@@ -25,11 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-25_hybrid_GlobalCNN_rerun"
-run_names  = [["GlobalCNN_s6", "GlobalCNN_s7", "GlobalCNN_s8A", "GlobalCNN_s9", "GlobalCNN_s10", "GlobalCNN_s11", "GlobalCNN_s12", "GlobalCNN_s13", "GlobalCNN_s14"]]
-systems    = ["6", "7", "8A", "9", "10", "11", "12", "13", "14"]
-data_tags  = ["s6_param_src_zero", "s7_param_src_zero", "s8A_param_src_zero", "s9_param_src_zero", "s10_param_src_zero", "s11_param_src_zero", "s12_param_src_zero", "s13_param_src_zero", "s14_param_src_zero"]
-model_keys = [1]
+group_name = "2021-03-29_residual_all_systems"
+run_names  = [["GlobalDense_s1", "GlobalDense_s2A", "GlobalDense_s3", "GlobalDense_s4", "GlobalDense_s5A", "GlobalDense_s6", "GlobalDense_s7", "GlobalDense_s8A", "GlobalDense_s9", "GlobalDense_s10", "GlobalDense_s11", "GlobalDense_s12", "GlobalDense_s13", "GlobalDense_s14"]]
+systems    = ["1", "2A", "3", "4", "5A", "6", "7", "8A", "9", "10", "11", "12", "13", "14"]
+data_tags  = ["s1_param_src_zero_res", "s2A_param_src_zero_res", "s3_param_src_zero_res", "s4_param_src_zero_res", "s5A_param_src_zero_res", "s6_param_src_zero_res", "s7_param_src_zero_res", "s8A_param_src_zero_res", "s9_param_src_zero_res", "s10_param_src_zero_res", "s11_param_src_zero_res", "s12_param_src_zero_res", "s13_param_src_zero_res", "s14_param_src_zero_res"]
+model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 
@@ -48,8 +48,8 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_is_hybrid = True
-        self.model_is_residual = False
+        self.model_is_hybrid = False
+        self.model_is_residual = True
 
         model_types = [
             'GlobalDense',
