@@ -535,7 +535,7 @@ def parametrized_simulation_test(cfg, model):
     unc_tensor = dataset_test[:][0].detach()
     ref_tensor = dataset_test[:][1].detach()
     res_tensor = dataset_test[:][7].detach()
-    stats      = dataset_test[:6][3].detach().numpy()
+    stats      = dataset_test[:8][3].detach().numpy()
     ICs        = dataset_test[:][4].detach().numpy()
     times      = dataset_test[:][5].detach().numpy()
     alphas     = dataset_test[:num_param_values][6].detach().numpy()
