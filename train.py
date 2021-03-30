@@ -19,6 +19,9 @@ import torch
 ########################################################################################################################
 # File imports.
 
+import datasets
+import util
+
 ########################################################################################################################
 # Training ML-model.
 
@@ -38,6 +41,11 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
     lowest_val_los = torch.tensor(float("Inf")).to(cfg.device)
     val_epoch_since_improvement = torch.tensor(0.0).to(cfg.device)
 
+    _, _, dataset_test = datasets.load_datasets(cfg, False, False, True)
+    stats = dataset_test[:8][3].detach().numpy()
+    ref_mean = stats[1]
+    ref_std = stats[5]
+
     start = time.time()
 
     for epoch in range(num_epochs):
@@ -51,6 +59,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
             ref_data = data[1].to(cfg.device) # ref = reference.
             src_data = data[2].to(cfg.device) # src = source.
             res_data = data[7].to(cfg.device) # res = residual.
+            old_data = util.z_normalize(data[4], ref_mean, ref_std).to(cfg.device) # old = reference at previous time level.
 
             if cfg.model_name[:8] == "Ensemble":
                 for m in range(len(model.nets)):
@@ -60,13 +69,19 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                     ref_stencil = ref_data[:, m + 1:m + 2].clone()
                     res_stencil = res_data[:, m + 1:m + 2].clone()
                     src_stencil = src_data[:, m:m + 1].clone()
-                    out_stencil = model.nets[m].net(unc_stencil)
-
-                    if cfg.model_is_hybrid:
-                        loss = model.nets[m].loss(out_stencil, src_stencil)
-                    elif cfg.model_is_residual:
-                        loss = model.nets[m].loss(out_stencil, res_stencil)
+                    if cfg.model_type == 'data':
+                        in_stencil = old_data[:, m:m+3].clone()
                     else:
+                        in_stencil = unc_stencil
+                    out_stencil = model.nets[m].net(in_stencil)
+
+                    if cfg.model_type == 'hybrid':
+                        loss = model.nets[m].loss(out_stencil, src_stencil)
+                    elif cfg.model_type == 'residual':
+                        loss = model.nets[m].loss(out_stencil, res_stencil)
+                    elif cfg.model_type == 'end-to-end':
+                        loss = model.nets[m].loss(out_stencil, ref_stencil)
+                    elif cfg.model_type == 'data':
                         loss = model.nets[m].loss(out_stencil, ref_stencil)
 
                     if it % cfg.print_train_loss_period == 0 and m == 0:
@@ -91,12 +106,18 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                                 ref_data_val = val_data[1].to(cfg.device)[:,m+1:m+2].clone()
                                 res_data_val = val_data[7].to(cfg.device)[:,m+1:m+2].clone()
                                 src_data_val = val_data[2].to(cfg.device)[:,m:m+1].clone()
-                                out_data_val = model.nets[m].net(unc_data_val)
-                                if cfg.model_is_hybrid:
-                                    val_loss = model.nets[m].loss(out_data_val, src_data_val)
-                                elif cfg.model_is_residual:
-                                    val_loss = model.nets[m].loss(out_data_val, res_data_val)
+                                if cfg.model_type == "data":
+                                    in_data_val = val_data[4].to(cfg.device)[:,m:m+3].clone()
                                 else:
+                                    in_data_val = unc_data_val
+                                out_data_val = model.nets[m].net(in_data_val)
+                                if cfg.model_type == 'hybrid':
+                                    val_loss = model.nets[m].loss(out_data_val, src_data_val)
+                                elif cfg.model_type == 'residual':
+                                    val_loss = model.nets[m].loss(out_data_val, res_data_val)
+                                elif cfg.model_type == 'end-to-end':
+                                    val_loss = model.nets[m].loss(out_data_val, ref_data_val)
+                                elif cfg.model_type == 'data':
                                     val_loss = model.nets[m].loss(out_data_val, ref_data_val)
                                 total_val_loss += val_loss
                                 model.nets[m].val_losses.append(val_loss.item())
@@ -110,13 +131,20 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
             else:
                 model.net.train()
 
-                out_data = model.net(unc_data) # out = output (corrected profile or predicted correction source term).
-
-                if cfg.model_is_hybrid:
-                    loss = model.loss(out_data, src_data)
-                elif cfg.model_is_residual:
-                    loss = model.loss(out_data, res_data[:, 1:-1])
+                if cfg.model_type == 'data':
+                    #print("Data pass")
+                    out_data = model.net(old_data)
                 else:
+                    out_data = model.net(unc_data) # out = output (corrected profile or predicted correction source term).
+
+                if cfg.model_type == 'hybrid':
+                    loss = model.loss(out_data, src_data)
+                elif cfg.model_type == 'residual':
+                    loss = model.loss(out_data, res_data[:, 1:-1])
+                elif cfg.model_type == 'end-to-end':
+                    loss = model.loss(out_data, ref_data[:, 1:-1])
+                elif cfg.model_type == 'data':
+                    #print("Data loss")
                     loss = model.loss(out_data, ref_data[:, 1:-1])
 
                 """
@@ -148,12 +176,21 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
                             ref_data_val = val_data[1].to(cfg.device)
                             res_data_val = val_data[7].to(cfg.device)
                             src_data_val = val_data[2].to(cfg.device)
-                            out_data_val = model.net(unc_data_val)
-                            if cfg.model_is_hybrid:
-                                val_loss = model.loss(out_data_val, src_data_val)
-                            elif cfg.model_is_residual:
-                                val_loss = model.loss(out_data_val, res_data_val[:, 1:-1])
+                            if cfg.model_type == 'data':
+                                #print("Data val pass")
+                                old_data_val = util.z_normalize(val_data[4], ref_mean, ref_std).to(cfg.device)
+                                out_data_val = model.net(old_data_val)
                             else:
+                                out_data_val = model.net(unc_data_val)
+
+                            if cfg.model_type == 'hybrid':
+                                val_loss = model.loss(out_data_val, src_data_val)
+                            elif cfg.model_type == 'residual':
+                                val_loss = model.loss(out_data_val, res_data_val[:, 1:-1])
+                            elif cfg.model_type == 'end-to-end':
+                                val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
+                            elif cfg.model_type == 'data':
+                                #print("Data val loss")
                                 val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1])
                             model.val_losses.append(val_loss.item())
                             model.val_iterations.append(it)

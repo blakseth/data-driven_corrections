@@ -430,7 +430,7 @@ def single_step_test(cfg, model, num):
         'cor': np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0])),
         'time': np.zeros(num_profile_plots)
     }
-    if cfg.model_is_hybrid and cfg.exact_solution_available:
+    if cfg.model_type == 'hybrid' and cfg.exact_solution_available:
         plot_data_dict['src'] = np.zeros((num_profile_plots, cfg.nodes_coarse.shape[0] - 2))
     for i in range(cfg.N_test_examples):
         old_time = np.around(times[i] - cfg.dt_coarse, decimals=10)
@@ -532,9 +532,6 @@ def parametrized_simulation_test(cfg, model):
     _, _, dataset_test = load_datasets(cfg, False, False, True)
 
     num_param_values = cfg.N_test_alphas
-    unc_tensor = dataset_test[:][0].detach()
-    ref_tensor = dataset_test[:][1].detach()
-    res_tensor = dataset_test[:][7].detach()
     stats      = dataset_test[:8][3].detach().numpy()
     ICs        = dataset_test[:][4].detach().numpy()
     times      = dataset_test[:][5].detach().numpy()
@@ -564,7 +561,7 @@ def parametrized_simulation_test(cfg, model):
         'time': np.zeros(num_profile_plots),
         'alphas': alphas
     }
-    if cfg.model_is_hybrid and cfg.exact_solution_available:
+    if cfg.model_type == 'hybrid' and cfg.exact_solution_available:
         plot_data_dict['src'] = np.zeros((num_param_values, num_profile_plots, cfg.nodes_coarse.shape[0] - 2))
 
     for a, alpha in enumerate(alphas):
@@ -595,6 +592,7 @@ def parametrized_simulation_test(cfg, model):
                 cfg.dt_coarse, old_time, new_time, False
             )
             new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std)), dim=0)
+            old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std)), dim=0)
 
             if cfg.exact_solution_available:
                 new_ref = cfg.get_T_exact(cfg.nodes_coarse, new_time, alpha)
@@ -604,7 +602,7 @@ def parametrized_simulation_test(cfg, model):
 
             new_cor = np.zeros_like(new_unc)
             if cfg.model_name[:8] == "Ensemble":
-                if cfg.model_is_hybrid:
+                if cfg.model_type == 'hybrid':
                     new_src = np.zeros(new_unc.shape[0] - 2)
                     for m in range(len(model.nets)):
                         new_src[m] = util.z_unnormalize(
@@ -618,7 +616,7 @@ def parametrized_simulation_test(cfg, model):
                         lambda x,t: cfg.get_q_hat_approx(x, t, alpha), new_src,
                         cfg.dt_coarse, old_time, new_time, False
                     )
-                elif cfg.model_is_residual:
+                elif cfg.model_type == 'residual':
                     new_res = np.zeros(new_unc.shape[0])
                     for m in range(len(model.nets)):
                         new_res[m + 1] = util.z_unnormalize(
@@ -626,7 +624,7 @@ def parametrized_simulation_test(cfg, model):
                             res_mean, res_std
                         )
                     new_cor = new_unc_ + new_res
-                else:
+                elif cfg.model_type == 'end-to-end':
                     new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
                     new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
                     for m in range(len(model.nets)):
@@ -634,8 +632,16 @@ def parametrized_simulation_test(cfg, model):
                             torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(),
                             ref_mean, ref_std
                         )
+                elif cfg.model_type == 'data':
+                    new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
+                    new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
+                    for m in range(len(model.nets)):
+                        new_cor[m + 1] = util.z_unnormalize(
+                            torch.squeeze(model.nets[m].net(old_cor_tensor[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(),
+                            ref_mean, ref_std
+                        )
             else:
-                if cfg.model_is_hybrid:
+                if cfg.model_type == 'hybrid':
                     new_src = util.z_unnormalize(
                         torch.squeeze(model.net(new_unc_tensor_.to(cfg.device)), 0).detach().cpu().numpy(),
                         src_mean, src_std
@@ -647,7 +653,7 @@ def parametrized_simulation_test(cfg, model):
                         lambda x, t: cfg.get_q_hat_approx(x, t, alpha), new_src,
                         cfg.dt_coarse, old_time, new_time, False
                     )
-                elif cfg.model_is_residual:
+                elif cfg.model_type == 'residual':
                     new_res = np.zeros(new_unc.shape[0])
                     unnomralized_res = model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy()
                     new_res[1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
@@ -656,10 +662,14 @@ def parametrized_simulation_test(cfg, model):
                     #print("new_res:", new_res)
                     #print("new_unc_:", new_unc_)
                     #print("new_cor:", new_cor)
-                else:
+                elif cfg.model_type == 'end-to-end':
                     new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
                     new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
                     new_cor[1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                elif cfg.model_type == 'data':
+                    new_cor[0] = cfg.get_T_a(new_time, alpha)  # Since BCs are not ...
+                    new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
+                    new_cor[1:-1] = util.z_unnormalize(model.net(old_cor_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
 
             if i == 0:
                 print("First cor:", new_cor)
@@ -680,7 +690,7 @@ def parametrized_simulation_test(cfg, model):
                 plot_data_dict['unc'][a][plot_num] = new_unc
                 plot_data_dict['ref'][a][plot_num] = new_ref
                 plot_data_dict['cor'][a][plot_num] = new_cor
-                if cfg.model_is_hybrid and cfg.exact_solution_available:
+                if cfg.model_type == 'hybrid' and cfg.exact_solution_available:
                     plot_data_dict['src'][a][plot_num] = new_src
                 if a == 0:
                     plot_data_dict['time'][plot_num] = new_time
