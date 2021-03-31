@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-29_pure_data_driven_selected_systems_updated_val"
-run_names  = [["GlobalDense_s1", "GlobalDense_s2A", "GlobalDense_s4", "GlobalDense_s6", "GlobalDense_s8A", "GlobalDense_s3", "GlobalDense_s5A", "GlobalDense_s7"]]
-systems    = ["1", "2A", "4", "6", "8A", "3", "5A", "7"]
-data_tags  = ["s1_param_src_zero_res", "s2A_param_src_zero", "s4_param_src_zero", "s6_param_src_zero", "s8A_param_src_zero", "s3_param_src_zero", "s5A_param_src_zero", "s7_param_src_zero"]
+group_name = "2021-03-30_hybrid_FCNN_system4"
+run_names  = [["GlobalDense_s4"]]
+systems    = ["4"]
+data_tags  = ["s4_param_src_zero"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -48,7 +48,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_type = 'data' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
         model_names = [
             'GlobalDense',
@@ -63,7 +63,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 1
+        self.ensemble_size = 5
 
         self.do_train = do_train
         self.do_test = do_test
@@ -227,7 +227,7 @@ class Config:
             cV_ref = 1.0
             q_hat_ref = 1.0
             def get_T_exact(x, t, alpha):
-                return np.sin(2 * np.pi * x) * np.exp(-alpha*t)
+                return np.sin(2 * np.pi * x) * np.exp(-alpha*(t+0.1))
             def get_T0(x, alpha):
                 return get_T_exact(x, 0, alpha)
             def get_T_a(t, alpha):
@@ -235,7 +235,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return (alpha + 4 * (np.pi ** 2)) * np.sin(2 * np.pi * x) * np.exp(-alpha*t)
+                return (alpha + 4 * (np.pi ** 2)) * np.sin(2 * np.pi * x) * np.exp(-alpha*(t+0.1))
             def get_q_hat_approx(x, t, alpha):
                 return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
             def get_k(x):
@@ -877,5 +877,20 @@ def save_config(cfg):
     os.makedirs(cfg.run_dir, exist_ok=True)
     with open(os.path.join(cfg.run_dir, "config_save.txt"), "w") as f:
         f.write(cfg_string)
+
+########################################################################################################################
+
+def main():
+    lin_alphas = np.linspace(0.1, 2.0, 20, endpoint=True)
+    permutation = np.random.RandomState(seed=42).permutation(lin_alphas.shape[0])
+    lin_alphas = lin_alphas[permutation]
+    extra_alphas = np.asarray([-0.5, 2.5])
+    alphas = np.concatenate((lin_alphas, extra_alphas), axis=0)
+    print(alphas)
+
+########################################################################################################################
+
+if __name__ == "__main__":
+    main()
 
 ########################################################################################################################
