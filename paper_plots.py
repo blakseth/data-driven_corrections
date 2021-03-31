@@ -19,6 +19,11 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"],
+})
+
 ########################################################################################################################
 # Exact solutions.
 
@@ -33,7 +38,7 @@ def get_exact_solution(system_number, alpha, t):
         return lambda x: 2 * (x ** (alpha + 4)) - (t ** 2) * x * (x - 1)
 
     if system_number == 4:
-        return lambda x: np.sin(2 * np.pi * x) * np.exp(-alpha * t)
+        return lambda x: np.sin(2 * np.pi * x) * np.exp(-alpha * (t+0.1))
 
     if system_number == 5:
         return lambda x: -2 * (x ** 3) * (x - alpha) / (t + 0.5)
@@ -102,15 +107,19 @@ def visualize_profile(x, unc_profile, end_profile, hyb_profile, exact_callable, 
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
-def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, output_dir, filename):
+def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, output_dir, filename, y_lim):
     plt.figure()
-    plt.semilogy(iterations, unc_errors, 'r-', linewidth=2.0, label="Uncorrected")
+    plt.semilogy(iterations, unc_errors, 'r-', linewidth=2.0, label="PBM")
+    if dat_errors_FCNN is not None:
+        plt.semilogy(iterations, dat_errors_FCNN, 'b-',  linewidth=2.0, label="DDM")
+    if dat_errors_CNN is not None:
+        plt.semilogy(iterations, dat_errors_CNN,  'y--', linewidth=2.0, label="DDM CNN")
     if end_errors_FCNN is not None:
-        plt.semilogy(iterations, end_errors_FCNN, 'b-',  linewidth=2.0, label="End-to-end FCNN")
+        plt.semilogy(iterations, end_errors_FCNN, 'c-',  linewidth=2.0, label="End-to-end FCNN")
     if end_errors_CNN is not None:
-        plt.semilogy(iterations, end_errors_CNN,  'b--', linewidth=2.0, label="End-to-end CNN")
+        plt.semilogy(iterations, end_errors_CNN,  'c--', linewidth=2.0, label="End-to-end CNN")
     if hyb_errors_FCNN is not None:
-        plt.semilogy(iterations, hyb_errors_FCNN, 'g-',  linewidth=2.0, label="CoSTA FCNN")
+        plt.semilogy(iterations, hyb_errors_FCNN, 'g-',  linewidth=2.0, label="HAM")
     if hyb_errors_CNN is not None:
         plt.semilogy(iterations, hyb_errors_CNN,  'g--', linewidth=2.0, label="CoSTA CNN")
     if res_errors_FCNN is not None:
@@ -118,30 +127,35 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
     if res_errors_CNN is not None:
         plt.semilogy(iterations, res_errors_CNN,  'y--', linewidth=2.0, label="Residual CNN")
     plt.xlim([0, len(unc_errors)])
+    plt.ylim(y_lim)
     plt.xlabel("Test Iterations", fontsize=20)
     plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
-    plt.legend(prop={'size': 17})
+    #plt.legend(prop={'size': 17})
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
-def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, exact_callable, output_dir, filename):
+def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, output_dir, filename):
     plt.figure()
-    plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="Uncorrected")
+    plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="PBM")
+    if dat_profile_FCNN is not None:
+        plt.scatter(x, dat_profile_FCNN, s=40, marker='s', facecolors='none', edgecolors='b', label="DDM")
+    if dat_profile_CNN is not None:
+        plt.scatter(x, dat_profile_CNN,  s=40, marker='^', facecolors='none', edgecolors='b', label="DDM CNN")
     if end_profile_FCNN is not None:
         plt.scatter(x, end_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='b', label="End-to-end FCNN")
     if end_profile_CNN is not None:
-        plt.scatter(x, end_profile_CNN,  s=40, marker='s', facecolors='none', edgecolors='b', label="End-to-end CNN")
+        plt.scatter(x, end_profile_CNN,  s=40, marker='^', facecolors='none', edgecolors='b', label="End-to-end CNN")
     if hyb_profile_FCNN is not None:
-        plt.scatter(x, hyb_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='g', label="CoSTA FCNN")
+        plt.scatter(x, hyb_profile_FCNN, s=40, marker='D', facecolors='none', edgecolors='g', label="HAM")
     if hyb_profile_CNN is not None:
-        plt.scatter(x, hyb_profile_CNN,  s=40, marker='s', facecolors='none', edgecolors='g', label="CoSTA CNN")
+        plt.scatter(x, hyb_profile_CNN,  s=40, marker='^', facecolors='none', edgecolors='g', label="CoSTA CNN")
     if res_profile_FCNN is not None:
         plt.scatter(x, res_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='y', label="Residual FCNN")
     if res_profile_CNN is not None:
-        plt.scatter(x, res_profile_CNN,  s=40, marker='s', facecolors='none', edgecolors='y', label="Residual CNN")
+        plt.scatter(x, res_profile_CNN,  s=40, marker='^', facecolors='none', edgecolors='y', label="Residual CNN")
     x_dense = np.linspace(x[0], x[-1], 1001, endpoint=True)
     plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
     plt.xlim(x[0], x[-1])
@@ -150,7 +164,7 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
-    plt.legend(prop={'size': 17})
+    #plt.legend(prop={'size': 17})
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
@@ -158,23 +172,29 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
 
 def main():
     hybrid_CNN_dir  = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalCNN_rerun/GlobalCNN_s"
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalDense_rerun/GlobalDense_s"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_hybrid/GlobalDense_s"
     end_CNN_dir     = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalCNN_rerun/GlobalCNN_s"
     end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalDense_rerun/GlobalDense_s"
     res_CNN_dir     = ""
     res_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-29_residual_GlobalDense/GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-03-29_debug_s4_6"
+    dat_CNN_dir     = ""
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-03-31_no_legends2"
 
-    use_CNN_results  = False
-    use_FCNN_results = True
-    use_end_results  = True
-    use_hyb_results  = True
-    use_res_results  = True
+    use_CNN_results   = False
+    use_FCNN_results  = True
+    use_end_results   = False
+    use_hyb_results   = True
+    use_res_results   = False
+    use_dat_results   = True
 
     os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [4]
+    systems_to_include = [1, 2, 6, 8]
+
+    y_lims_interp = [[1e-6, 1e-1], [1e-6, 3e0], None, None, None, [5e-5, 4e-1], None, [3e-5, 1e0]]
+    y_lims_extrap = [[7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-4, 7e-1], None, [4e-5, 1e0]]
 
     for s in range(num_systems_studied):
         system_number = s + 1
@@ -193,6 +213,9 @@ def main():
         if use_FCNN_results and use_res_results:
             with open(os.path.join(res_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
                 res_FCNN_plot_dict = pickle.load(f)
+        if use_FCNN_results and use_dat_results:
+            with open(os.path.join(dat_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
+                dat_FCNN_plot_dict = pickle.load(f)
         print("Successfully loaded FCNN plot dicts.")
 
         if use_CNN_results and use_hyb_results:
@@ -204,6 +227,9 @@ def main():
         if use_CNN_results and use_res_results:
             with open(os.path.join(res_CNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
                 res_CNN_plot_dict = pickle.load(f)
+        if use_CNN_results and use_dat_results:
+            with open(os.path.join(dat_CNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
+                dat_CNN_plot_dict = pickle.load(f)
         print("Successfully loaded CNN plot dicts.")
 
         alphas     = hybrid_FCNN_plot_dict['alphas']
@@ -242,6 +268,10 @@ def main():
                     res_profile_FCNN = res_FCNN_plot_dict['cor_mean'][a][plot_num]
                 else:
                     res_profile_FCNN = None
+                if use_FCNN_results and use_dat_results:
+                    dat_profile_FCNN = dat_FCNN_plot_dict['cor_mean'][a][plot_num]
+                else:
+                    dat_profile_FCNN = None
                 if use_CNN_results and use_end_results:
                     end_profile_CNN = end_CNN_plot_dict['cor_mean'][a][plot_num]
                 else:
@@ -254,17 +284,21 @@ def main():
                     res_profile_CNN = res_CNN_plot_dict['cor_mean'][a][plot_num]
                 else:
                     res_profile_CNN = None
+                if use_CNN_results and use_dat_results:
+                    dat_profile_CNN = dat_CNN_plot_dict['cor_mean'][a][plot_num]
+                else:
+                    dat_profile_CNN = None
 
                 exact_callable = get_exact_solution(system_number, alpha, t)
 
-                np.testing.assert_allclose(hybrid_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10, atol=1e-10)
-                np.testing.assert_allclose(end_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
-                                           atol=1e-10)
-                np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
-                                           atol=1e-10)
+                #np.testing.assert_allclose(hybrid_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10, atol=1e-10)
+                #np.testing.assert_allclose(end_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
+                #                           atol=1e-10)
+                #np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
+                #                           atol=1e-10)
 
                 filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
-                visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, exact_callable, plot_dir, filename)
+                visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, plot_dir, filename)
                 print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
 
 
@@ -279,6 +313,9 @@ def main():
         if use_FCNN_results and use_res_results:
             with open(os.path.join(res_FCNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
                 res_FCNN_error_dict = pickle.load(f)
+        if use_FCNN_results and use_dat_results:
+            with open(os.path.join(dat_FCNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
+                dat_FCNN_error_dict = pickle.load(f)
         print("Successfully loaded FCNN error dicts.")
 
         if use_CNN_results and use_hyb_results:
@@ -290,6 +327,9 @@ def main():
         if use_CNN_results and use_res_results:
             with open(os.path.join(res_CNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
                 res_CNN_error_dict = pickle.load(f)
+        if use_CNN_results and use_dat_results:
+            with open(os.path.join(dat_CNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
+                dat_CNN_error_dict = pickle.load(f)
         print("Successfully loaded CNN error dicts.")
 
         #assert alphas.shape[0] == hybrid_FCNN_error_dict['unc_L2'].shape[0]
@@ -323,6 +363,10 @@ def main():
                 res_errors_FCNN = res_FCNN_error_dict['cor_mean_L2'][a]
             else:
                 res_errors_FCNN = None
+            if use_FCNN_results and use_dat_results:
+                dat_errors_FCNN = dat_FCNN_error_dict['cor_mean_L2'][a]
+            else:
+                dat_errors_FCNN = None
             if use_CNN_results and use_end_results:
                 end_errors_CNN = end_CNN_error_dict['cor_mean_L2'][a]
             else:
@@ -335,9 +379,18 @@ def main():
                 res_errors_CNN = res_CNN_error_dict['cor_mean_L2'][a]
             else:
                 res_errors_CNN = None
+            if use_CNN_results and use_dat_results:
+                dat_errors_CNN = dat_CNN_error_dict['cor_mean_L2'][a]
+            else:
+                dat_errors_CNN = None
+
+            if 0.0 < alpha < 2.2:
+                y_lims = y_lims_interp
+            else:
+                y_lims = y_lims_extrap
 
             filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
-            visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, error_dir, filename)
+            visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[s])
             print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
 
         """
