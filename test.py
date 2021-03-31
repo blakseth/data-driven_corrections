@@ -109,15 +109,15 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         x_dense = np.linspace(cfg.x_a, cfg.x_b, num=1001, endpoint=True)
     if 'time' in plot_stats_dict.keys():
         plot_times = plot_stats_dict['time']
-        print("plot_times:", plot_times)
+        #print("plot_times:", plot_times)
 
     if 'cor_means_mean' in error_stats_dict.keys():
         labels = ['ML-corrected', 'Uncorrected']
         avgs = [error_stats_dict['cor_means_mean'], error_stats_dict['unc_means_mean']]
         devs = [error_stats_dict['cor_stds_mean'], error_stats_dict['unc_stds_mean']]
-        print(labels)
-        print("avgs:", avgs)
-        print("devs:", devs)
+        #print(labels)
+        #print("avgs:", avgs)
+        #print("devs:", devs)
 
         x = np.arange(len(labels))  # the label locations
         width = 0.4  # the width of the bars
@@ -159,7 +159,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 if cfg.exact_solution_available:
                     plt.plot(x_dense, cfg.get_T_exact(x_dense, plot_times[i], alpha), 'k-',
                              linewidth=2.0, label="Reference")
-                    print("ref2:", cfg.get_T_exact(x_dense, plot_times[i], alpha))
+                    #print("ref2:", cfg.get_T_exact(x_dense, plot_times[i], alpha))
                 else:
                     plt.plot(plot_stats_dict['x'], plot_stats_dict['ref'][a][i], 'k-', linewidth=2.0, label="Reference")
 
@@ -285,12 +285,14 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
         cor_Linfty_error_stds_list = []
         cor_plot_means_list  = []
         cor_plot_stds_list   = []
+        cor_plot_bests_list  = []
         if 'src' in plot_data_dicts[0].keys():
             src_plot_means_list = []
             src_plot_stds_list  = []
         for a, alpha in enumerate(plot_data_dicts[0]['alphas']):
             # Calculate statistical properties of errors.
             cor_L2_errors = np.asarray([error_dicts[i]['cor_L2'][a] for i in range(len(error_dicts))])
+            best_system_index = np.argmin(cor_L2_errors[:,-1])
             cor_L2_error_means_list.append(np.mean(cor_L2_errors, axis=0))
             cor_L2_error_stds_list.append(np.std(cor_L2_errors, axis=0))
             cor_Linfty_errors = np.asarray([error_dicts[i]['cor_Linfty'][a] for i in range(len(error_dicts))])
@@ -301,6 +303,7 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             cor_plots = np.asarray([plot_data_dicts[i]['cor'][a] for i in range(len(plot_data_dicts))])
             cor_plot_means_list.append(np.mean(cor_plots, axis=0))
             cor_plot_stds_list.append(np.std(cor_plots, axis=0))
+            cor_plot_bests_list.append(plot_data_dicts[best_system_index]['cor'][a])
             if 'src' in plot_data_dicts[0].keys():
                 src_plots = np.asarray([plot_data_dicts[i]['src'][a] for i in range(len(plot_data_dicts))])
                 src_plot_means_list.append(np.mean(src_plots, axis=0))
@@ -317,6 +320,7 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
         }
         plot_stats_dict = {
             'cor_mean': np.asarray(cor_plot_means_list),
+            'cor_best': np.asarray(cor_plot_bests_list),
             'cor_std': np.asarray(cor_plot_stds_list),
             'unc': np.asarray([plot_data_dicts[0]['unc'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),  # These are the same for all model instances, ...
             'ref': np.asarray([plot_data_dicts[0]['ref'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),  # ... so the choice of retrieving them from ...
@@ -536,7 +540,7 @@ def parametrized_simulation_test(cfg, model):
     ICs        = dataset_test[:][4].detach().numpy()
     times      = dataset_test[:][5].detach().numpy()
     alphas     = dataset_test[:num_param_values][6].detach().numpy()
-    print("alphas", alphas)
+    #print("alphas", alphas)
 
     unc_mean = stats[0]
     unc_std  = stats[4]
@@ -566,7 +570,7 @@ def parametrized_simulation_test(cfg, model):
 
     for a, alpha in enumerate(alphas):
         IC = ICs[a * (cfg.Nt_coarse - 1)]
-        print("IC:", IC)
+        #print("IC:", IC)
         old_unc = IC
         old_cor = IC
         plot_num = 0
@@ -582,8 +586,8 @@ def parametrized_simulation_test(cfg, model):
                 lambda x,t: cfg.get_q_hat_approx(x,t,alpha), np.zeros(cfg.N_coarse),
                 cfg.dt_coarse, old_time, new_time, False
             )
-            if i == 0:
-                print("First unc:", new_unc)
+            #if i == 0:
+            #    print("First unc:", new_unc)
             new_unc_ = physics.simulate(
                 cfg.nodes_coarse, cfg.faces_coarse,
                 old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
@@ -671,8 +675,8 @@ def parametrized_simulation_test(cfg, model):
                     new_cor[-1] = cfg.get_T_b(new_time, alpha)  # predicted by the NN.
                     new_cor[1:-1] = util.z_unnormalize(model.net(old_cor_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
 
-            if i == 0:
-                print("First cor:", new_cor)
+            #if i == 0:
+            #    print("First cor:", new_cor)
 
             ref_norm_L2 = util.get_disc_L2_norm(new_ref)
             unc_error_norm_L2 = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm_L2
