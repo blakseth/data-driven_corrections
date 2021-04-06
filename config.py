@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-06_grid_refinement"
+group_name = "2021-04-06_grid_refinement_fixed_network_width"
 run_names  = [["grid_refinement"]]
 systems    = ["1"]
 data_tags  = ["1"]
@@ -751,7 +751,7 @@ class Config:
         self.model_specific_params = []
         if self.model_name == 'GlobalDense':
             self.num_layers = 6
-            self.hidden_layer_size = self.N_coarse * 5
+            self.hidden_layer_size = 100
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():
