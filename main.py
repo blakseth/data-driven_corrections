@@ -52,7 +52,8 @@ def main():
                 model_key  = config.model_keys[model_num],
                 do_train   = False,
                 do_test    = False,
-                N_j        = 20,
+                N_j        = config.N_j,
+                model_type = config.model_type,
             )
             print("- - - - - - - - - - - - - - - - - - - - - - - -")
             print("- - - - - - - - - - - - - - - - - - - - - - - -")
@@ -81,7 +82,8 @@ def main():
                 model_key  = config.model_keys[model_num],
                 do_train   = args.train,
                 do_test    = args.test,
-                N_j        = 20
+                N_j        = config.N_j,
+                model_type = config.model_type
             )
 
             #-------------------------------------------------------------------------------------------------------------------

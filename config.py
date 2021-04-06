@@ -25,13 +25,15 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-06_grid_refinement_fixed_network_width"
-run_names  = [["grid_refinement"]]
+group_name = "2021-04-06_grid_refine_v3"
+run_names  = [["run"]]
 systems    = ["1"]
 data_tags  = ["1"]
+model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
+N_j = 15
 
 
 ########################################################################################################################

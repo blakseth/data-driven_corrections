@@ -85,7 +85,9 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
         HAM_error_dict, _ = test.parametrized_simulation_test(HAM_cfg, HAM_model)
         alphas = HAM_error_dict['alphas']
         HAM_final_errors = HAM_error_dict['cor_L2'][:, -1] * np.sqrt(HAM_cfg.dx_coarse)
+        print("HAM errors:", HAM_final_errors)
         PBM_final_errors = HAM_error_dict['unc_L2'][:, -1] * np.sqrt(HAM_cfg.dx_coarse)
+        print("PBM errors:", PBM_final_errors)
         assert HAM_final_errors.shape == alphas.shape
         print("HAM complete\n")
 
@@ -118,11 +120,16 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
         _ = train.train(DDM_cfg, DDM_model, 0)
         DDM_error_dict, _ = test.parametrized_simulation_test(DDM_cfg, DDM_model)
         DDM_final_errors = DDM_error_dict['cor_L2'][:, -1] * np.sqrt(DDM_cfg.dx_coarse)
+        print("DDM errors:", DDM_final_errors)
+        print("DDM complete")
 
         PBM_results[res_num,:] = PBM_final_errors
         HAM_results[res_num,:] = HAM_final_errors
         DDM_results[res_num,:] = DDM_final_errors
-        print("DDM complete")
+
+    print("PDB results:", PBM_results)
+    print("HAM results:", HAM_results)
+    print("DDM results:", DDM_results)
 
     print("Plot")
     for a, alpha in enumerate(alphas):
@@ -160,7 +167,7 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([5, 15, 45, 135])
+    spatial_resolutions = np.asarray([5, 15])
     if args.dataset:
         create_datasets = True
     else:
