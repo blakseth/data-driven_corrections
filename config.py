@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-30_hybrid_FCNN_system4"
-run_names  = [["GlobalDense_s4"]]
-systems    = ["4"]
-data_tags  = ["s4_param_src_zero"]
+group_name = "2021-04-06_coarse_grid2"
+run_names  = [["GlobalDense_s1"]]
+systems    = ["1"]
+data_tags  = ["s1_param_src_zero_coarse"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -63,7 +63,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 5
+        self.ensemble_size = 1
 
         self.do_train = do_train
         self.do_test = do_test
@@ -659,7 +659,7 @@ class Config:
         # Discretization.
 
         # Coarse spatial discretization.
-        self.N_coarse = 20
+        self.N_coarse = 5
         self.dx_coarse = (self.x_b - self.x_a) / self.N_coarse
         self.faces_coarse = np.linspace(self.x_a, self.x_b, num=self.N_coarse + 1, endpoint=True)
         self.nodes_coarse = np.zeros(self.N_coarse + 2)
