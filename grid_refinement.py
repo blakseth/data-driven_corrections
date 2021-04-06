@@ -132,6 +132,11 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
         plt.scatter(NJs, PBM_results[:, a], s=40, marker='o', facecolors='none', edgecolors='r', label="PBM")
         plt.scatter(NJs, DDM_results[:, a], s=40, marker='s', facecolors='none', edgecolors='b', label="DDM")
         plt.scatter(NJs, HAM_results[:, a], s=40, marker='D', facecolors='none', edgecolors='g', label="HAM")
+        plt.plot(np.asarray([NJs[0], NJs[-1]]), PBM_results[0, a]*np.asarray([1.0, (NJs[0]/NJs[-1])**2]), 'k--', label="2nd order")
+        plt.xlabel(r"$N_j$", fontsize=20)
+        plt.ylabel(r"Relative $l_2$ error", fontsize=20)
+        plt.xticks(fontsize=17)
+        plt.yticks(fontsize=17)
         plt.legend()
         plt.grid()
         plt.savefig(os.path.join(HAM_cfg.run_dir, "grid_refine_alpha" + str(np.around(alpha, decimals=5)) + ".pdf"), bbox_inches='tight')
@@ -155,13 +160,14 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([20, 60])
+    spatial_resolutions = np.asarray([5, 15, 45, 135])
     if args.dataset:
         create_datasets = True
     else:
         create_datasets = False
     model_keys = [0]
-    base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+    #base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+    base_dir     = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
     results_dir  = os.path.join(base_dir, 'results')
     main_run_dir = os.path.join(results_dir, config.group_name)
     for model_key in model_keys:
