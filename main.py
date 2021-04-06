@@ -51,7 +51,8 @@ def main():
                 data_tag   = config.data_tags[0],
                 model_key  = config.model_keys[model_num],
                 do_train   = False,
-                do_test    = False
+                do_test    = False,
+                N_j        = 20,
             )
             print("- - - - - - - - - - - - - - - - - - - - - - - -")
             print("- - - - - - - - - - - - - - - - - - - - - - - -")
@@ -79,7 +80,8 @@ def main():
                 data_tag   = config.data_tags[sys_num],
                 model_key  = config.model_keys[model_num],
                 do_train   = args.train,
-                do_test    = args.test
+                do_test    = args.test,
+                N_j        = 20
             )
 
             #-------------------------------------------------------------------------------------------------------------------
@@ -141,25 +143,9 @@ def main():
             if args.train:
                 print("----------------------------")
                 print("Initiating training")
-                dataset_train, dataset_val, _ = datasets.load_datasets(cfg, True, True, False)
-
-                dataloader_train = torch.utils.data.DataLoader(
-                    dataset=dataset_train,
-                    batch_size=cfg.batch_size_train,
-                    shuffle=True,
-                    num_workers=0,
-                    pin_memory=True
-                )
-                dataloader_val = torch.utils.data.DataLoader(
-                    dataset=dataset_val,
-                    batch_size=cfg.batch_size_val,
-                    shuffle=True,
-                    num_workers=0,
-                    pin_memory=True
-                )
                 for i, model in enumerate(ensemble):
                     print("\nTraining instance " + str(i))
-                    _ = train.train(cfg, model, i, dataloader_train, dataloader_val)
+                    _ = train.train(cfg, model, i)
                 print("\nCompleted training.")
                 print("----------------------------\n")
 

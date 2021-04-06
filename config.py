@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-03-30_hybrid_FCNN_system4"
-run_names  = [["GlobalDense_s4"]]
-systems    = ["4"]
-data_tags  = ["s4_param_src_zero"]
+group_name = "2021-04-06_trial_grid5"
+run_names  = [["trial"]]
+systems    = ["1"]
+data_tags  = ["1"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -38,7 +38,7 @@ assert len(run_names) == len(model_keys)
 # Create config object.
 
 class Config:
-    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test):
+    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test, N_j, model_type):
         # ---------------------------------------------------------------------------------------------------------------
         # Run configuration.
         self.use_GPU    = use_GPU
@@ -48,7 +48,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.model_type = model_type # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
         model_names = [
             'GlobalDense',
@@ -659,7 +659,7 @@ class Config:
         # Discretization.
 
         # Coarse spatial discretization.
-        self.N_coarse = 20
+        self.N_coarse = N_j
         self.dx_coarse = (self.x_b - self.x_a) / self.N_coarse
         self.faces_coarse = np.linspace(self.x_a, self.x_b, num=self.N_coarse + 1, endpoint=True)
         self.nodes_coarse = np.zeros(self.N_coarse + 2)
@@ -800,7 +800,7 @@ class Config:
         # Training configuration.
 
         self.max_train_it = int(1e6)
-        self.min_train_it = int(1e4)
+        self.min_train_it = int(1.5e4)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
         self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.

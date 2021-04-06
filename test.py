@@ -707,7 +707,8 @@ def parametrized_simulation_test(cfg, model):
         'unc_L2': L2_errors_unc,
         'cor_L2': L2_errors_cor,
         'unc_Linfty': Linfty_errors_unc,
-        'cor_Linfty': Linfty_errors_cor
+        'cor_Linfty': Linfty_errors_cor,
+        'alphas': alphas
     }
 
     return error_dict, plot_data_dict

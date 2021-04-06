@@ -25,13 +25,29 @@ import util
 ########################################################################################################################
 # Training ML-model.
 
-def train(cfg, model, num, dataloader_train, dataloader_val):
+def train(cfg, model, num):
     print("CUDA availability:", torch.cuda.is_available())
     if torch.cuda.is_available():
         print("Current device:", torch.cuda.current_device(),
               "- num devices:", torch.cuda.device_count(),
               "- device name:", torch.cuda.get_device_name(0))
 
+    dataset_train, dataset_val, _ = datasets.load_datasets(cfg, True, True, False)
+
+    dataloader_train = torch.utils.data.DataLoader(
+        dataset=dataset_train,
+        batch_size=cfg.batch_size_train,
+        shuffle=True,
+        num_workers=0,
+        pin_memory=True
+    )
+    dataloader_val = torch.utils.data.DataLoader(
+        dataset=dataset_val,
+        batch_size=cfg.batch_size_val,
+        shuffle=True,
+        num_workers=0,
+        pin_memory=True
+    )
 
     it_per_epoch = len(dataloader_train)
     num_epochs = cfg.max_train_it // it_per_epoch + 1
@@ -41,8 +57,7 @@ def train(cfg, model, num, dataloader_train, dataloader_val):
     lowest_val_los = torch.tensor(float("Inf")).to(cfg.device)
     val_epoch_since_improvement = torch.tensor(0.0).to(cfg.device)
 
-    _, _, dataset_test = datasets.load_datasets(cfg, False, False, True)
-    stats = dataset_test[:8][3].detach().numpy()
+    stats = dataset_train[:8][3].detach().numpy()
     ref_mean = stats[1]
     ref_std = stats[5]
 
