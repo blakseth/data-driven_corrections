@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-06_grid_refine_v3"
+group_name = "2021-04-06_grid_refine_v4"
 run_names  = [["run"]]
 systems    = ["1"]
 data_tags  = ["1"]
