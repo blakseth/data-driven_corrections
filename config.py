@@ -25,8 +25,8 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-06_trial_grid5"
-run_names  = [["trial"]]
+group_name = "2021-04-06_grid_refinement"
+run_names  = [["grid_refinement"]]
 systems    = ["1"]
 data_tags  = ["1"]
 model_keys = [0]
@@ -78,9 +78,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -751,7 +751,7 @@ class Config:
         self.model_specific_params = []
         if self.model_name == 'GlobalDense':
             self.num_layers = 6
-            self.hidden_layer_size = 100
+            self.hidden_layer_size = self.N_coarse * 5
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():
