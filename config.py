@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-07_20cells"
+group_name = "2021-04-07_20cells_V4"
 run_names  = [["GlobalDense_s1"]]
 systems    = ["1"]
 data_tags  = ["s1_param_src_zero_res"]
