@@ -25,15 +25,15 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-06_grid_refine_v4"
-run_names  = [["run"]]
+group_name = "2021-04-07_trial_20cells"
+run_names  = [["20cells_hybrid"]]
 systems    = ["1"]
-data_tags  = ["1"]
+data_tags  = ["s1_020"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
-N_j = 15
+N_j = 20
 
 
 ########################################################################################################################
@@ -65,7 +65,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 5
+        self.ensemble_size = 1
 
         self.do_train = do_train
         self.do_test = do_test
@@ -80,9 +80,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
