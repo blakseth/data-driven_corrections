@@ -25,8 +25,8 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-07_trial_20cells"
-run_names  = [["20cells_hybrid"]]
+group_name = "2021-04-07_grid_refinement_coarse"
+run_names  = [["grid_refinement_coarse"]]
 systems    = ["1"]
 data_tags  = ["s1_020"]
 model_type = 'hybrid'

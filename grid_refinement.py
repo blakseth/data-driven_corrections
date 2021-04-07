@@ -167,7 +167,7 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([15])
+    spatial_resolutions = np.asarray([5, 15, 45])
     if args.dataset:
         create_datasets = True
     else:
