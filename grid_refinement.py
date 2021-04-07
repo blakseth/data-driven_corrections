@@ -27,7 +27,7 @@ import train
 ########################################################################################################################
 # Grid refinement study.
 
-def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, save_dir, verbose):
+def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, verbose, data_tag_postfix):
     PBM_results = np.zeros((NJs.shape[0], 4))
     HAM_results = np.zeros((NJs.shape[0], 4))
     DDM_results = np.zeros((NJs.shape[0], 4))
@@ -36,7 +36,7 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
         print("---------------------------------")
         print("---------------------------------")
         print("N_j = ", N_j, "\n")
-        data_tag = "sys" + str(config.systems[sys_num]) + "_Nj" + str(N_j)
+        data_tag = "sys" + str(config.systems[sys_num]) + "_Nj" + str(N_j) + data_tag_postfix
 
         # Create data if necessary.
         if create_datasets:
@@ -68,7 +68,7 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
             do_train    = True,
             do_test     = True,
             N_j         = N_j,
-            model_type  = 'data'  # Datasets are the same for all model types, so this is just a placeholder value.
+            model_type  = 'hybrid'
         )
         HAM_model = models.create_new_model(HAM_cfg, HAM_cfg.model_specific_params)
         if verbose:
@@ -90,7 +90,6 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
         print("PBM errors:", PBM_final_errors)
         assert HAM_final_errors.shape == alphas.shape
         print("HAM complete\n")
-
 
         # Train DDM.
         print("DDM init")
@@ -126,6 +125,7 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, sa
         PBM_results[res_num,:] = PBM_final_errors
         HAM_results[res_num,:] = HAM_final_errors
         DDM_results[res_num,:] = DDM_final_errors
+
 
     print("PDB results:", PBM_results)
     print("HAM results:", HAM_results)
@@ -167,7 +167,7 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([5, 15, 45])
+    spatial_resolutions = np.asarray([5, 15, 45, 135, 135*3])
     if args.dataset:
         create_datasets = True
     else:
@@ -181,7 +181,7 @@ def main():
         for sys_num in range(len(config.systems)):
             run_name = "grid_arch" + str(model_key) + "_sys" + str(sys_num)
             os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=False)
-            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, main_run_dir, args.verbose)
+            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "")
     print("\nEXECUTION COMPLETED\n")
 
 ########################################################################################################################

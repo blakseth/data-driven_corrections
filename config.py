@@ -25,15 +25,15 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-07_new_grid_refinement"
-run_names  = [["grid_refinement_coarse"]]
+group_name = "2021-04-08_grid_refinement"
+run_names  = [["grid_refinement"]]
 systems    = ["1"]
-data_tags  = ["s1_015"]
+data_tags  = ["s1_005"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
-N_j = 15
+N_j = 5
 
 
 ########################################################################################################################
