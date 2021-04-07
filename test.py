@@ -548,7 +548,7 @@ def parametrized_simulation_test(cfg, model):
     ref_std  = stats[5]
     res_mean = stats[2]
     res_std  = stats[6]
-    src_mean = stats[2]
+    src_mean = stats[3]
     src_std  = stats[7]
 
     L2_errors_unc = np.zeros((num_param_values, cfg.Nt_coarse - 1))
