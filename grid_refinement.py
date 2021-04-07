@@ -173,8 +173,8 @@ def main():
     else:
         create_datasets = False
     model_keys = [0]
-    #base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
-    base_dir     = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+    base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+    #base_dir     = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
     results_dir  = os.path.join(base_dir, 'results')
     main_run_dir = os.path.join(results_dir, config.group_name)
     for model_key in model_keys:
