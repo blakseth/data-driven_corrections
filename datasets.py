@@ -96,7 +96,7 @@ def create_parametrized_datasets(cfg):
     }
     print()
     save_filepath = os.path.join(datasets_location, data_tag + ".sav")
-    joblib.dump(simulation_data, save_filepath)
+    #joblib.dump(simulation_data, save_filepath)
 
     # Remove data for t=0 from datasets.
     ICs = np.delete(simulation_data['ICs'], obj=0, axis=1)
