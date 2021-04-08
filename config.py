@@ -25,22 +25,22 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-08_grid_refinement"
-run_names  = [["grid_refinement"]]
+group_name = "2021-04-08_2D_test"
+run_names  = [["2D_test"]]
 systems    = ["1"]
 data_tags  = ["s1_005"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
-N_j = 5
+N_j = 20
 
 
 ########################################################################################################################
 # Create config object.
 
 class Config:
-    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test, N_j, model_type):
+    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test, N_x, model_type):
         # ---------------------------------------------------------------------------------------------------------------
         # Run configuration.
         self.use_GPU    = use_GPU
@@ -111,524 +111,35 @@ class Config:
             t_end     = 5.0
             x_a       = 0.0
             x_b       = 1.0
+            y_c       = 0.0
+            y_d       = 1.0
             A         = 1.0
             rho       = 1.0
             k_ref     = 1.0
             cV_ref    = 1.0
             q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return t + 0.5 * alpha * (x ** 2)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return -(1 + alpha) * np.ones_like(x)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "2A":
-            exact_solution_available = True
-            t_end     = 5.0
-            x_a       = 0.0
-            x_b       = 1.0
-            A         = 1.0
-            rho       = 1.0
-            k_ref     = 1.0
-            cV_ref    = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return np.sqrt(t + alpha + 1) + 10 * (x ** 2) * (x - 1) * (x + 2)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return -1 / (2 * np.sqrt(t + alpha + 1)) - 20 * (6 * (x ** 2) + 3 * x - 2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "2B":
-            exact_solution_available = True
-            t_end     = 5.0
-            x_a       = 0.0
-            x_b       = 1.0
-            A         = 1.0
-            rho       = 1.0
-            k_ref     = 1.0
-            cV_ref    = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 2 * np.sqrt(t + alpha + 1) + 7 * (x ** 2) * (x - 1) * (x + 2)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return -1 / (np.sqrt(t + alpha + 1)) - 14 * (6 * (x ** 2) + 3 * x - 2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "3":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 1.0
-            x_b = 2.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 2 * (x ** (alpha + 4)) - (t ** 2) * x * (x - 1)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return 2 * t * x * (x - 1) + 2 * (t ** 2) - (alpha + 4)*(alpha + 3)*(x**(alpha + 2))
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "4":
-            exact_solution_available = True
-            t_end = 1.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return np.sin(2 * np.pi * x) * np.exp(-alpha*(t+0.1))
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return (alpha + 4 * (np.pi ** 2)) * np.sin(2 * np.pi * x) * np.exp(-alpha*(t+0.1))
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "5A":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return -2 * (x ** 3) * (x - alpha) / (t + 0.5)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return (24 * (x ** 2) - 12 * alpha * x) / (t + 0.5) - (2 * (x ** 4) - 2 * alpha * (x ** 3)) / ((t + 0.5) ** 2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "5B":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return -(x ** 3) * (x - alpha) / (t + 0.1)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return (12 * (x ** 2) - 6 * alpha * x) / (t + 0.1) - ((x ** 4) - alpha * (x ** 3)) / ((t + 0.1) ** 2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "6":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 2 + alpha * (x - 1) * np.tanh(x / (t + 0.1))
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return alpha * (x * (x - 1) - 2 * ((x - 1) * np.tanh(x / (t + 0.1)) + t + 0.1)) / (
-                            ((t + 0.1) * np.cosh(x / (t + 0.1))) ** 2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "7":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return np.sin(2 * np.pi * t) + alpha * np.sin(2 * np.pi * x)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return 4 * (np.pi ** 2) * alpha * np.sin(2 * np.pi * x) - 2 * np.pi * np.cos(2 * np.pi * t)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "8A":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 1 + np.sin(2 * np.pi * t + alpha) * np.cos(2 * np.pi * x)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return 4 * (np.pi ** 2) * np.sin(2 * np.pi * t + alpha) * np.cos(2 * np.pi * x) - 2 * np.pi * np.cos(
-                    2 * np.pi * t + alpha) * np.cos(2 * np.pi * x)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "8B":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 1 + np.sin(3 * np.pi * t + alpha) * np.cos(4 * np.pi * x)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return 16 * (np.pi ** 2) * np.sin(3 * np.pi * t + alpha) * np.cos(4 * np.pi * x) - 3 * np.pi * np.cos(
-                    3 * np.pi * t + alpha) * np.cos(4 * np.pi * x)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "9":
-            exact_solution_available = True
-            t_end = 2.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 1 + alpha*np.cos(2 * np.pi * x * (t ** 2))
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                term1 = 4 * np.pi * x * t * np.sin(2 * np.pi * x * (t**2))
-                term2 = 4 * (np.pi**2) * (t**4) * np.cos(2 * np.pi * x * (t**2))
-                return alpha * (term1 + term2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "10":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 5 + x * (x - 1) / (t + 0.1) + 0.1 * t * np.sin(2 * np.pi * x + alpha)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return x * (x - 1) / ((t + 0.1) ** 2) - 2 / (t + 0.1) - (0.1 - 0.2 * np.pi * t) * np.sin(2 * np.pi * x + alpha)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "11":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 1 + np.sin(5 * x * t) * np.exp(-0.2 * x * t) + alpha * (x**3)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return ((2 * (t ** 2) - 5 * x) * np.cos(5 * x * t) + (0.2 * x + 24.96 * (t ** 2)) * np.sin(
-                    5 * x * t)) * np.exp(-0.2 * x * t) + 6 * alpha * x
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "12":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 5 * t * (x ** 2) * np.sin(10 * np.pi * t) + np.sin(2 * np.pi * alpha * x) / (t + 0.2)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return (4 * (np.pi ** 2) * (alpha ** 2) + 1 / (t + 0.2)) * np.sin(2 * np.pi * alpha * x) / (t + 0.2) - (
-                            5 * (x ** 2) + 10 * t) * np.sin(10 * np.pi * t) - 50 * np.pi * (x ** 2) * (t ** 2) * np.cos(
-                    10 * np.pi * t)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "13":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 1 + t / (1 + ((x - 0.5*alpha) ** 2))
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return (1 - ((2*x - alpha)**2)/(1 + (x - 0.5*alpha)**2)) * 2*t / ((1 + (x-0.5*alpha)**2)**2) - 1/(1 + (x-0.5*alpha)**2)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "14":
-            exact_solution_available = True
-            t_end = 5.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            rho = 1.0
-            k_ref = 1.0
-            cV_ref = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, t, alpha):
-                return 1 + t * np.exp(-1000 * (alpha+1) * (x - 0.5) ** 2)
-            def get_T0(x, alpha):
-                return get_T_exact(x, 0, alpha)
-            def get_T_a(t, alpha):
-                return get_T_exact(x_a, t, alpha)
-            def get_T_b(t, alpha):
-                return get_T_exact(x_b, t, alpha)
-            def get_q_hat(x, t, alpha):
-                return -np.exp(-1000*(alpha+1)*(x-0.5)**2)*(2*(alpha+1)*1000*t*(2*(alpha+1)*1000*(x-0.5)**2 + 1) + 1)
-            def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
-            def get_k(x):
-                return np.ones_like(x) * k_ref
-            def get_k_approx(x):
-                return get_k(x)
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-        elif self.system == "sp1":
-            t_end = 3.0
-            x_a = 0.0
-            x_b = 1.0
-            A = 1.0
-            k_ref = 2500
-            cV_ref = 200
-            rho = 200
-            q_hat_ref = 0
-            def get_T_a(t):
-                return 250
-            def get_T_b(x):
-                return 400
-            k_discont_nodes = np.asarray([0.0, 0.12, 0.28, 0.52, 0.68, 0.72, 0.88, 1.0])
-            k_prefactors = np.asarray([1.0, 5.0, 1.0, 0.1, 1.0, 10.0, 1.0])
-            k_int_values = np.zeros(k_discont_nodes.shape[0])
-            exact_solution_available = False
-            def get_k(x):
-                if type(x) is np.ndarray:
-                    ks = []
-                    for i, x_value in enumerate(x):
-                        for j in range(k_prefactors.shape[0]):
-                            if k_discont_nodes[j] <= x_value <= k_discont_nodes[j + 1]:
-                                ks.append(k_ref * k_prefactors[j])
-                    return np.asarray(ks)
-                else:
-                    for j in range(k_prefactors.shape[0]):
-                        if k_discont_nodes[j] <= x < k_discont_nodes[j + 1]:
-                            return k_ref * k_prefactors[j]
-            def get_k_approx(x):
-                return np.ones_like(x) * k_ref
-            def get_cV(x):
-                return np.ones_like(x) * cV_ref
-            def get_q_hat(x, t):
-                return np.zeros_like(x)
-            def get_q_hat_approx(x, t):
-                return np.zeros_like(x)
-            def get_T0(x):
-                return get_T_a(0) + (get_T_b(0) - get_T_a(0)) * (x + 0.5 * np.sin(2 * np.pi * x))
+            def get_T_exact(x, y, t, alpha):
+                return t + 0.5 * alpha * ((x ** 2) + (y ** 2))
+            def get_T0(x, y, alpha):
+                return get_T_exact(x, y, 0, alpha)
+            def get_T_a(y, t, alpha):
+                return get_T_exact(x_a, y, t, alpha)
+            def get_T_b(y, t, alpha):
+                return get_T_exact(x_b, y, t, alpha)
+            def get_T_c(x, t, alpha):
+                return get_T_exact(x, y_c, t, alpha)
+            def get_T_d(x, t, alpha):
+                return get_T_exact(x, y_d, t, alpha)
+            def get_q_hat(x, y, t, alpha):
+                return -(1 + 2*alpha) * np.ones((x.shape[0], y.shape[0]))
+            def get_q_hat_approx(x, y, t, alpha):
+                return np.zeros((x.shape[0], y.shape[0]))
+            def get_k(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
+            def get_k_approx(x, y):
+                return get_k(x, y)
+            def get_cV(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * cV_ref
         else:
             raise Exception("Invalid domain selection.")
 
@@ -636,6 +147,8 @@ class Config:
         self.t_end            = t_end
         self.x_a              = x_a
         self.x_b              = x_b
+        self.y_c              = y_c
+        self.y_d              = y_d
         self.A                = A
         self.k_ref            = k_ref
         self.cV_ref           = cV_ref
@@ -647,6 +160,8 @@ class Config:
         self.get_T0           = get_T0
         self.get_T_a          = get_T_a
         self.get_T_b          = get_T_b
+        self.get_T_c          = get_T_c
+        self.get_T_d          = get_T_d
         self.get_q_hat        = get_q_hat
         self.get_q_hat_approx = get_q_hat_approx
         self.get_k            = get_k
@@ -661,27 +176,23 @@ class Config:
         # Discretization.
 
         # Coarse spatial discretization.
-        self.N_coarse = N_j
-        self.dx_coarse = (self.x_b - self.x_a) / self.N_coarse
-        self.faces_coarse = np.linspace(self.x_a, self.x_b, num=self.N_coarse + 1, endpoint=True)
-        self.nodes_coarse = np.zeros(self.N_coarse + 2)
-        self.nodes_coarse[0] = self.x_a
-        self.nodes_coarse[1:-1] = self.faces_coarse[:-1] + self.dx_coarse / 2
-        self.nodes_coarse[-1] = self.x_b
-
-        # Fine spatial discretization.
-        self.N_fine = 20
-        self.dx_fine = (self.x_b - self.x_a) / self.N_fine
-        self.faces_fine = np.linspace(self.x_a, self.x_b, num=self.N_fine + 1, endpoint=True)
-        self.nodes_fine = np.zeros(self.N_fine + 2)
-        self.nodes_fine[0] = self.x_a
-        self.nodes_fine[1:-1] = self.faces_fine[:-1] + self.dx_fine / 2
-        self.nodes_fine[-1] = self.x_b
+        self.N_x = N_x
+        self.N_y = N_x # x and y use same discr.
+        self.dx  = (self.x_b - self.x_a) / self.N_x
+        self.dy  = (self.y_d - self.y_c) / self.N_y
+        self.x_faces = np.linspace(self.x_a, self.x_b, num=self.N_x + 1, endpoint=True)
+        self.y_faces = np.linspace(self.y_c, self.y_d, num=self.N_y + 1, endpoint=True)
+        self.x_nodes = np.zeros(self.N_x + 2)
+        self.x_nodes[0]    = self.x_a
+        self.x_nodes[1:-1] = self.x_faces[:-1] + self.dx / 2
+        self.x_nodes[-1]   = self.x_b
+        self.y_nodes = np.zeros(self.N_y + 2)
+        self.y_nodes[0]    = self.y_c
+        self.y_nodes[1:-1] = self.y_faces[:-1] + self.dy / 2
+        self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt_fine = 0.001
         self.dt_coarse = 0.001
-        self.Nt_fine = int(self.t_end / self.dt_fine) + 1
         self.Nt_coarse = int(self.t_end / self.dt_coarse) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
