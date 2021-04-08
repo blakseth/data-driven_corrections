@@ -33,7 +33,7 @@ model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
-N_j = 20
+N_j = 3
 
 
 ########################################################################################################################
@@ -108,7 +108,7 @@ class Config:
 
         if self.system == "1":
             exact_solution_available = True
-            t_end     = 5.0
+            t_end     = 1.0
             x_a       = 0.0
             x_b       = 1.0
             y_c       = 0.0
@@ -131,7 +131,7 @@ class Config:
             def get_T_d(x, t, alpha):
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
-                return -(1 + 2*alpha) * np.ones((x.shape[0], y.shape[0]))
+                return (1 - 2*alpha) * np.ones((x.shape[0], y.shape[0]))
             def get_q_hat_approx(x, y, t, alpha):
                 return np.zeros((x.shape[0], y.shape[0]))
             def get_k(x, y):
@@ -192,8 +192,8 @@ class Config:
         self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt_coarse = 0.001
-        self.Nt_coarse = int(self.t_end / self.dt_coarse) + 1
+        self.dt = 1.0
+        self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
@@ -209,14 +209,14 @@ class Config:
         self.val_examples_ratio = 0.1
         self.test_examples_ratio = 0.1
         assert np.around(self.train_examples_ratio + self.val_examples_ratio + self.test_examples_ratio) == 1.0
-        self.N_train_examples = int(self.train_examples_ratio * self.Nt_coarse)
-        self.N_val_examples = int(self.val_examples_ratio * self.Nt_coarse)
-        self.N_test_examples = int(self.test_examples_ratio * self.Nt_coarse)
+        self.N_train_examples = int(self.train_examples_ratio * self.N_t)
+        self.N_val_examples = int(self.val_examples_ratio * self.N_t)
+        self.N_test_examples = int(self.test_examples_ratio * self.N_t)
         if self.parametrized_system:
             self.N_train_examples *= lin_alphas.shape[0]
             self.N_val_examples *= lin_alphas.shape[0]
             self.N_test_examples *= lin_alphas.shape[0]
-            self.N_test_examples += self.Nt_coarse * extra_alphas.shape[0]
+            self.N_test_examples += self.N_t * extra_alphas.shape[0]
         self.N_train_alphas = int(self.train_examples_ratio * lin_alphas.shape[0])
         self.N_val_alphas   = int(self.val_examples_ratio   * lin_alphas.shape[0])
         self.N_test_alphas  = int(self.test_examples_ratio  * lin_alphas.shape[0]) + extra_alphas.shape[0]
@@ -230,7 +230,7 @@ class Config:
 
         # Test iterations at which temperature profiles are saved.
         if self.parametrized_system:
-            base = self.Nt_coarse - 1
+            base = self.N_t - 1
         else:
             base = self.N_test_examples
         self.profile_save_steps = np.asarray([
@@ -287,7 +287,7 @@ class Config:
         elif self.model_name == 'EnsembleLocalDense':
             self.num_layers = 5
             self.hidden_layer_size = 9
-            self.num_networks = self.N_coarse
+            self.num_networks = self.N_x * self.N_y
             self.model_specific_params = [self.num_networks, self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():
                 return [self.num_networks, self.num_layers, self.hidden_layer_size]
@@ -296,7 +296,7 @@ class Config:
             self.kernel_size = 3
             self.num_channels = 20
             self.num_fc_layers = 1
-            self.num_networks = self.N_coarse
+            self.num_networks = self.N_x * self.N_y
             self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
             def get_model_specific_params():
                 return [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]

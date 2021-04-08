@@ -6,183 +6,169 @@ Numerical simulation of the 1D heat equation and generation of corrective source
 
 ########################################################################################################################
 # Package imports.
+import sys
 
 import numpy as np
+import scipy.linalg
 from scipy.sparse import diags
 
 ########################################################################################################################
-# TDMA solver for tri-diagonal systems.
+# File imports.
 
-def tdma(low_diag, main_diag, high_diag, rhs, N):
-    x = np.zeros(N)
-    # Forward sweep
-    for i in range(1, N):
-        w = low_diag[i-1]/main_diag[i-1]
-        main_diag[i] -= w*high_diag[i-1]
-        rhs[i]       -= w*rhs[i-1]
-    # Backward sweep
-    x[-1] = rhs[-1] / main_diag[-1]
-    for i in range(N-2, -1, -1):
-        x[i] = (rhs[i] - high_diag[i]*x[i+1]) / main_diag[i]
-    return x
+import config
+import util
 
 ########################################################################################################################
-# Physics simulation.
 
-def simulate(nodes, faces, T0, get_T_a, get_T_b, get_k, get_cV, rho, A, get_src, corr_src, dt, t0, t_end, steady):
-    assert steady or T0.shape[0] == nodes.shape[0]
-    assert faces.shape[0] == nodes.shape[0] - 1
-    assert steady or T0 is not None
-    assert corr_src.shape[0] == nodes.shape[0] - 2
+def get_A_matrix(cfg):
+    N_x = cfg.N_x
+    N_y = cfg.N_y
+    N = N_x * N_y
 
-    N = faces.shape[0] - 1
+    dx = cfg.dx
+    dy = cfg.dy
+    dt = cfg.dt
+    alpha = 1 # Hard-coded, assumes c_V, rho and k are all unity.
+    r_x = alpha * dt / (dx**2)
+    r_y = alpha * dt / (dy**2)
 
-    dx_int = faces[1:] - faces[:-1]
-    dx_half_int = nodes[1:] - nodes[:-1]
+    main_diag = np.ones(N) * (1 + 2*r_x + 2*r_y)
+    for i in range(N):
+        if i < N_x or i >= N - N_x:
+            main_diag[i] += r_y
+        if i % N_x == 0 or i % N_x == N_x - 1:
+            main_diag[i] += r_x
 
-    k_nodes = get_k(nodes)
-    cV_nodes = get_cV(nodes)
+    sub_diag = -np.ones(N-1) * r_x
+    sup_diag = -np.ones(N-1) * r_x
+    for i in range(N-2):
+        if int(i % N_x) == int(N_x - 1):
+            sub_diag[i] = 0.0
+            sup_diag[i] = 0.0
 
-    alpha_nodes = k_nodes / (rho * cV_nodes)
-    alpha_half_int = 2 * alpha_nodes[:-1] * alpha_nodes[1:] / (alpha_nodes[:-1] + alpha_nodes[1:])
-    alpha_half_int[0] = alpha_nodes[0]
-    alpha_half_int[-1] = alpha_nodes[-1]
+    low_diag = -np.ones(N - N_x) * r_y
+    high_diag = -np.ones(N - N_x) * r_y
 
-    if T0 is not None:
-        T = T0[1:-1]
-    elif steady:
-        T = np.zeros(nodes.shape[0] - 2)
-    else:
-        raise Exception("Missing initial condition.")
+    diagonals = [low_diag, sub_diag, main_diag, sup_diag, high_diag]
+    offsets   = [-N_x, -1, 0, 1, N_x]
 
-    # Initialize time.
-    time = t0
+    A = diags(diagonals, offsets).toarray()
 
-    if steady:
-        # Increment time.
-        time = np.infty
+    np.set_printoptions(suppress=True, linewidth=np.nan, threshold=sys.maxsize)
 
-        # Define coefficient matrix of linear system.
-        diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
-        off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
-        off_diag_dn = -alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1]) # Off-diagonal directly below main diagonal.
+    return A
 
-        # Get discredited source term.
-        sigma = get_src(nodes[1:-1], time) / (rho * cV_nodes[1:-1]) + corr_src
+def get_b_vector(cfg, T_old, t_old, alpha, get_src):
+    N_x = cfg.N_x
+    dx = cfg.dx
+    dy = cfg.dy
+    dt = cfg.dt
+    a = 1  # Hard-coded, assumes c_V, rho and k are all unity.
+    r_x = a * dt / (dx ** 2)
+    r_y = a * dt / (dy ** 2)
+    t_new = t_old + dt
 
-        # Define RHS vector.
-        b = sigma
-        b[0] += alpha_half_int[0] * get_T_a(time) / (dx_int[0] * dx_half_int[0])
-        b[-1] += alpha_half_int[-1] * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
+    b = T_old[1:-1,1:-1].flatten('C')
+    for i, y in enumerate(cfg.y_nodes[1:-1]):
+        for j, x in enumerate(cfg.x_nodes[1:-1]):
+            if x == cfg.x_nodes[1]:
+                #print("y:", y)
+                #print("T_a:",cfg.get_T_a(y, t_new, alpha))
+                #print("1 boundary:", 2 * r_x * cfg.get_T_a(y, t_new, alpha))
+                b[i*N_x + j] += 2 * r_x * cfg.get_T_a(y, t_new, alpha)
+            elif x == cfg.x_nodes[-2]:
+                b[i*N_x + j] += 2 * r_x * cfg.get_T_b(y, t_new, alpha)
+            if y == cfg.y_nodes[1]:
+                b[i*N_x + j] += 2 * r_y * cfg.get_T_c(x, t_new, alpha)
+            elif y == cfg.y_nodes[-2]:
+                b[i*N_x + j] += 2 * r_y * cfg.get_T_d(x, t_new, alpha)
+    b += dt * get_src(cfg.x_nodes[1:-1], cfg.y_nodes[1:-1], t_new, alpha).flatten(order='C')
 
-        # Solve linear system.
-        T = tdma(off_diag_dn, diag, off_diag_up, b, N)
-
-    if not steady:
-        # Define coefficient matrix of linear system.
-        diag = np.ones(N) + dt * (
-                    alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
-        off_diag_up = -dt * alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
-        off_diag_dn = -dt * alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1])  # Off-diagonal directly below main diagonal.
-
-        while time < t_end:
-            # Increment time.
-            time = np.around(time + dt, decimals=10)
-
-            # Get discredited source term.
-            sigma = get_src(nodes[1:-1], time) / (rho * cV_nodes[1:-1]) + corr_src
-
-            # Define RHS vector.
-            b = T + dt * sigma
-            b[0] += alpha_half_int[0] * dt * get_T_a(time) / (dx_int[0] * dx_half_int[0])
-            b[-1] += alpha_half_int[-1] * dt * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
-
-            # Solve linear system.
-            new_T = tdma(off_diag_dn.copy(), diag.copy(), off_diag_up.copy(), b, N)
-            T = new_T
-
-    T_including_boundary = np.zeros(N + 2)
-    T_including_boundary[0] = get_T_a(time)
-    T_including_boundary[1:-1] = T
-    T_including_boundary[-1] = get_T_b(time)
-
-    return T_including_boundary
+    return b
 
 ########################################################################################################################
-# Corrective source term.
 
-def get_corrective_src_term(nodes, faces, T_ref_new, T_ref_old, get_T_a, get_T_b, get_k, get_cV, rho, area, get_source, dt, t0, steady):
-    assert T_ref_new.shape[0] == nodes.shape[0]
-    assert T_ref_old is None or T_ref_old.shape[0] == nodes.shape[0]
-    assert faces.shape[0]   == nodes.shape[0] - 1
+def simulate_2D(cfg, T_old, t_start, t_end, alpha, get_src, cor_src):
+    A = get_A_matrix(cfg)
+    time = t_start
+    while time < t_end:
+        b = get_b_vector(cfg, T_old, time, alpha, get_src)
+        b += (cfg.dt * cor_src.flatten(order='C'))
+        T_interior_flat = scipy.linalg.solve(A, b)
+        T_interior = T_interior_flat.reshape((cfg.N_x, cfg.N_y), order='C')
 
-    N = faces.shape[0] - 1
+        t_new = np.around(time + cfg.dt, decimals=10)
 
-    dx_int = faces[1:] - faces[:-1]
-    dx_half_int = nodes[1:] - nodes[:-1]
+        T_new = np.zeros((cfg.N_x + 2, cfg.N_y + 2))
+        T_new[0,:]        = cfg.get_T_a(cfg.y_nodes, t_new, alpha)
+        T_new[-1,:]       = cfg.get_T_b(cfg.y_nodes, t_new, alpha)
+        T_new[:,0]        = cfg.get_T_c(cfg.x_nodes, t_new, alpha)
+        T_new[:,-1]       = cfg.get_T_d(cfg.x_nodes, t_new, alpha)
+        T_new[1:-1, 1:-1] = T_interior
 
-    k_nodes = get_k(nodes)
-    cV_nodes = get_cV(nodes)
+        T_old = T_new
+        time  = t_new
 
-    alpha_nodes = k_nodes / (rho * cV_nodes)
-    alpha_half_int = 2 * alpha_nodes[:-1] * alpha_nodes[1:] / (alpha_nodes[:-1] + alpha_nodes[1:])
-    alpha_half_int[0] = alpha_nodes[0]
-    alpha_half_int[-1] = alpha_nodes[-1]
+    return T_new
 
-    A = None
-    b = None
+########################################################################################################################
 
-    # Initialize time
-    time = t0
-
-    if steady:
-        # Increment time.
-        time = np.infty
-
-        # Define coefficient matrix of linear system.
-        diag = (alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
-        off_diag_up = -alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
-        off_diag_dn = -alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1]) # Off-diagonal directly below main diagonal.
-        A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
-
-        # Get discredited source term.
-        sigma = get_source(nodes[1:-1], time) / (rho * cV_nodes[1:-1])
-
-        # Define RHS vector.
-        b = sigma
-        b[0] += alpha_half_int[0] * get_T_a(time) / (dx_int[0] * dx_half_int[0])
-        b[-1] += alpha_half_int[-1] * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
-
-    if not steady:
-        # Increment time
-        time = np.around(time + dt, 10)
-
-        # Define coefficient matrix of linear system.
-        diag = np.ones(N) + dt * (
-                    alpha_half_int[1:] / dx_half_int[1:] + alpha_half_int[:-1] / dx_half_int[:-1])/dx_int  # Main diagonal.
-        off_diag_up = -dt * alpha_half_int[1:-1] / (dx_int[1:] * dx_half_int[1:-1])  # Off-diagonal directly above main diagonal.
-        off_diag_dn = -dt * alpha_half_int[1:-1] / (dx_int[:-1] * dx_half_int[1:-1])  # Off-diagonal directly below main diagonal.
-        A = diags([off_diag_dn, diag, off_diag_up], [-1, 0, 1]).toarray()  # The coefficient matrix.
-
-        # Get discredited source term.
-        sigma = get_source(nodes[1:-1], time) / (rho * cV_nodes[1:-1])
-
-        # Define  RHS vector.
-        b = T_ref_old[1:-1] + dt * sigma
-        b[0] += alpha_half_int[0] * dt * get_T_a(time) / (dx_int[0] * dx_half_int[0])
-        b[-1] += alpha_half_int[-1] * dt * get_T_b(time) / (dx_int[-1] * dx_half_int[-1])
-
-    # Calculate corrective source term.
-    sigma_corr = np.dot(A, T_ref_new[1:-1]) - b
-    if steady:
-        return sigma_corr
-    else:
-        return sigma_corr / dt
+def get_corrective_src_term_2D(cfg, T_old, T_new, t_old, alpha, get_src):
+    A = get_A_matrix(cfg)
+    b = get_b_vector(cfg, T_old, t_old, alpha, get_src)
+    sigma_corr = np.dot(A, T_new[1:-1, 1:-1].flatten()) - b
+    return sigma_corr
 
 ########################################################################################################################
 
 def main():
-    pass
+    N_js = [3, 9, 27, 81]#, 9, 27]#, 81, 81*3, 81*9]
+    errors = []
+    for N_j in N_js:
+        cfg = config.Config(
+            use_GPU=config.use_GPU,
+            group_name=config.group_name,
+            run_name=config.run_names[0][0],
+            system=config.systems[0],
+            data_tag=config.data_tags[0],
+            model_key=config.model_keys[0],
+            do_train=False,
+            do_test=False,
+            N_x=N_j,
+            model_type=config.model_type,
+        )
+        t_start = 0.0
+        alpha = 0.7
+        T0 = np.zeros((cfg.N_x + 2, cfg.N_y + 2))
+        for i, y in enumerate(cfg.y_nodes):
+            for j, x in enumerate(cfg.x_nodes):
+                T0[j][i] = cfg.get_T0(x, y, alpha)
+        #print("T0:", T0)
+        T = simulate_2D(cfg, T0, t_start, cfg.t_end, alpha, cfg.get_q_hat, np.zeros((cfg.N_x, cfg.N_y)))
+        #print("T:", T)
+        T_exact = np.zeros((cfg.N_x + 2, cfg.N_y + 2))
+        for i, y in enumerate(cfg.y_nodes):
+            for j, x in enumerate(cfg.x_nodes):
+                T_exact[j][i] = cfg.get_T_exact(x, y, cfg.t_end, alpha)
+        #print("T_exact:", T_exact)
+
+        error = util.get_disc_L2_norm(T - T_exact)
+        print("error:", error)
+        print("scaling:", np.sqrt(cfg.dx * cfg.dy))
+        scaled_error = error * np.sqrt(cfg.dx * cfg.dy)
+        print("scaled_error:", scaled_error)
+        errors.append(scaled_error)
+
+        cor_src = get_corrective_src_term_2D(cfg, T0, T_exact, t_start, alpha, cfg.get_q_hat)
+        T_cor = simulate_2D(cfg, T0, t_start, cfg.t_end, alpha, cfg.get_q_hat, cor_src)
+        print("T_cor:  ", T_cor)
+        print("T_exact:", T_exact)
+
+    print("errors:", errors)
+
+    for i in range(len(errors) - 1):
+        print("ratio", np.log(errors[i] / errors[i+1]) / np.log(3))
+
 
 ########################################################################################################################
 
