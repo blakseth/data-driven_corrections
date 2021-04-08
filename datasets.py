@@ -624,7 +624,7 @@ def load_datasets(cfg, load_train, load_val, load_test):
         try:
             dataset_train = torch.load(os.path.join(datasets_location, data_tag + '_train.pt'))
         except:
-            print("WARNING: Training dataset not found.")
+            print("WARNING: Training dataset not found at " + os.path.join(datasets_location, data_tag + '_train.pt') + ".")
             dataset_train = None
     else:
         dataset_train = None
@@ -632,7 +632,7 @@ def load_datasets(cfg, load_train, load_val, load_test):
         try:
             dataset_val   = torch.load(os.path.join(datasets_location, data_tag + '_val.pt'  ))
         except:
-            print("WARNING: Validation dataset not found.")
+            print("WARNING: Validation dataset not found at " + os.path.join(datasets_location, data_tag + '_val.pt') + ".")
             dataset_val = None
     else:
         dataset_val = None
@@ -640,7 +640,7 @@ def load_datasets(cfg, load_train, load_val, load_test):
         try:
             dataset_test  = torch.load(os.path.join(datasets_location, data_tag + '_test.pt' ))
         except:
-            print("WARNING: Testing dataset not found.")
+            print("WARNING: Testing dataset not found at " + os.path.join(datasets_location, data_tag + '_test.pt') + ".")
             dataset_test = None
     else:
         dataset_test = None
