@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-08_grid_refinement"
+group_name = "2021-04-08_grid_refinement_convergent_PBM"
 run_names  = [["grid_refinement"]]
 systems    = ["1"]
 data_tags  = ["s1_005"]
@@ -127,7 +127,7 @@ class Config:
             def get_q_hat(x, t, alpha):
                 return -(1 + alpha) * np.ones_like(x)
             def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x)
+                return get_q_hat(x, t, alpha)
             def get_k(x):
                 return np.ones_like(x) * k_ref
             def get_k_approx(x):

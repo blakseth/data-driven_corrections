@@ -181,7 +181,7 @@ def main():
         for sys_num in range(len(config.systems)):
             run_name = "grid_arch" + str(model_key) + "_sys" + str(sys_num)
             os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=False)
-            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "")
+            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "convergent")
     print("\nEXECUTION COMPLETED\n")
 
 ########################################################################################################################
