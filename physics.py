@@ -91,9 +91,10 @@ def get_b_vector(cfg, T_old, t_old, alpha, get_src):
 def simulate_2D(cfg, T_old, t_start, t_end, alpha, get_src, cor_src):
     A = get_A_matrix(cfg)
     time = t_start
+
     while time < t_end:
         b = get_b_vector(cfg, T_old, time, alpha, get_src)
-        b += (cfg.dt * cor_src.flatten(order='C'))
+        b += cor_src.flatten(order='C')
         T_interior_flat = scipy.linalg.solve(A, b)
         T_interior = T_interior_flat.reshape((cfg.N_x, cfg.N_y), order='C')
 
@@ -163,6 +164,7 @@ def main():
         T_cor = simulate_2D(cfg, T0, t_start, cfg.t_end, alpha, cfg.get_q_hat, cor_src)
         print("T_cor:  ", T_cor)
         print("T_exact:", T_exact)
+        np.testing.assert_allclose(T_cor, T_exact, rtol=1e-10, atol=1e-10)
 
     print("errors:", errors)
 
