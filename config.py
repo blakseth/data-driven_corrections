@@ -25,12 +25,12 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-09_2D_test_dataset"
-run_names  = [["2D_test"]]
+group_name = "2021-04-09_2D_test_test"
+run_names  = [["2D_test4"]]
 systems    = ["1"]
 data_tags  = ["2D_s1"]
 model_type = 'hybrid'
-model_keys = [0]
+model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 N_x = 20
@@ -57,7 +57,9 @@ class Config:
             'GlobalCNN',
             'LocalDense',
             'EnsembleLocalDense',
-            'EnsembleGlobalCNN'
+            'EnsembleGlobalCNN',
+            'Dense2D',
+            'CNN2D'
         ]
         self.model_name = model_names[model_key]
 
@@ -120,7 +122,7 @@ class Config:
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
                 def local_T(x, y, t, alpha):
-                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2))
+                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2)) + 5*x
                 if type(x) is np.ndarray and type(y) is np.ndarray:
                     T = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
@@ -319,6 +321,20 @@ class Config:
             self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
             def get_model_specific_params():
                 return [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+        elif self.model_name == 'Dense2D':
+            self.num_layers = 6
+            self.hidden_layer_size = 100
+            # [No. fc layers, No. nodes in each hidden layer]
+            self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_layers, self.hidden_layer_size]
+        elif self.model_name == 'CNN2D':
+            self.num_conv_layers = 5
+            self.kernel_size = 3
+            self.num_channels = 80
+            self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels]
+            def get_model_specific_params():
+                return [self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
         else:
             raise Exception("Invalid model selection.")
 
@@ -331,8 +347,8 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Training configuration.
 
-        self.max_train_it = int(1e6)
-        self.min_train_it = int(1.5e4)
+        self.max_train_it = int(1e2)
+        self.min_train_it = int(1e2)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
         self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.
