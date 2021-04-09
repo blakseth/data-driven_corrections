@@ -25,8 +25,8 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-09_2D_test_test"
-run_names  = [["2D_test4"]]
+group_name = "2021-04-09_2D"
+run_names  = [["2D_GlobalDense_s1"]]
 systems    = ["1"]
 data_tags  = ["2D_s1"]
 model_type = 'hybrid'
@@ -82,9 +82,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -122,7 +122,7 @@ class Config:
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
                 def local_T(x, y, t, alpha):
-                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2)) + 5*x
+                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2)) + 1.0*x
                 if type(x) is np.ndarray and type(y) is np.ndarray:
                     T = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
@@ -213,7 +213,7 @@ class Config:
         self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt = 0.1
+        self.dt = 1e-3
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
@@ -323,7 +323,7 @@ class Config:
                 return [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
         elif self.model_name == 'Dense2D':
             self.num_layers = 6
-            self.hidden_layer_size = 100
+            self.hidden_layer_size = 400
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():

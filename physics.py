@@ -68,7 +68,7 @@ def get_b_vector(cfg, T_old, t_old, alpha, get_src):
     r_y = a * dt / (dy ** 2)
     t_new = t_old + dt
 
-    b = T_old[1:-1,1:-1].flatten('C')
+    b = T_old[1:-1,1:-1].flatten(order='F')
     for i, y in enumerate(cfg.y_nodes[1:-1]):
         for j, x in enumerate(cfg.x_nodes[1:-1]):
             if x == cfg.x_nodes[1]:
@@ -82,7 +82,7 @@ def get_b_vector(cfg, T_old, t_old, alpha, get_src):
                 b[i*N_x + j] += 2 * r_y * cfg.get_T_c(x, t_new, alpha)
             elif y == cfg.y_nodes[-2]:
                 b[i*N_x + j] += 2 * r_y * cfg.get_T_d(x, t_new, alpha)
-    b += dt * get_src(cfg.x_nodes[1:-1], cfg.y_nodes[1:-1], t_new, alpha).flatten(order='C')
+    b += dt * get_src(cfg.x_nodes[1:-1], cfg.y_nodes[1:-1], t_new, alpha).flatten(order='F')
 
     return b
 
@@ -94,9 +94,9 @@ def simulate_2D(cfg, T_old, t_start, t_end, alpha, get_src, cor_src):
 
     while time < t_end:
         b = get_b_vector(cfg, T_old, time, alpha, get_src)
-        b += cor_src.flatten(order='C')
+        b += cor_src.flatten(order='F')
         T_interior_flat = scipy.linalg.solve(A, b)
-        T_interior = T_interior_flat.reshape((cfg.N_x, cfg.N_y), order='C')
+        T_interior = T_interior_flat.reshape((cfg.N_x, cfg.N_y), order='F')
 
         t_new = np.around(time + cfg.dt, decimals=10)
 
@@ -117,8 +117,8 @@ def simulate_2D(cfg, T_old, t_start, t_end, alpha, get_src, cor_src):
 def get_corrective_src_term_2D(cfg, T_old, T_new, t_old, alpha, get_src):
     A = get_A_matrix(cfg)
     b = get_b_vector(cfg, T_old, t_old, alpha, get_src)
-    sigma_corr = np.dot(A, T_new[1:-1, 1:-1].flatten()) - b
-    return sigma_corr.reshape((cfg.N_x, cfg.N_y))
+    sigma_corr = np.dot(A, T_new[1:-1, 1:-1].flatten(order='F')) - b
+    return np.reshape(sigma_corr, (cfg.N_x, cfg.N_y), order='F')
 
 ########################################################################################################################
 
@@ -144,9 +144,10 @@ def main():
         for i, y in enumerate(cfg.y_nodes):
             for j, x in enumerate(cfg.x_nodes):
                 T0[j][i] = cfg.get_T0(x, y, alpha)
-        #print("T0:", T0)
+        print("T0:", T0)
+        print("T0_flattened:", T0.flatten(order='F'))
         T = simulate_2D(cfg, T0, t_start, cfg.t_end, alpha, cfg.get_q_hat, np.zeros((cfg.N_x, cfg.N_y)))
-        #print("T:", T)
+        print("T:", T)
         T_exact = np.zeros((cfg.N_x + 2, cfg.N_y + 2))
         for i, y in enumerate(cfg.y_nodes):
             for j, x in enumerate(cfg.x_nodes):

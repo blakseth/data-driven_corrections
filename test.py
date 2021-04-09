@@ -116,19 +116,19 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             minmin = np.min([np.amin(unc_field), np.amin(cor_field), np.amin(ref_field), np.amin(ref_dense)])
             maxmax = np.min([np.amax(unc_field), np.amax(cor_field), np.amax(ref_field), np.amax(ref_dense)])
             fig, axs = plt.subplots(2, 2)
-            im = axs[0, 0].imshow(np.flip(ref_field, 0), vmin=minmin, vmax=maxmax,
+            im = axs[0, 0].imshow(np.flip(np.swapaxes(ref_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
             axs[0, 0].set_title('Reference')
-            surf = axs[0, 1].contourf(y_dense, x_dense, ref_dense, vmin=minmin, vmax=maxmax, levels=100)
+            surf = axs[0, 1].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
             for c in surf.collections:
                 c.set_edgecolor("face")
             axs[0, 1].set_title('Reference')
-            axs[1, 0].imshow(np.flip(unc_field, 0), vmin=minmin, vmax=maxmax,
+            axs[1, 0].imshow(np.flip(np.swapaxes(unc_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
             axs[1, 0].set_title('Uncorrected')
-            axs[1, 1].imshow(np.flip(cor_field, 0), vmin=minmin, vmax=maxmax,
+            axs[1, 1].imshow(np.flip(np.swapaxes(cor_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
             axs[1, 1].set_title('Corrected')
