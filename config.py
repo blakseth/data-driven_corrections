@@ -25,15 +25,15 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-08_2D_test"
+group_name = "2021-04-09_2D_test_dataset"
 run_names  = [["2D_test"]]
 systems    = ["1"]
-data_tags  = ["s1_005"]
+data_tags  = ["2D_s1"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
-N_j = 3
+N_x = 20
 
 
 ########################################################################################################################
@@ -80,9 +80,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -108,7 +108,7 @@ class Config:
 
         if self.system == "1":
             exact_solution_available = True
-            t_end     = 1.0
+            t_end     = 5.0
             x_a       = 0.0
             x_b       = 1.0
             y_c       = 0.0
@@ -119,7 +119,26 @@ class Config:
             cV_ref    = 1.0
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
-                return t + 0.5 * alpha * ((x ** 2) + (y ** 2))
+                def local_T(x, y, t, alpha):
+                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2))
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    T = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            T[j, i] = local_T(x_, y_, t, alpha)
+                    return T
+                elif type(x) is np.ndarray:
+                    T = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        T[j] = local_T(x_, y, t, alpha)
+                    return T
+                elif type(y) is np.ndarray:
+                    T = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        T[i] = local_T(x, y_, t, alpha)
+                    return T
+                else:
+                    return local_T(x, y, t, alpha)
             def get_T0(x, y, alpha):
                 return get_T_exact(x, y, 0, alpha)
             def get_T_a(y, t, alpha):
@@ -192,7 +211,7 @@ class Config:
         self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt = 1.0
+        self.dt = 0.1
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
