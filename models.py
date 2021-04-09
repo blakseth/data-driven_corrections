@@ -133,6 +133,10 @@ class DenseModule2D(torch.nn.Module):
         ).double()
 
     def forward(self, x):
+        #print("x.shape:", x.shape)
+        #print("reshape x.shape:", x.reshape((-1, self.flat_input_size)).shape)
+        #print("output shape:", self.net(x.reshape((-1, self.flat_input_size))).shape)
+        #print("reshape outout shape:", self.net(x.reshape((-1, self.flat_input_size))).reshape(self.output_shape).shape)
         return self.net(x.reshape((-1, self.flat_input_size))).reshape(self.output_shape)
 
 # Network of 1D convolution layers, possibly with dense layers at the end.
@@ -219,6 +223,7 @@ class ConvolutionModule2D(torch.nn.Module):
         ).double()
 
     def forward(self, x):
+        #print("input models.py:", torch.unsqueeze(x, 1).shape)
         return torch.squeeze(self.net(torch.unsqueeze(x, 1)), 1)
 
 # Ensemble of dense networks.

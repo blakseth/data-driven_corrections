@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-09_2D_testing"
+group_name = "2021-04-10_2D_experiment"
 run_names  = [["2D_GlobalDense_s1_HAM"]]
 systems    = ["1"]
 data_tags  = ["2D_s1"]
@@ -213,7 +213,7 @@ class Config:
         self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt = 0.1
+        self.dt = 1e-3
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if

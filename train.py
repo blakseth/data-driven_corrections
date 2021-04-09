@@ -71,6 +71,7 @@ def train(cfg, model, num):
             it += 1
 
             unc_data = data[0].to(cfg.device) # unc = uncorrected.
+            #print("unc_shape train.py:", unc_data.shape)
             ref_data = data[1].to(cfg.device) # ref = reference.
             src_data = data[2].to(cfg.device) # src = source.
             res_data = data[7].to(cfg.device) # res = residual.
@@ -116,9 +117,11 @@ def train(cfg, model, num):
             model.optimizer.step()
 
             if it % cfg.validation_period == 0:
+                print("val it:", it)
                 model.net.eval()
                 with torch.no_grad():
                     for j, val_data in enumerate(dataloader_val):
+                        print("j:", j)
                         unc_data_val = val_data[0].to(cfg.device)
                         ref_data_val = val_data[1].to(cfg.device)
                         res_data_val = val_data[7].to(cfg.device)
