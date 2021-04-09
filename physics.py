@@ -117,7 +117,7 @@ def get_corrective_src_term_2D(cfg, T_old, T_new, t_old, alpha, get_src):
     A = get_A_matrix(cfg)
     b = get_b_vector(cfg, T_old, t_old, alpha, get_src)
     sigma_corr = np.dot(A, T_new[1:-1, 1:-1].flatten()) - b
-    return sigma_corr
+    return sigma_corr.reshape((cfg.N_x, cfg.N_y))
 
 ########################################################################################################################
 
