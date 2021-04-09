@@ -88,6 +88,42 @@ class DenseModule(torch.nn.Module):
     def forward(self, x):
         return self.net(x)
 
+class DenseModule2D(torch.nn.Module):
+    def __init__(self, cfg, num_layers, input_shape, output_shape, hidden_size = 0, dropout_prob = 0):
+        assert num_layers >= 2
+        assert num_layers == 2 or hidden_size > 0
+        assert input_shape[0] > 0 and output_shape[0] > 0 and input_shape[1] > 0 and output_shape[1] > 0
+        super(DenseModule2D, self).__init__()
+
+        self.flat_input_size = input_shape[0] * input_shape[1]
+        self.flat_output_size = output_shape[0] * output_shape[1]
+        self.output_shape = (-1, output_shape[0], output_shape[1])
+
+        # Defining input layer.
+        first_layer = torch.nn.Linear(self.flat_input_size, hidden_size)
+        first_activation = None
+        if cfg.act_type == 'lrelu':
+            first_activation = torch.nn.LeakyReLU(cfg.act_param)
+
+        # Defining hidden layers.
+        hidden_block = [
+            DenseLayerWithAct(cfg, hidden_size, hidden_size, dropout_prob) for hidden_layer in range(num_layers - 2)
+        ]
+
+        # Defining output layer.
+        last_layer = torch.nn.Linear(hidden_size, self.flat_output_size)
+
+        # Defining full architecture.
+        self.net = torch.nn.Sequential(
+            first_layer,
+            first_activation,
+            *hidden_block,
+            last_layer
+        ).double()
+
+    def forward(self, x):
+        return self.net(x.reshape((-1, self.flat_input_size))).reshape(self.output_shape)
+
 # Network of 1D convolution layers, possibly with dense layers at the end.
 class ConvolutionModule(torch.nn.Module):
     def __init__(self, cfg, num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers):
@@ -207,6 +243,12 @@ class Model:
             num_filters = model_specific_params[2]
             num_fc_layers = model_specific_params[3]
             self.net = ConvolutionModule(cfg, num_conv_layers, output_size, kernel_size, num_filters, num_fc_layers)
+        elif module_name == 'DenseModule2D':
+            num_layers = model_specific_params[0]
+            hidden_size = model_specific_params[1]
+            assert num_layers >= 2
+            assert num_layers == 2 or hidden_size > 0
+            self.net = DenseModule2D(cfg, num_layers, input_size, output_size, hidden_size, cfg.dropout_prob)
         else:
             raise Exception("Invalid model selection.")
         self.net = self.net.to(cfg.device)
@@ -218,7 +260,7 @@ class Model:
             raise Exception("Invalid loss function selection.")
 
         # Defining learning parameters.
-        if module_name == 'DenseModule' or module_name == "CNNModule":
+        if module_name == 'DenseModule' or module_name == "CNNModule" or module_name == 'DenseModule2D' or module_name == 'CNNModule2D':
             params = self.net.parameters()
             num_params = sum(p.numel() for p in self.net.parameters())
         elif module_name == 'EnsembleDenseModule':
@@ -258,6 +300,10 @@ def create_new_model(cfg, model_specific_params):
         return EnsembleWrapper(cfg, 'DenseModule', 3, 1, model_specific_params)
     elif cfg.model_name == 'EnsembleGlobalCNN':
         return EnsembleWrapper(cfg, 'CNNModule', cfg.N_coarse + 2, 1, model_specific_params)
+    elif cfg.model_name == 'Dense2D':
+        return Model(cfg, 'DenseModule2D', (cfg.N_x + 2, cfg.N_y + 2), (cfg.N_x, cfg.N_y), model_specific_params)
+    elif cfg.model_name == 'CNN2D':
+        return Model(cfg, 'CNNModule2D', (cfg.N_x + 2, cfg.N_y + 2), (cfg.N_x, cfg.N_y), model_specific_params)
     else:
         raise Exception("Invalid model selection.")
 
