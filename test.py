@@ -380,8 +380,8 @@ def parametrized_simulation_test(cfg, model):
             new_unc_ = physics.simulate_2D(
                 cfg, old_cor, old_time, new_time, alpha, cfg.get_q_hat_approx, np.zeros((cfg.N_x, cfg.N_y))
             )
-            new_unc_tensor_ = torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std))
-            old_cor_tensor  = torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std))
+            new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std)), 0)
+            old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std)), 0)
 
             if cfg.exact_solution_available:
                 new_ref = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, new_time, alpha)

@@ -25,8 +25,8 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-09_2D"
-run_names  = [["2D_GlobalDense_s1"]]
+group_name = "2021-04-09_2D_testing"
+run_names  = [["2D_GlobalDense_s1_HAM"]]
 systems    = ["1"]
 data_tags  = ["2D_s1"]
 model_type = 'hybrid'
@@ -82,9 +82,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -213,7 +213,7 @@ class Config:
         self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt = 1e-3
+        self.dt = 0.1
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
@@ -334,7 +334,7 @@ class Config:
             self.num_channels = 80
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels]
             def get_model_specific_params():
-                return [self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
+                return [self.num_conv_layers, self.kernel_size, self.num_channels]
         else:
             raise Exception("Invalid model selection.")
 

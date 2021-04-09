@@ -36,16 +36,27 @@ class DenseLayerWithAct(torch.nn.Module):
 
 # Convolution layer with activation function and (possibly) dropout.
 class ConvLayerWithAct(torch.nn.Module):
-    def __init__(self, cfg, num_in_ch, num_out_ch, kernel_size):
+    def __init__(self, cfg, num_in_ch, num_out_ch, kernel_size, dim='1D'):
         super(ConvLayerWithAct, self).__init__()
         padding = kernel_size // 2
-        self.layer = torch.nn.Conv1d(
-            in_channels  = num_in_ch,
-            out_channels = num_out_ch,
-            kernel_size  = kernel_size,
-            stride       = 1,
-            padding      = padding
-        )
+        if dim == '1D':
+            self.layer = torch.nn.Conv1d(
+                in_channels  = num_in_ch,
+                out_channels = num_out_ch,
+                kernel_size  = kernel_size,
+                stride       = 1,
+                padding      = padding
+            )
+        elif dim == '2D':
+            self.layer = torch.nn.Conv2d(
+                in_channels  = num_in_ch,
+                out_channels = num_out_ch,
+                kernel_size  = kernel_size,
+                stride       = 1,
+                padding      = padding
+            )
+        else:
+            raise Exception("Invalid dimensionality of conv layer.")
         self.activation = None
         if cfg.act_type == 'lrelu':
             self.activation = torch.nn.LeakyReLU(cfg.act_param)
@@ -176,6 +187,39 @@ class ConvolutionModule(torch.nn.Module):
         x2 = x1.view(-1, self.transition_size)
         return self.dense_net(x2)
 
+class ConvolutionModule2D(torch.nn.Module):
+    def __init__(self, cfg, num_conv_layers, kernel_size, num_filters):
+        super(ConvolutionModule2D, self).__init__()
+        assert num_conv_layers >  0
+        assert kernel_size     >= 3
+        assert num_filters     >  0
+
+        # Defining input layer.
+        padding = kernel_size // 2 - 1
+        first_layer = torch.nn.Conv2d(1, num_filters, kernel_size, 1, padding)
+        first_activation = None
+        if cfg.act_type == 'lrelu':
+            first_activation = torch.nn.LeakyReLU(cfg.act_param)
+
+        # Defining hidden conv layers.
+        hidden_conv_block = [
+            ConvLayerWithAct(cfg, num_filters, num_filters, kernel_size, '2D') for conv_layer in range(num_conv_layers - 2)
+        ]
+
+        # Defining output layer.
+        padding = kernel_size // 2
+        last_layer = torch.nn.Conv2d(num_filters, 1, kernel_size, 1, padding)
+
+        # Defining full architecture.
+        self.net = torch.nn.Sequential(
+            first_layer,
+            first_activation,
+            *hidden_conv_block,
+            last_layer
+        ).double()
+
+    def forward(self, x):
+        return torch.squeeze(self.net(torch.unsqueeze(x, 1)), 1)
 
 # Ensemble of dense networks.
 class EnsembleDenseModule(torch.nn.Module):
@@ -249,6 +293,11 @@ class Model:
             assert num_layers >= 2
             assert num_layers == 2 or hidden_size > 0
             self.net = DenseModule2D(cfg, num_layers, input_size, output_size, hidden_size, cfg.dropout_prob)
+        elif module_name == 'CNNModule2D':
+            num_conv_layers = model_specific_params[0]
+            kernel_size = model_specific_params[1]
+            num_filters = model_specific_params[2]
+            self.net = ConvolutionModule2D(cfg, num_conv_layers, kernel_size, num_filters)
         else:
             raise Exception("Invalid model selection.")
         self.net = self.net.to(cfg.device)
