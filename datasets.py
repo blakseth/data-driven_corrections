@@ -34,59 +34,47 @@ def create_parametrized_datasets(cfg):
 
     print("ALPHAS:", cfg.alphas)
 
-    unc_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
-    ref_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
-    res_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
-    IC_Ts = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse + 2))
-    sources = np.zeros((cfg.alphas.shape[0], cfg.Nt_coarse, cfg.N_coarse))
+    unc_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
+    ref_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
+    res_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
+    IC_Ts = np.zeros((cfg.alphas.shape[0],  cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
+    sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x, cfg.N_y))
     for a, alpha in enumerate(cfg.alphas):
-        unc_Ts[a][0] = cfg.get_T0(cfg.nodes_coarse, alpha)
-        ref_Ts[a][0] = cfg.get_T0(cfg.nodes_coarse, alpha)
-        IC_Ts[a][0] = cfg.get_T0(cfg.nodes_coarse, alpha)
+        unc_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
+        ref_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
+        IC_Ts[a][0]  = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
         # Residual at first time level is already set to zero, which is the correct value.
-        for i in range(1, cfg.Nt_coarse):
-            old_time = np.around(cfg.dt_coarse * (i - 1), decimals=10)
-            new_time = np.around(cfg.dt_coarse * i, decimals=10)
+        for i in range(1, cfg.N_t):
+            old_time = np.around(cfg.dt * (i - 1), decimals=10)
+            new_time = np.around(cfg.dt * i, decimals=10)
             unc_IC = ref_Ts[a][i-1]
             IC_Ts[a][i] = unc_IC
-            unc_Ts[a][i] = physics.simulate(
-                cfg.nodes_coarse, cfg.faces_coarse, unc_IC,
-                lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x,t,alpha),
-                np.zeros_like(cfg.nodes_coarse[1:-1]),
-                cfg.dt_coarse, old_time, new_time, False
+            unc_Ts[a][i] = physics.simulate_2D(
+                cfg, unc_IC, old_time, new_time, alpha,
+                cfg.get_q_hat_approx,
+                np.zeros((cfg.x_nodes[1:-1].shape[0], cfg.y_nodes[1:-1].shape[0]))
             )
             if cfg.exact_solution_available:
-                ref_Ts[a][i] = cfg.get_T_exact(cfg.nodes_coarse, new_time, alpha)
+                ref_Ts[a][i] = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, new_time, alpha)
             else:
                 raise Exception("Parametrized datasets currently requires the exact solution to be available.")
             res_Ts[a][i] = ref_Ts[a][i] - unc_Ts[a][i]
 
-        for i in range(1, cfg.Nt_coarse): # Intentionally leaves the first entry all-zeros.
-            old_time = np.around(cfg.dt_coarse * (i - 1), decimals=10)
-            new_time = np.around(cfg.dt_coarse * i, decimals=10)
-            sources[a][i] = physics.get_corrective_src_term(
-                cfg.nodes_coarse, cfg.faces_coarse,
-                ref_Ts[a][i], ref_Ts[a][i-1],
-                lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x, t, alpha),
-                cfg.dt_coarse, old_time, False
+        for i in range(1, cfg.N_t): # Intentionally leaves the first entry all-zeros.
+            old_time = np.around(cfg.dt * (i - 1), decimals=10)
+            new_time = np.around(cfg.dt * i, decimals=10)
+            sources[a][i] = physics.get_corrective_src_term_2D(
+                cfg, ref_Ts[a][i-1], ref_Ts[a][i], old_time, alpha, cfg.get_q_hat_approx
             )
-            corrected = physics.simulate(
-                cfg.nodes_coarse, cfg.faces_coarse,
-                ref_Ts[a][i-1],
-                lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x, t, alpha), sources[a][i],
-                cfg.dt_coarse, old_time, new_time, False
+            corrected = physics.simulate_2D(
+                cfg, ref_Ts[a][i-1], old_time, new_time, alpha, cfg.get_q_hat_approx, sources[a][i]
             )
             np.testing.assert_allclose(corrected, ref_Ts[a][i], rtol=1e-10, atol=1e-10)
 
     # Store data
     simulation_data = {
-        'x': cfg.nodes_coarse,
+        'x': cfg.x_nodes,
+        'y': cfg.y_nodes,
         'ICs': IC_Ts,
         'unc': unc_Ts,
         'ref': ref_Ts,
@@ -104,64 +92,64 @@ def create_parametrized_datasets(cfg):
     ref = np.delete(simulation_data['ref'], obj=0, axis=1)
     res = np.delete(simulation_data['res'], obj=0, axis=1)
     src = np.delete(simulation_data['src'], obj=0, axis=1)
-    times = np.linspace(cfg.dt_coarse, cfg.t_end, cfg.Nt_coarse - 1, endpoint=True)
-    assert times[1] == 2 * cfg.dt_coarse
+    times = np.linspace(cfg.dt, cfg.t_end, cfg.N_t - 1, endpoint=True)
+    assert times[1] == 2 * cfg.dt
 
     # Split data into training, validation and testing sets.
 
-    train_ICs = np.zeros((cfg.N_train_examples, cfg.N_coarse + 2))
-    train_unc = np.zeros((cfg.N_train_examples, cfg.N_coarse + 2))
-    train_ref = np.zeros((cfg.N_train_examples, cfg.N_coarse + 2))
-    train_res = np.zeros((cfg.N_train_examples, cfg.N_coarse + 2))
-    train_src = np.zeros((cfg.N_train_examples, cfg.N_coarse))
+    train_ICs = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
+    train_unc = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
+    train_ref = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
+    train_res = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
+    train_src = np.zeros((cfg.N_train_examples, cfg.N_x    , cfg.N_y    ))
     train_times = np.zeros(cfg.N_train_examples)
     train_alphas = []
     for a in range(cfg.N_train_alphas):
         print("a", a)
-        train_ICs[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ICs[a, :, :]
-        train_unc[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = unc[a, :, :]
-        train_ref[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ref[a, :, :]
-        train_res[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = res[a, :, :]
-        train_src[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = src[a, :, :]
-        train_times[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1)] = times
+        train_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a, :, :, :]
+        train_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a, :, :, :]
+        train_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a, :, :, :]
+        train_res[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = res[a, :, :, :]
+        train_src[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = src[a, :, :, :]
+        train_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
         train_alphas.append(cfg.alphas[a])
     train_alphas = np.asarray(train_alphas)
 
-    val_ICs = np.zeros((cfg.N_val_examples, cfg.N_coarse + 2))
-    val_unc = np.zeros((cfg.N_val_examples, cfg.N_coarse + 2))
-    val_ref = np.zeros((cfg.N_val_examples, cfg.N_coarse + 2))
-    val_res = np.zeros((cfg.N_val_examples, cfg.N_coarse + 2))
-    val_src = np.zeros((cfg.N_val_examples, cfg.N_coarse))
+    val_ICs = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
+    val_unc = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
+    val_ref = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
+    val_res = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
+    val_src = np.zeros((cfg.N_val_examples, cfg.N_x    , cfg.N_y    ))
     val_times = np.zeros(cfg.N_val_examples)
     val_alphas = []
     for a in range(cfg.N_val_alphas):
         print("a", a)
         offset = cfg.N_train_alphas
-        val_ICs[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ICs[a + offset, :, :]
-        val_unc[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = unc[a + offset, :, :]
-        val_ref[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ref[a + offset, :, :]
-        val_res[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = res[a + offset, :, :]
-        val_src[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = src[a + offset, :, :]
-        val_times[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1)] = times
+        val_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a + offset, :, :, :]
+        val_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a + offset, :, :, :]
+        val_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a + offset, :, :, :]
+        val_res[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = res[a + offset, :, :, :]
+        val_src[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = src[a + offset, :, :, :]
+        val_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
         val_alphas.append(cfg.alphas[a + offset])
     val_alphas = np.asarray(val_alphas)
 
-    test_ICs = np.zeros((cfg.N_test_examples, cfg.N_coarse + 2))
-    test_unc = np.zeros((cfg.N_test_examples, cfg.N_coarse + 2))
-    test_ref = np.zeros((cfg.N_test_examples, cfg.N_coarse + 2))
-    test_res = np.zeros((cfg.N_test_examples, cfg.N_coarse + 2))
-    test_src = np.zeros((cfg.N_test_examples, cfg.N_coarse))
+    test_ICs = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
+    test_unc = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
+    test_ref = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
+    test_res = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
+    test_src = np.zeros((cfg.N_test_examples, cfg.N_x    , cfg.N_y    ))
     test_times = np.zeros(cfg.N_test_examples)
     test_alphas = []
     for a in range(cfg.N_test_alphas):
         print("a", a)
         offset = cfg.N_train_alphas + cfg.N_val_alphas
-        test_ICs[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ICs[a + offset, :, :]
-        test_unc[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = unc[a + offset, :, :]
-        test_ref[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = ref[a + offset, :, :]
-        test_res[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = res[a + offset, :, :]
-        test_src[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1), :] = src[a + offset, :, :]
-        test_times[(cfg.Nt_coarse - 1) * (a + 0):(cfg.Nt_coarse - 1) * (a + 1)] = times
+        test_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a + offset, :, :, :]
+        test_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a + offset, :, :, :]
+        test_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a + offset, :, :, :]
+        test_res[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = res[a + offset, :, :, :]
+        test_src[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = src[a + offset, :, :, :]
+        test_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
         test_alphas.append(cfg.alphas[a + offset])
     test_alphas = np.asarray(test_alphas)
     print("train_alphas", train_alphas)
@@ -240,20 +228,20 @@ def create_parametrized_datasets(cfg):
 
     # z_normalize data.
     train_unc_normalized = util.z_normalize(train_unc, train_unc_mean, train_unc_std)
-    val_unc_normalized = util.z_normalize(val_unc, train_unc_mean, train_unc_std)
-    test_unc_normalized = util.z_normalize(test_unc, train_unc_mean, train_unc_std)
+    val_unc_normalized   = util.z_normalize(val_unc,   train_unc_mean, train_unc_std)
+    test_unc_normalized  = util.z_normalize(test_unc,  train_unc_mean, train_unc_std)
 
     train_ref_normalized = util.z_normalize(train_ref, train_ref_mean, train_ref_std)
-    val_ref_normalized = util.z_normalize(val_ref, train_ref_mean, train_ref_std)
-    test_ref_normalized = util.z_normalize(test_ref, train_ref_mean, train_ref_std)
+    val_ref_normalized   = util.z_normalize(val_ref,   train_ref_mean, train_ref_std)
+    test_ref_normalized  = util.z_normalize(test_ref,  train_ref_mean, train_ref_std)
 
     train_res_normalized = util.z_normalize(train_res, train_res_mean, train_res_std)
-    val_res_normalized = util.z_normalize(val_res, train_res_mean, train_res_std)
-    test_res_normalized = util.z_normalize(test_res, train_res_mean, train_res_std)
+    val_res_normalized   = util.z_normalize(val_res,   train_res_mean, train_res_std)
+    test_res_normalized  = util.z_normalize(test_res,  train_res_mean, train_res_std)
 
     train_src_normalized = util.z_normalize(train_src, train_src_mean, train_src_std)
-    val_src_normalized = util.z_normalize(val_src, train_src_mean, train_src_std)
-    test_src_normalized = util.z_normalize(test_src, train_src_mean, train_src_std)
+    val_src_normalized   = util.z_normalize(val_src,   train_src_mean, train_src_std)
+    test_src_normalized  = util.z_normalize(test_src,  train_src_mean, train_src_std)
 
     # Note that the ICs are not to be used in conjunction with the NN directly,
     # so there is no need to normalize them. Same goes for time levels.
@@ -322,15 +310,15 @@ def create_parametrized_datasets(cfg):
     test_alphas_tensor  = torch.from_numpy(test_alphas_padded)
 
     # Create datasets.
-    dataset_train = torch.utils.data.TensorDataset(train_unc_tensor, train_ref_tensor, train_src_tensor,
-                                                   stats_train_tensor, train_ICs_tensor, train_times_tensor,
+    dataset_train = torch.utils.data.TensorDataset(train_unc_tensor,    train_ref_tensor, train_src_tensor,
+                                                   stats_train_tensor,  train_ICs_tensor, train_times_tensor,
                                                    train_alphas_tensor, train_res_tensor)
-    dataset_val = torch.utils.data.TensorDataset(val_unc_tensor, val_ref_tensor, val_src_tensor,
-                                                 stats_val_tensor, val_ICs_tensor, val_times_tensor,
-                                                 val_alphas_tensor, val_res_tensor)
-    dataset_test = torch.utils.data.TensorDataset(test_unc_tensor, test_ref_tensor, test_src_tensor,
-                                                  stats_test_tensor, test_ICs_tensor, test_times_tensor,
-                                                  test_alphas_tensor, test_res_tensor)
+    dataset_val = torch.utils.data.TensorDataset(  val_unc_tensor,      val_ref_tensor,   val_src_tensor,
+                                                   stats_val_tensor,    val_ICs_tensor,   val_times_tensor,
+                                                   val_alphas_tensor,   val_res_tensor)
+    dataset_test = torch.utils.data.TensorDataset( test_unc_tensor,     test_ref_tensor,  test_src_tensor,
+                                                   stats_test_tensor,   test_ICs_tensor,  test_times_tensor,
+                                                   test_alphas_tensor,  test_res_tensor)
 
     return dataset_train, dataset_val, dataset_test
 
