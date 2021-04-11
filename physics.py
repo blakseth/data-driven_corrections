@@ -56,7 +56,7 @@ def check_valid_dt(cfg, u_vec, c_vec, CFL, dx):
         raise Exception("Invalid dt.")
 
 def interior_step(U_mtx, F_est, dt, dx, corr_src):
-    return U_mtx[:, 1:-1] - (dt/dx)*(F_est[:, 1:] - F_est[:, :-1]) + corr_src
+    return U_mtx[:, 1:-1] - (dt/dx)*(F_est[:, 1:] - F_est[:, :-1]) + dt * corr_src
 
 def find_implicit_vars(cfg, U_mtx):
     V_mtx = np.zeros_like(U_mtx)
@@ -174,7 +174,7 @@ def get_corr_src_term(cfg, old_V_mtx_ref, new_V_mtx_ref):
     new_U_mtx_num, _ = solve(
         cfg, old_V_mtx_ref, old_U_mtx_ref, old_F_mtx_ref, old_T_vec_ref, cfg.dx, cfg.dt, cfg.CFL, np.zeros(cfg.N_x)
     )
-    return new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1]
+    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1]) / cfg.dt
 
 ########################################################################################################################
 
