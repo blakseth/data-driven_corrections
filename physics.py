@@ -8,6 +8,7 @@ Numerical simulation of the 1D heat equation and generation of corrective source
 # Package imports.
 import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.linalg
 from scipy.sparse import diags
@@ -16,7 +17,138 @@ from scipy.sparse import diags
 # File imports.
 
 import config
+import exact_solver
 import util
+
+########################################################################################################################
+
+def LxF_flux(U_mtx, F_mtx, dt, dx):
+    return 0.5 * ( F_mtx[:, :-1] + F_mtx[:, 1:] - (dx/dt)*(U_mtx[:, 1:] - U_mtx[:, 0:-1]) )
+
+def find_c(cfg, T_vec):
+    if np.amin(T_vec) < 0:
+        raise Exception("Negative T in find_c.")
+    return np.sqrt((cfg.gamma - 1)*(cfg.gamma*cfg.c_V)*T_vec)
+
+def find_dt(u_vec, c_vec, CFL, dx):
+    lam = np.amax(np.abs(u_vec) + c_vec)
+    return CFL*dx/lam
+
+def check_valid_dt(cfg, u_vec, c_vec, CFL, dx):
+    lam = np.amax(np.abs(u_vec) + c_vec)
+    if cfg.dt > CFL*dx/lam:
+        print("Time step " + str(cfg.dt) + " is larger than the maximum allowed value " + str(CFL*dx/lam) + ".")
+        raise Exception("Invalid dt.")
+
+def interior_step(U_mtx, F_est, dt, dx, corr_src):
+    return U_mtx[:, 1:-1] - (dt/dx)*(F_est[:, 1:] - F_est[:, :-1]) + corr_src
+
+def find_implicit_vars(cfg, U_mtx):
+    V_mtx = np.zeros_like(U_mtx)
+
+    V_mtx[1,:] = U_mtx[1,:] / U_mtx[0,:]
+
+    e = U_mtx[2,:] / U_mtx[0,:] - 0.5*(V_mtx[1,:]**2)
+
+    if np.amin(e) < 0:
+        raise Exception("Negative e in find_implicit_vars")
+
+    V_mtx[2,:] = e/cfg.c_V
+    V_mtx[0,:] = (cfg.gamma - 1)*U_mtx[0,:]*e
+
+    return V_mtx
+
+def find_flux(U_mtx, V_mtx):
+    F_mtx = np.zeros_like(U_mtx)
+    F_mtx[0,:] = U_mtx[1,:]
+    F_mtx[1,:] = U_mtx[1,:] * V_mtx[1,:] + V_mtx[0,:]
+    F_mtx[2,:] = (U_mtx[2,:] + V_mtx[0,:]) * V_mtx[1,:]
+    return F_mtx
+
+def setup_euler(cfg, V_mtx, U_mtx, F_mtx, NJ):
+
+    U_mtx = np.zeros_like(V_mtx)
+    F_mtx = np.zeros_like(V_mtx)
+
+    e = cfg.c_V * V_mtx[2,:]
+    U_mtx[0,:] = V_mtx[0,:] / ((cfg.gamma - 1)*e)
+    U_mtx[1,:] = U_mtx[0,:] * V_mtx[1,:]
+    U_mtx[2,:] = U_mtx[0,:]*e + 0.5*U_mtx[0,:]*V_mtx[1,:]**2
+
+    F_mtx = find_flux(U_mtx, V_mtx)
+
+    return U_mtx, F_mtx
+
+
+def solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, corr_src):
+
+    counter = 0
+    t = 0.0
+    dt = cfg.dt
+    c_vec = find_c(cfg, T_vec)
+    u_vec = V_mtx[1, :]
+
+    while True:
+        check_valid_dt(cfg, u_vec, c_vec, CFL, dx)
+        t = np.around(t + cfg.dt, decimals=10)
+        print("t =", t)
+
+        F_est = LxF_flux(U_mtx, F_mtx, dt, dx)
+
+        U_mtx[:, 1:-1] = interior_step(U_mtx, F_est, dt, dx, corr_src)
+
+        U_mtx[:, 0] = U_mtx[:, 1]
+        U_mtx[:, -1] = U_mtx[:, -2]
+
+        V_mtx = find_implicit_vars(cfg, U_mtx)
+
+        T_vec = V_mtx[2,:]
+
+        c_vec = find_c(cfg, T_vec)
+        u_vec = V_mtx[1, :]
+
+        F_mtx = find_flux(U_mtx, V_mtx)
+
+        if counter % 200 == 0:
+            pass # Maybe print something?
+
+        if t >= tmax:
+            break
+        counter += 1
+
+    return U_mtx, V_mtx
+
+
+
+def simulate_euler(cfg):
+    NJ = cfg.NJ # Includes boundary nodes.
+    dx = cfg.dx
+    U_mtx = np.zeros((3, NJ))
+    F_mtx = np.zeros((3, NJ))
+    V_mtx = np.zeros((3, NJ))
+    T_vec = np.zeros(NJ)
+
+    tmax = cfg.t_end
+    CFL  = cfg.CFL
+
+    for i in range(NJ):
+        if cfg.x_nodes[i] <= cfg.x_split:
+            V_mtx[0, i] = cfg.init_p1
+            V_mtx[1, i] = cfg.init_u1
+            V_mtx[2, i] = cfg.init_T1
+        else:
+            V_mtx[0, i] = cfg.init_p2
+            V_mtx[1, i] = cfg.init_u2
+            V_mtx[2, i] = cfg.init_T2
+
+    U_mtx, F_mtx = setup_euler(cfg, V_mtx, U_mtx, F_mtx, NJ)
+
+    U_mtx, V_mtx = solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, np.zeros(NJ - 2))
+
+    print("U_mtx:", U_mtx)
+    print("V_mtx:", V_mtx)
+
+    return V_mtx[:,1:-1]
 
 ########################################################################################################################
 
@@ -123,9 +255,9 @@ def get_corrective_src_term_2D(cfg, T_old, T_new, t_old, alpha, get_src):
 ########################################################################################################################
 
 def main():
-    N_js = [3, 9, 27, 81]#, 9, 27]#, 81, 81*3, 81*9]
+    N_xs = [100]#, 9, 27]#, 81, 81*3, 81*9]
     errors = []
-    for N_j in N_js:
+    for N_x in N_xs:
         cfg = config.Config(
             use_GPU=config.use_GPU,
             group_name=config.group_name,
@@ -135,10 +267,39 @@ def main():
             model_key=config.model_keys[0],
             do_train=False,
             do_test=False,
-            N_x=N_j,
+            N_x=N_x,
             model_type=config.model_type,
         )
-        t_start = 0.0
+
+        num_sol = simulate_euler(cfg)
+        exact_sol = exact_solver.exact_solver(cfg)
+
+        num_rho = num_sol[0,:] / (num_sol[2,:]*cfg.c_V*(cfg.gamma - 1))
+        exact_rho = exact_sol[0,:] / (exact_sol[2,:]*cfg.c_V*(cfg.gamma - 1))
+
+        fig, axs = plt.subplots(4, 1)
+        ylabels = [r"$p$", r"$u$", r"$T$", r"$\rho$"]
+        for i, ax in enumerate(fig.get_axes()):
+            if i == 3:
+                break
+            axs[i].plot(cfg.x_nodes[1:-1], num_sol[i], 'r-', label='LxF')
+            axs[i].plot(cfg.x_nodes[1:-1], exact_sol[i], 'g-', label='Exact')
+            axs[i].legend()
+            axs[i].set_xlabel(r'$x$')
+            axs[i].set_ylabel(ylabels[i])
+            axs[i].grid()
+            ax.label_outer()
+        axs[3].plot(cfg.x_nodes[1:-1], num_rho, 'r-', label='LxF')
+        axs[3].plot(cfg.x_nodes[1:-1], exact_rho, 'g-', label='Exact')
+        axs[3].legend()
+        axs[3].set_xlabel(r'$x$')
+        axs[3].set_ylabel(ylabels[3])
+        axs[3].grid()
+        axs[3].label_outer()
+        plt.show()
+
+
+    """
         alpha = 0.7
         T0 = np.zeros((cfg.N_x + 2, cfg.N_y + 2))
         for i, y in enumerate(cfg.y_nodes):
@@ -171,6 +332,7 @@ def main():
 
     for i in range(len(errors) - 1):
         print("ratio", np.log(errors[i] / errors[i+1]) / np.log(3))
+    """
 
 
 ########################################################################################################################

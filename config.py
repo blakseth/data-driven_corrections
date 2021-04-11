@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-10_2D_experiment"
-run_names  = [["2D_GlobalDense_s1_HAM"]]
-systems    = ["1"]
-data_tags  = ["2D_s1"]
+group_name = "2021-04-11_trial_euler"
+run_names  = [["Euler_GlobalDense_s1_HAM"]]
+systems    = ["SOD"]
+data_tags  = ["SOD"]
 model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -108,86 +108,45 @@ class Config:
         else:
             self.alphas = np.asarray([1.0])
 
-        if self.system == "1":
+        if self.system == "SOD":
             exact_solution_available = True
-            t_end     = 5.0
+            t_end     = 0.2
             x_a       = 0.0
             x_b       = 1.0
-            y_c       = 0.0
-            y_d       = 1.0
-            A         = 1.0
-            rho       = 1.0
-            k_ref     = 1.0
-            cV_ref    = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, y, t, alpha):
-                def local_T(x, y, t, alpha):
-                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2)) + 1.0*x
-                if type(x) is np.ndarray and type(y) is np.ndarray:
-                    T = np.zeros((x.shape[0], y.shape[0]))
-                    for i, y_ in enumerate(y):
-                        for j, x_ in enumerate(x):
-                            T[j, i] = local_T(x_, y_, t, alpha)
-                    return T
-                elif type(x) is np.ndarray:
-                    T = np.zeros(x.shape[0])
-                    for j, x_ in enumerate(x):
-                        T[j] = local_T(x_, y, t, alpha)
-                    return T
-                elif type(y) is np.ndarray:
-                    T = np.zeros(y.shape[0])
-                    for i, y_ in enumerate(y):
-                        T[i] = local_T(x, y_, t, alpha)
-                    return T
-                else:
-                    return local_T(x, y, t, alpha)
-            def get_T0(x, y, alpha):
-                return get_T_exact(x, y, 0, alpha)
-            def get_T_a(y, t, alpha):
-                return get_T_exact(x_a, y, t, alpha)
-            def get_T_b(y, t, alpha):
-                return get_T_exact(x_b, y, t, alpha)
-            def get_T_c(x, t, alpha):
-                return get_T_exact(x, y_c, t, alpha)
-            def get_T_d(x, t, alpha):
-                return get_T_exact(x, y_d, t, alpha)
-            def get_q_hat(x, y, t, alpha):
-                return (1 - 2*alpha) * np.ones((x.shape[0], y.shape[0]))
-            def get_q_hat_approx(x, y, t, alpha):
-                return np.zeros((x.shape[0], y.shape[0]))
-            def get_k(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * k_ref
-            def get_k_approx(x, y):
-                return get_k(x, y)
-            def get_cV(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * cV_ref
+            x_split   = 0.5
+            CFL       = 1.0
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.0
+            init_p1   = 1.0
+            init_u1   = 0.0
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 0.125
+            init_p2   = 0.1
+            init_u2   = 0.0
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
         else:
             raise Exception("Invalid domain selection.")
 
+        def get_exact_sol(x, t, alpha):
+            pass
+
         self.exact_solution_available = exact_solution_available
-        self.t_end            = t_end
-        self.x_a              = x_a
-        self.x_b              = x_b
-        self.y_c              = y_c
-        self.y_d              = y_d
-        self.A                = A
-        self.k_ref            = k_ref
-        self.cV_ref           = cV_ref
-        self.rho              = rho
-        self.q_hat_ref        = q_hat_ref
-        self.get_T_exact      = None
-        if self.exact_solution_available:
-            self.get_T_exact      = get_T_exact
-        self.get_T0           = get_T0
-        self.get_T_a          = get_T_a
-        self.get_T_b          = get_T_b
-        self.get_T_c          = get_T_c
-        self.get_T_d          = get_T_d
-        self.get_q_hat        = get_q_hat
-        self.get_q_hat_approx = get_q_hat_approx
-        self.get_k            = get_k
-        self.get_k_approx     = get_k_approx
-        self.get_cV           = get_cV
+        self.t_end     = t_end
+        self.x_a       = x_a
+        self.x_b       = x_b
+        self.x_split   = x_split
+        self.CFL       = CFL
+        self.init_rho1 = init_rho1
+        self.init_p1   = init_p1
+        self.init_u1   = init_u1
+        self.init_T1   = init_T1
+        self.init_rho2 = init_rho2
+        self.init_p2   = init_p2
+        self.init_u2   = init_u2
+        self.init_T2   = init_T2
+        self.gamma     = gamma
+        self.c_V       = c_V
 
         self.dom_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
@@ -197,23 +156,17 @@ class Config:
         # Discretization.
 
         # Coarse spatial discretization.
-        self.N_x = N_x
-        self.N_y = N_x # x and y use same discr.
+        self.N_x = N_x          # Excluding boundary nodes.
+        self.NJ  = self.N_x + 2 # Including boundary nodes.
         self.dx  = (self.x_b - self.x_a) / self.N_x
-        self.dy  = (self.y_d - self.y_c) / self.N_y
         self.x_faces = np.linspace(self.x_a, self.x_b, num=self.N_x + 1, endpoint=True)
-        self.y_faces = np.linspace(self.y_c, self.y_d, num=self.N_y + 1, endpoint=True)
         self.x_nodes = np.zeros(self.N_x + 2)
         self.x_nodes[0]    = self.x_a
         self.x_nodes[1:-1] = self.x_faces[:-1] + self.dx / 2
         self.x_nodes[-1]   = self.x_b
-        self.y_nodes = np.zeros(self.N_y + 2)
-        self.y_nodes[0]    = self.y_c
-        self.y_nodes[1:-1] = self.y_faces[:-1] + self.dy / 2
-        self.y_nodes[-1]   = self.y_d
 
         # Temporal discretization.
-        self.dt = 1e-3
+        self.dt = 4.5e-3
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
