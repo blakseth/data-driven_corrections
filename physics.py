@@ -22,6 +22,19 @@ import util
 
 ########################################################################################################################
 
+def get_init_V_mtx(cfg):
+    V_mtx = np.zeros((3, cfg.x_nodes.shape[0]))
+    for i in range(cfg.x_nodes.shape[0]):
+        if cfg.x_nodes[i] <= cfg.x_split:
+            V_mtx[0, i] = cfg.init_p1
+            V_mtx[1, i] = cfg.init_u1
+            V_mtx[2, i] = cfg.init_T1
+        else:
+            V_mtx[0, i] = cfg.init_p2
+            V_mtx[1, i] = cfg.init_u2
+            V_mtx[2, i] = cfg.init_T2
+    return V_mtx
+
 def LxF_flux(U_mtx, F_mtx, dt, dx):
     return 0.5 * ( F_mtx[:, :-1] + F_mtx[:, 1:] - (dx/dt)*(U_mtx[:, 1:] - U_mtx[:, 0:-1]) )
 
@@ -65,10 +78,9 @@ def find_flux(U_mtx, V_mtx):
     F_mtx[2,:] = (U_mtx[2,:] + V_mtx[0,:]) * V_mtx[1,:]
     return F_mtx
 
-def setup_euler(cfg, V_mtx, U_mtx, F_mtx, NJ):
+def setup_euler(cfg, V_mtx):
 
     U_mtx = np.zeros_like(V_mtx)
-    F_mtx = np.zeros_like(V_mtx)
 
     e = cfg.c_V * V_mtx[2,:]
     U_mtx[0,:] = V_mtx[0,:] / ((cfg.gamma - 1)*e)
@@ -109,9 +121,6 @@ def solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, corr_src):
 
         F_mtx = find_flux(U_mtx, V_mtx)
 
-        if counter % 200 == 0:
-            pass # Maybe print something?
-
         if t >= tmax:
             break
         counter += 1
@@ -120,15 +129,13 @@ def solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, corr_src):
 
 
 
-def simulate_euler(cfg):
+def simulate_euler(cfg, t_end):
     NJ = cfg.NJ # Includes boundary nodes.
     dx = cfg.dx
-    U_mtx = np.zeros((3, NJ))
-    F_mtx = np.zeros((3, NJ))
     V_mtx = np.zeros((3, NJ))
     T_vec = np.zeros(NJ)
 
-    tmax = cfg.t_end
+    tmax = t_end
     CFL  = cfg.CFL
 
     for i in range(NJ):
@@ -141,14 +148,26 @@ def simulate_euler(cfg):
             V_mtx[1, i] = cfg.init_u2
             V_mtx[2, i] = cfg.init_T2
 
-    U_mtx, F_mtx = setup_euler(cfg, V_mtx, U_mtx, F_mtx, NJ)
+    U_mtx, F_mtx = setup_euler(cfg, V_mtx)
 
-    U_mtx, V_mtx = solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, np.zeros(NJ - 2))
+    U_mtx, V_mtx = solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, np.zeros((3, NJ - 2)))
 
-    print("U_mtx:", U_mtx)
-    print("V_mtx:", V_mtx)
+    return U_mtx, V_mtx
 
-    return V_mtx[:,1:-1]
+def get_new_state(cfg, V_mtx, corr_src):
+    U_mtx, F_mtx = setup_euler(cfg, V_mtx)
+    T_vec = V_mtx[2,:]
+    _, V_mtx = solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, cfg.dx, cfg.dt, cfg.CFL, corr_src)
+    return V_mtx
+
+def get_corr_src_term(cfg, old_V_mtx_ref, new_V_mtx_ref):
+    old_U_mtx_ref, old_F_mtx_ref = setup_euler(cfg, old_V_mtx_ref)
+    old_T_vec_ref = old_V_mtx_ref[2,:]
+    new_U_mtx_ref, _ = setup_euler(cfg, new_V_mtx_ref)
+    new_U_mtx_num, _ = solve(
+        cfg, old_V_mtx_ref, old_U_mtx_ref, old_F_mtx_ref, old_T_vec_ref, cfg.dx, cfg.dt, cfg.CFL, np.zeros(cfg.N_x)
+    )
+    return new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1]
 
 ########################################################################################################################
 
@@ -271,7 +290,44 @@ def main():
             model_type=config.model_type,
         )
 
-        num_sol = simulate_euler(cfg)
+        unc_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
+        cor_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
+        ref_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
+        srcs   = np.zeros((cfg.N_t, 3, cfg.N_x))
+
+        time = 0.0
+
+        unc_Vs[0] = get_init_V_mtx(cfg)
+        cor_Vs[0] = get_init_V_mtx(cfg)
+        ref_Vs[0] = get_init_V_mtx(cfg)
+
+        for i in range(1, cfg.N_t):
+            time      = np.around(time + cfg.dt, decimals=10)
+            unc_Vs[i] = get_new_state(cfg, unc_Vs[i-1], np.zeros((3, cfg.N_x)))
+            _, num_sol = simulate_euler(cfg, time)
+            np.testing.assert_allclose(num_sol, unc_Vs[i], rtol=1e-10, atol=1e-10)
+            ref_Vs[i] = exact_solver.exact_solver(cfg, time)
+            srcs[i]   = get_corr_src_term(cfg, ref_Vs[i-1], ref_Vs[i])
+            cor_Vs[i] = get_new_state(cfg, cor_Vs[i-1], srcs[i])
+            np.testing.assert_allclose(ref_Vs[i], cor_Vs[i], rtol=1e-10, atol=1e-10)
+
+
+
+        fig, axs = plt.subplots(3, 1)
+        ylabels = [r"$p$", r"$u$", r"$T$"]
+        for j, ax in enumerate(fig.get_axes()):
+            axs[j].plot(cfg.x_nodes, unc_Vs[-1, j], 'r-', label='LxF')
+            axs[j].plot(cfg.x_nodes, cor_Vs[-1, j], 'b-', label='LxF cor')
+            axs[j].plot(cfg.x_nodes, ref_Vs[-1, j], 'g--', label='Exact')
+            axs[j].legend()
+            axs[j].set_xlabel(r'$x$')
+            axs[j].set_ylabel(ylabels[j])
+            axs[j].grid()
+            ax.label_outer()
+        plt.show()
+
+        """
+        num_U, num_sol = simulate_euler(cfg, cfg.t_end)
         exact_sol = exact_solver.exact_solver(cfg)
 
         num_rho = num_sol[0,:] / (num_sol[2,:]*cfg.c_V*(cfg.gamma - 1))
@@ -297,6 +353,7 @@ def main():
         axs[3].grid()
         axs[3].label_outer()
         plt.show()
+        """
 
 
     """

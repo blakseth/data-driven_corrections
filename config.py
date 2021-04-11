@@ -114,7 +114,7 @@ class Config:
             x_a       = 0.0
             x_b       = 1.0
             x_split   = 0.5
-            CFL       = 1.0
+            CFL       = 0.9
             gamma     = 1.4
             c_V       = 2.5
             init_rho1 = 1.0
@@ -127,9 +127,6 @@ class Config:
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
         else:
             raise Exception("Invalid domain selection.")
-
-        def get_exact_sol(x, t, alpha):
-            pass
 
         self.exact_solution_available = exact_solution_available
         self.t_end     = t_end
@@ -166,7 +163,7 @@ class Config:
         self.x_nodes[-1]   = self.x_b
 
         # Temporal discretization.
-        self.dt = 4.5e-3
+        self.dt = 4e-3
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if

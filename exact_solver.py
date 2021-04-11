@@ -166,7 +166,7 @@ def SAMPLE(PM, UM, S, DL, UL, PL, CL, DR, UR, PR, CR, GAMMA, G1, G2, G3, G4, G5,
 ########################################################################################################################
 # Exact solver.
 
-def exact_solver(cfg):
+def exact_solver(cfg, t_end):
     # Input variables:
     # DOMLEN : Domain length
     # DIAPH1 : Position of diapraghm 1
@@ -186,7 +186,7 @@ def exact_solver(cfg):
     DIAPH1 = cfg.x_split
     CELLS  = cfg.N_x
     GAMMA  = cfg.gamma
-    TIMEOU = cfg.t_end
+    TIMEOU = t_end
     DL     = cfg.init_rho1
     UL     = cfg.init_u1
     PL     = cfg.init_p1
@@ -220,9 +220,9 @@ def exact_solver(cfg):
     DX = DOMLEN / float(CELLS)
 
     # Complete solution EXACT_SOL at time TIMEOU is found.
-    EXACTV = np.zeros((3, CELLS))
-    for i in range(CELLS):
-        XPOS = (i + 0.5)*DX
+    EXACTV = np.zeros((3, CELLS + 2))
+    for i in range(1, CELLS + 1):
+        XPOS = (i - 0.5)*DX
         S    = (XPOS - DIAPH1)/TIMEOU
 
         # Solution at point (X,T) = (XPOS - DIAPH1, TIMEOU) is found.
@@ -232,6 +232,9 @@ def exact_solver(cfg):
         EXACTV[0,i] = (PS/PSCALE)
         EXACTV[1,i] = US
         EXACTV[2,i] = PS / (DS*CV*G8)
+
+    EXACTV[:,0] = EXACTV[:,1]
+    EXACTV[:,-1] = EXACTV[:,-2]
 
     return EXACTV
 
