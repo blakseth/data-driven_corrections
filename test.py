@@ -32,8 +32,9 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
     iterations = np.arange(1, error_stats_dict['unc_L2'].shape[1] + 1, 1)
     for a, alpha in enumerate(plot_stats_dict['alphas']):
         plt.figure()
-        plt.semilogy(iterations, error_stats_dict['unc_L2'][a], 'r-', linewidth=2.0, label="Uncorrected")
-        plt.semilogy(iterations, error_stats_dict['cor_mean_L2'][a], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.semilogy(iterations, error_stats_dict['unc_L2'][a], 'r-', linewidth=2.0, label="LxF")
+        plt.semilogy(iterations, error_stats_dict['unc2_L2'][a], 'm-', linewidth=2.0, label="HLL")
+        plt.semilogy(iterations, error_stats_dict['cor_mean_L2'][a], 'g-', linewidth=2.0, label="Corrected, mean")
         plt.fill_between(iterations,
                          error_stats_dict['cor_mean_L2'][a] + error_stats_dict['cor_std_L2'][a],
                          error_stats_dict['cor_mean_L2'][a] - error_stats_dict['cor_std_L2'][a],
@@ -49,8 +50,9 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         plt.close()
 
         plt.figure()
-        plt.semilogy(iterations, error_stats_dict['unc_Linfty'][a], 'r-', linewidth=2.0, label="Uncorrected")
-        plt.semilogy(iterations, error_stats_dict['cor_mean_Linfty'][a], 'b-', linewidth=2.0, label="Corrected, mean")
+        plt.semilogy(iterations, error_stats_dict['unc_Linfty'][a], 'r-', linewidth=2.0, label="LxF")
+        plt.semilogy(iterations, error_stats_dict['unc2_Linfty'][a], 'm-', linewidth=2.0, label="HLL")
+        plt.semilogy(iterations, error_stats_dict['cor_mean_Linfty'][a], 'g-', linewidth=2.0, label="Corrected, mean")
         plt.fill_between(iterations,
                          error_stats_dict['cor_mean_Linfty'][a] + error_stats_dict['cor_std_Linfty'][a],
                          error_stats_dict['cor_mean_Linfty'][a] - error_stats_dict['cor_std_Linfty'][a],
@@ -65,120 +67,55 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
         plt.savefig(os.path.join(cfg.run_dir, "linfty_error_stats_alpha" + str(np.around(alpha, decimals=5)) + ".pdf"), bbox_inches='tight')
         plt.close()
 
-    t0 = (cfg.train_examples_ratio + cfg.test_examples_ratio)*cfg.t_end
-    x_dense = np.linspace(cfg.x_a, cfg.x_b, num=1001, endpoint=True)
-    y_dense = np.linspace(cfg.y_c, cfg.y_d, num=1001, endpoint=True)
+    dense_N_x   = 2000
+    normal_N_x  = cfg.N_x
+    dense_nodes = np.zeros(dense_N_x + 2)
+    dense_nodes[0]  = cfg.x_a
+    dense_nodes[-1] = cfg.x_b
+    dense_nodes[1:-1] = np.linspace(cfg.x_a + 0.5*cfg.dx, cfg.x_b - 0.5*cfg.dx, dense_N_x, endpoint=True)
     plot_times = plot_stats_dict['time']
-        #print("plot_times:", plot_times)
-
-    if 'cor_means_mean' in error_stats_dict.keys():
-        labels = ['ML-corrected', 'Uncorrected']
-        avgs = [error_stats_dict['cor_means_mean'], error_stats_dict['unc_means_mean']]
-        devs = [error_stats_dict['cor_stds_mean'], error_stats_dict['unc_stds_mean']]
-        #print(labels)
-        #print("avgs:", avgs)
-        #print("devs:", devs)
-
-        x = np.arange(len(labels))  # the label locations
-        width = 0.4  # the width of the bars
-
-        fig, ax = plt.subplots()
-        fig.set_figheight(3)
-        fig.set_figwidth(8)
-        ax.yaxis.grid(zorder=-1)
-        # ax.set_aspect(2)
-        rects1 = ax.bar(x - width / 2, avgs, width, label='Average', zorder=3)
-        rects2 = ax.bar(x + width / 2, devs, width, label='Standard deviation', zorder=3)
-
-        # Add some text for labels, title and custom x-axis tick labels, etc.
-        ax.set_ylabel(r'$L_2$ error', fontsize=15)
-        # ax.set_title('Scores by group and gender')
-        ax.set_xticks(x)
-        ax.set_xticklabels(labels, fontsize=12)
-        ax.legend(prop={'size': 11})
-        ax.set_yscale('log')
-        #ax.set_ylim((0, 0.15))
-        fig.tight_layout()
-
-        plt.savefig(os.path.join(cfg.run_dir, "histogram.pdf"), bbox_inches='tight')
-        plt.close()
-        with open(os.path.join(cfg.run_dir, "histogram_data" + ".txt"), "w") as f:
-            f.write(str(labels) + "\n")
-            f.write("avgs: " + str(avgs) + "\n")
-            f.write("devs: " + str(devs) + "\n")
 
     # Visualize profiles.
     for a, alpha in enumerate(plot_stats_dict['alphas']):
         for i in range(plot_stats_dict['unc'][a].shape[0]):
-            """
-            plt.figure()
-            plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="PBM")
-            if dat_profile_FCNN is not None:
-                plt.scatter(x, dat_profile_FCNN, s=40, marker='s', facecolors='none', edgecolors='b', label="DDM")
-            if dat_profile_CNN is not None:
-                plt.scatter(x, dat_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='b', label="DDM CNN")
-            if end_profile_FCNN is not None:
-                plt.scatter(x, end_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='b',
-                            label="End-to-end FCNN")
-            if end_profile_CNN is not None:
-                plt.scatter(x, end_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='b',
-                            label="End-to-end CNN")
-            if hyb_profile_FCNN is not None:
-                plt.scatter(x, hyb_profile_FCNN, s=40, marker='D', facecolors='none', edgecolors='g', label="HAM")
-            if hyb_profile_CNN is not None:
-                plt.scatter(x, hyb_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='g', label="CoSTA CNN")
-            if res_profile_FCNN is not None:
-                plt.scatter(x, res_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='y',
-                            label="Residual FCNN")
-            if res_profile_CNN is not None:
-                plt.scatter(x, res_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='y',
-                            label="Residual CNN")
-            x_dense = np.linspace(x[0], x[-1], 1001, endpoint=True)
-            plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
-            plt.xlim(x[0], x[-1])
-            plt.xlabel(r"$x$ (m)", fontsize=20)
-            plt.ylabel(r"$T$ (K)", fontsize=20)
-            plt.xticks(fontsize=17)
-            plt.yticks(fontsize=17)
-            plt.grid()
-            # plt.legend(prop={'size': 17})
-            plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
-            plt.close()
-            """
+            unc_V = plot_stats_dict['unc'][a][i]
+            unc2_V = plot_stats_dict['unc2'][a][i]
+            cor_V = plot_stats_dict['cor_mean'][a][i]
+            cfg.N_x = dense_N_x
+            cfg.init_u2 = alpha
+            ref_V = exact_solver.exact_solver(cfg, plot_times[i])
+            cfg.N_x = normal_N_x
 
-            unc_field = plot_stats_dict['unc'][a][i]
-            cor_field = plot_stats_dict['cor_mean'][a][i]
-            ref_field = plot_stats_dict['ref'][a][i]
-            ref_dense = cfg.get_T_exact(x_dense, y_dense, plot_times[i], alpha)
-            minmin = np.min([np.amin(unc_field), np.amin(cor_field), np.amin(ref_field), np.amin(ref_dense)])
-            maxmax = np.min([np.amax(unc_field), np.amax(cor_field), np.amax(ref_field), np.amax(ref_dense)])
-            fig, axs = plt.subplots(2, 2)
-            im = axs[0, 0].imshow(np.flip(np.swapaxes(ref_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
-                             extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
-                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
-            axs[0, 0].set_title('Reference')
-            surf = axs[0, 1].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
-            for c in surf.collections:
-                c.set_edgecolor("face")
-            axs[0, 1].set_title('Reference')
-            axs[1, 0].imshow(np.flip(np.swapaxes(unc_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
-                             extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
-                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
-            axs[1, 0].set_title('Uncorrected')
-            axs[1, 1].imshow(np.flip(np.swapaxes(cor_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
-                             extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
-                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
-            axs[1, 1].set_title('Corrected')
-            for ax in fig.get_axes():
-                ax.set_xlim((cfg.x_a, cfg.x_b))
-                ax.set_ylim((cfg.y_c, cfg.y_d))
-                ax.set_xlabel(r'$x$ (m)')
-                ax.set_ylabel(r'$y$ (m)')
-                ax.label_outer()
-            fig.colorbar(im, ax=axs.ravel().tolist())
+            unc_rho  = np.expand_dims(unc_V[0, :]  / (unc_V[2, :]  * cfg.c_V * cfg.gamma), axis=0)
+            unc2_rho = np.expand_dims(unc2_V[0, :] / (unc2_V[2, :] * cfg.c_V * cfg.gamma), axis=0)
+            cor_rho  = np.expand_dims(cor_V[0, :]  / (cor_V[2, :]  * cfg.c_V * cfg.gamma), axis=0)
+            ref_rho  = np.expand_dims(ref_V[0, :]  / (ref_V[2, :]  * cfg.c_V * cfg.gamma), axis=0)
+
+            unc_V  = np.concatenate((unc_rho,  unc_V ), axis=0)
+            unc2_V = np.concatenate((unc2_rho, unc2_V), axis=0)
+            cor_V  = np.concatenate((cor_rho,  cor_V ), axis=0)
+            ref_V  = np.concatenate((ref_rho,  ref_V ), axis=0)
+
+            fig, axs = plt.subplots(2, 2, figsize=(20, 20))
+
+            x = plot_stats_dict['x']
+
+            ylabels = [r"$\rho$", r"$p$", r"$u$", r"$T$"]
+            for j, ax in enumerate(fig.get_axes()):
+                ax.scatter(x, unc_V[j],  s=40, marker='o', facecolors='none', edgecolors='r', label="PBM (LxF)")
+                ax.scatter(x, unc2_V[j], s=40, marker='P', facecolors='none', edgecolors='m', label="PBM (HLL)")
+                ax.scatter(x, cor_V[j],  s=40, marker='D', facecolors='none', edgecolors='g', label="HAM")
+                ax.plot(dense_nodes, ref_V[j], 'k-', linewidth=2.0, label="Exact")
+                ax.set_xlim(x[0], x[-1])
+                ax.set_xlabel(r"$x$ (m)", fontsize=20)
+                ax.set_ylabel(ylabels[j], fontsize=20)
+                ax.grid()
+                ax.legend(prop={'size': 17})
+
             plt.savefig(os.path.join(cfg.run_dir, "profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
                 np.around(plot_times[i], decimals=5)) + ".pdf"), bbox_inches='tight')
             plt.close()
+
     """
     # Visualize correction source terms (if applicable).
     if 'src_mean' in plot_stats_dict.keys():
@@ -270,9 +207,11 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             'cor_mean_L2': np.asarray(cor_L2_error_means_list),
             'cor_std_L2': np.asarray(cor_L2_error_stds_list),
             'unc_L2': error_dicts[0]['unc_L2'],
+            'unc2_L2': error_dicts[0]['unc2_L2'],
             'cor_mean_Linfty': np.asarray(cor_Linfty_error_means_list),
             'cor_std_Linfty': np.asarray(cor_Linfty_error_stds_list),
-            'unc_Linfty': error_dicts[0]['unc_Linfty']
+            'unc_Linfty': error_dicts[0]['unc_Linfty'],
+            'unc2_Linfty': error_dicts[0]['unc2_Linfty']
         }
         plot_stats_dict = {
             'cor_mean': np.asarray(cor_plot_means_list),
@@ -280,6 +219,7 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             'cor_std': np.asarray(cor_plot_stds_list),
             'unc': np.asarray([plot_data_dicts[0]['unc'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),  # These are the same for all model instances, ...
             'ref': np.asarray([plot_data_dicts[0]['ref'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),  # ... so the choice of retrieving them from ...
+            'unc2': np.asarray([plot_data_dicts[0]['unc2'][a] for a in range(plot_data_dicts[0]['alphas'].shape[0])]),
             'x': plot_data_dicts[0]['x'],      # ... the first instance is arbitrary.
             'time': plot_data_dicts[0]['time'],
             'alphas': plot_data_dicts[0]['alphas']
@@ -319,7 +259,9 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             'cor_mean_Linfty': cor_Linfty_error_mean,
             'cor_std_Linfty': cor_Linfty_error_std,
             'unc_L2':      error_dicts[0]['unc_L2'],
-            'unc_Linfty': error_dicts[0]['unc_Linfty']
+            'unc_Linfty': error_dicts[0]['unc_Linfty'],
+            'unc2_L2':      error_dicts[0]['unc2_L2'],
+            'unc2_Linfty': error_dicts[0]['unc2_Linfty']
         }
         if 'cor_mean' in error_dicts[0].keys():
             error_stats_dict['cor_means_mean'] = cor_means_mean
@@ -329,13 +271,17 @@ def save_test_data(cfg, error_dicts, plot_data_dicts):
             error_stats_dict['unc_means_mean'] = error_dicts[0]['unc_mean']
         if 'unc_std' in error_dicts[0].keys():
             error_stats_dict['unc_stds_mean'] = error_dicts[0]['unc_std']
+        if 'unc2_mean' in error_dicts[0].keys():
+            error_stats_dict['unc2_means_mean'] = error_dicts[0]['unc2_mean']
+        if 'unc2_std' in error_dicts[0].keys():
+            error_stats_dict['unc2_stds_mean'] = error_dicts[0]['unc2_std']
         plot_stats_dict = {
             'cor_mean': cor_plot_mean,
             'cor_std':  cor_plot_std,
+            'unc2':     plot_data_dicts[0]['unc2'],
             'unc':      plot_data_dicts[0]['unc'], # These are the same for all model instances, ...
             'ref':      plot_data_dicts[0]['ref'], # ... so the choice of retrieving them from ...
             'x':        plot_data_dicts[0]['x'],   # ... the first instance is arbitrary.
-            'y':        plot_data_dicts[0]['y'],
             'time':     plot_data_dicts[0]['time'],
         }
         if 'src' in plot_data_dicts[0].keys():
@@ -390,7 +336,6 @@ def parametrized_simulation_test(cfg, model):
     num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
         'x': cfg.x_nodes,
-        'y': cfg.y_nodes,
         'unc': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
         'unc2': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
         'ref': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
@@ -399,7 +344,7 @@ def parametrized_simulation_test(cfg, model):
         'alphas': alphas
     }
     if cfg.model_type == 'hybrid' and cfg.exact_solution_available:
-        plot_data_dict['src'] = np.zeros((num_param_values, num_profile_plots, cfg.N_x, cfg.N_y))
+        plot_data_dict['src'] = np.zeros((num_param_values, num_profile_plots, 3, cfg.N_x))
 
     for a, alpha in enumerate(alphas):
         IC = ICs[a * (cfg.N_t - 1)]
@@ -430,24 +375,24 @@ def parametrized_simulation_test(cfg, model):
             new_cor = np.zeros_like(new_unc)
             if cfg.model_type == 'hybrid':
                 new_src = util.z_unnormalize(
-                    model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy(), src_mean, src_std
+                    model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), src_mean, src_std
                 )
                 new_cor = physics.get_new_state(cfg, old_cor, new_src, 'LxF')
             elif cfg.model_type == 'residual':
                 new_res = np.zeros(new_unc.shape)
-                unnomralized_res = model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy()
-                new_res[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
+                unnomralized_res = model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy()
+                new_res[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
                 new_cor = new_unc_ + new_res
                 #print("unnormalized_res:", unnomralized_res)
                 #print("new_res:", new_res)
                 #print("new_unc_:", new_unc_)
                 #print("new_cor:", new_cor)
             elif cfg.model_type == 'end-to-end':
-                new_cor[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
                 new_cor[:, 0] = new_cor[:, 1]
                 new_cor[:, -1] = new_cor[:, -2]
             elif cfg.model_type == 'data':
-                new_cor[:, 1:-1] = util.z_unnormalize(model.net(old_cor_tensor[:,1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 1:-1] = util.z_unnormalize(model.net(old_cor_tensor[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
                 new_cor[:, 0] = new_cor[:, 1]
                 new_cor[:, -1] = new_cor[:, -2]
 
