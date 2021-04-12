@@ -367,6 +367,7 @@ def parametrized_simulation_test(cfg, model):
             old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std)), 0)
 
             if cfg.exact_solution_available:
+                cfg.init_u2 = alpha
                 new_ref = exact_solver.exact_solver(cfg, new_time)
                 #print("new_ref:", new_ref)
             else:

@@ -27,7 +27,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-12_trial_euler"
-run_names  = [["Euler_GlobalDense_s1_HAM"]]
+run_names  = [["Euler_GlobalDense_s1_HAM2"]]
 systems    = ["SOD"]
 data_tags  = ["SOD"]
 model_type = 'hybrid'
