@@ -19,6 +19,7 @@ import torch
 # File imports.
 
 from datasets import load_datasets
+import exact_solver
 import models
 import physics
 import util
@@ -106,9 +107,45 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             f.write("avgs: " + str(avgs) + "\n")
             f.write("devs: " + str(devs) + "\n")
 
-    # Visualize temperature profiles.
+    # Visualize profiles.
     for a, alpha in enumerate(plot_stats_dict['alphas']):
         for i in range(plot_stats_dict['unc'][a].shape[0]):
+            """
+            plt.figure()
+            plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="PBM")
+            if dat_profile_FCNN is not None:
+                plt.scatter(x, dat_profile_FCNN, s=40, marker='s', facecolors='none', edgecolors='b', label="DDM")
+            if dat_profile_CNN is not None:
+                plt.scatter(x, dat_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='b', label="DDM CNN")
+            if end_profile_FCNN is not None:
+                plt.scatter(x, end_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='b',
+                            label="End-to-end FCNN")
+            if end_profile_CNN is not None:
+                plt.scatter(x, end_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='b',
+                            label="End-to-end CNN")
+            if hyb_profile_FCNN is not None:
+                plt.scatter(x, hyb_profile_FCNN, s=40, marker='D', facecolors='none', edgecolors='g', label="HAM")
+            if hyb_profile_CNN is not None:
+                plt.scatter(x, hyb_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='g', label="CoSTA CNN")
+            if res_profile_FCNN is not None:
+                plt.scatter(x, res_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='y',
+                            label="Residual FCNN")
+            if res_profile_CNN is not None:
+                plt.scatter(x, res_profile_CNN, s=40, marker='^', facecolors='none', edgecolors='y',
+                            label="Residual CNN")
+            x_dense = np.linspace(x[0], x[-1], 1001, endpoint=True)
+            plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
+            plt.xlim(x[0], x[-1])
+            plt.xlabel(r"$x$ (m)", fontsize=20)
+            plt.ylabel(r"$T$ (K)", fontsize=20)
+            plt.xticks(fontsize=17)
+            plt.yticks(fontsize=17)
+            plt.grid()
+            # plt.legend(prop={'size': 17})
+            plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
+            plt.close()
+            """
+
             unc_field = plot_stats_dict['unc'][a][i]
             cor_field = plot_stats_dict['cor_mean'][a][i]
             ref_field = plot_stats_dict['ref'][a][i]
@@ -344,17 +381,20 @@ def parametrized_simulation_test(cfg, model):
     src_std  = stats[7]
 
     L2_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
+    L2_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
     L2_errors_cor = np.zeros((num_param_values, cfg.N_t - 1))
     Linfty_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
+    Linfty_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
     Linfty_errors_cor = np.zeros((num_param_values, cfg.N_t - 1))
 
     num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
         'x': cfg.x_nodes,
         'y': cfg.y_nodes,
-        'unc': np.zeros((num_param_values, num_profile_plots, cfg.x_nodes.shape[0], cfg.y_nodes.shape[0])),
-        'ref': np.zeros((num_param_values, num_profile_plots, cfg.x_nodes.shape[0], cfg.y_nodes.shape[0])),
-        'cor': np.zeros((num_param_values, num_profile_plots, cfg.x_nodes.shape[0], cfg.y_nodes.shape[0])),
+        'unc': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
+        'unc2': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
+        'ref': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
+        'cor': np.zeros((num_param_values, num_profile_plots, 3, cfg.x_nodes.shape[0])),
         'time': np.zeros(num_profile_plots),
         'alphas': alphas
     }
@@ -365,6 +405,7 @@ def parametrized_simulation_test(cfg, model):
         IC = ICs[a * (cfg.N_t - 1)]
         #print("IC:", IC)
         old_unc = IC
+        old_unc2 = IC
         old_cor = IC
         plot_num = 0
         for i in range(cfg.N_t - 1):
@@ -372,19 +413,16 @@ def parametrized_simulation_test(cfg, model):
             old_time = np.around(times[index] - cfg.dt, decimals=10)
             new_time = np.around(times[index], decimals=10)
 
-            new_unc = physics.simulate_2D(
-                cfg, old_unc, old_time, new_time, alpha, cfg.get_q_hat_approx, np.zeros((cfg.N_x, cfg.N_y))
-            )
+            new_unc = physics.get_new_state(cfg, old_unc, np.zeros((3, cfg.N_x)), 'LxF')
+            new_unc2 = physics.get_new_state(cfg, old_unc2, np.zeros((3, cfg.N_x)), 'HLL')
             #if i == 0:
             #    print("First unc:", new_unc)
-            new_unc_ = physics.simulate_2D(
-                cfg, old_cor, old_time, new_time, alpha, cfg.get_q_hat_approx, np.zeros((cfg.N_x, cfg.N_y))
-            )
+            new_unc_ = physics.get_new_state(cfg, old_cor, np.zeros((3, cfg.N_x)), 'LxF')
             new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std)), 0)
             old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std)), 0)
 
             if cfg.exact_solution_available:
-                new_ref = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, new_time, alpha)
+                new_ref = exact_solver.exact_solver(cfg, new_time)
                 #print("new_ref:", new_ref)
             else:
                 raise Exception("Invalid config.")
@@ -392,32 +430,26 @@ def parametrized_simulation_test(cfg, model):
             new_cor = np.zeros_like(new_unc)
             if cfg.model_type == 'hybrid':
                 new_src = util.z_unnormalize(
-                    model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), src_mean, src_std
+                    model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy(), src_mean, src_std
                 )
-                new_cor = physics.simulate_2D(
-                    cfg, old_cor, old_time, new_time, alpha, cfg.get_q_hat_approx, new_src
-                )
+                new_cor = physics.get_new_state(cfg, old_cor, new_src, 'LxF')
             elif cfg.model_type == 'residual':
                 new_res = np.zeros(new_unc.shape)
-                unnomralized_res = model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy()
-                new_res[1:-1, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
+                unnomralized_res = model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy()
+                new_res[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
                 new_cor = new_unc_ + new_res
                 #print("unnormalized_res:", unnomralized_res)
                 #print("new_res:", new_res)
                 #print("new_unc_:", new_unc_)
                 #print("new_cor:", new_cor)
             elif cfg.model_type == 'end-to-end':
-                new_cor[0, :] = cfg.get_T_a(cfg.y_nodes, new_time, alpha)  # Since BCs are not ...
-                new_cor[-1, :] = cfg.get_T_b(cfg.y_nodes, new_time, alpha)  # predicted by the NN.
-                new_cor[:, 0] = cfg.get_T_c(cfg.x_nodes, new_time, alpha)
-                new_cor[:, -1] = cfg.get_T_d(cfg.x_nodes, new_time, alpha)
-                new_cor[1:-1, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 0] = new_cor[:, 1]
+                new_cor[:, -1] = new_cor[:, -2]
             elif cfg.model_type == 'data':
-                new_cor[0, :] = cfg.get_T_a(cfg.y_nodes, new_time, alpha)  # Since BCs are not ...
-                new_cor[-1, :] = cfg.get_T_b(cfg.y_nodes, new_time, alpha)  # predicted by the NN.
-                new_cor[:, 0] = cfg.get_T_c(cfg.x_nodes, new_time, alpha)
-                new_cor[:, -1] = cfg.get_T_d(cfg.x_nodes, new_time, alpha)
-                new_cor[1:-1] = util.z_unnormalize(model.net(old_cor_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 1:-1] = util.z_unnormalize(model.net(old_cor_tensor[:,1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 0] = new_cor[:, 1]
+                new_cor[:, -1] = new_cor[:, -2]
 
             #if i == 0:
             #    print("First cor:", new_cor)
@@ -425,17 +457,22 @@ def parametrized_simulation_test(cfg, model):
             ref_norm_L2 = util.get_disc_L2_norm(new_ref)
             unc_error_norm_L2 = util.get_disc_L2_norm(new_unc - new_ref) / ref_norm_L2
             cor_error_norm_L2 = util.get_disc_L2_norm(new_cor - new_ref) / ref_norm_L2
+            unc2_error_norm_L2 = util.get_disc_L2_norm(new_unc2 - new_ref) / ref_norm_L2
             ref_norm_Linfty = util.get_disc_Linfty_norm(new_ref)
             unc_error_norm_Linfty = util.get_disc_Linfty_norm(new_unc - new_ref) / ref_norm_Linfty
             cor_error_norm_Linfty = util.get_disc_Linfty_norm(new_cor - new_ref) / ref_norm_Linfty
+            unc2_error_norm_Linfty = util.get_disc_Linfty_norm(new_unc2 - new_ref) / ref_norm_Linfty
 
             L2_errors_unc[a][i] = unc_error_norm_L2
+            L2_errors_unc2[a][i] = unc2_error_norm_L2
             L2_errors_cor[a][i] = cor_error_norm_L2
             Linfty_errors_unc[a][i] = unc_error_norm_Linfty
+            Linfty_errors_unc2[a][i] = unc2_error_norm_Linfty
             Linfty_errors_cor[a][i] = cor_error_norm_Linfty
 
             if i in cfg.profile_save_steps:
                 plot_data_dict['unc'][a][plot_num] = new_unc
+                plot_data_dict['unc2'][a][plot_num] = new_unc2
                 plot_data_dict['ref'][a][plot_num] = new_ref
                 plot_data_dict['cor'][a][plot_num] = new_cor
                 if cfg.model_type == 'hybrid' and cfg.exact_solution_available:
@@ -446,11 +483,14 @@ def parametrized_simulation_test(cfg, model):
 
             old_cor = new_cor
             old_unc = new_unc
+            old_unc2 = new_unc2
 
     error_dict = {
         'unc_L2': L2_errors_unc,
+        'unc2_L2': L2_errors_unc2,
         'cor_L2': L2_errors_cor,
         'unc_Linfty': Linfty_errors_unc,
+        'unc2_Linfty': Linfty_errors_unc2,
         'cor_Linfty': Linfty_errors_cor,
         'alphas': alphas
     }

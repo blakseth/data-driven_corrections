@@ -21,6 +21,7 @@ import torch.utils.data
 # File imports.
 
 import config
+import exact_solver
 import physics
 import util
 
@@ -34,78 +35,58 @@ def create_parametrized_datasets(cfg):
 
     print("ALPHAS:", cfg.alphas)
 
-    unc_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
-    ref_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
-    res_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
-    IC_Ts = np.zeros((cfg.alphas.shape[0],  cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
-    sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x, cfg.N_y))
+    unc_Vs  = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ ))
+    ref_Vs  = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ ))
+    res_Vs  = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ ))
+    old_Vs  = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ ))
+    sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
     for a, alpha in enumerate(cfg.alphas):
-        unc_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
-        ref_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
-        IC_Ts[a][0]  = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
+        cfg.init_u2 = alpha
+        unc_Vs[a][0] = physics.get_init_V_mtx(cfg)
+        ref_Vs[a][0] = physics.get_init_V_mtx(cfg)
+        old_Vs[a][0] = physics.get_init_V_mtx(cfg)
         # Residual at first time level is already set to zero, which is the correct value.
         for i in range(1, cfg.N_t):
-            old_time = np.around(cfg.dt * (i - 1), decimals=10)
-            new_time = np.around(cfg.dt * i, decimals=10)
-            unc_IC = ref_Ts[a][i-1]
-            IC_Ts[a][i] = unc_IC
-            unc_Ts[a][i] = physics.simulate_2D(
-                cfg, unc_IC, old_time, new_time, alpha,
-                cfg.get_q_hat_approx,
-                np.zeros((cfg.x_nodes[1:-1].shape[0], cfg.y_nodes[1:-1].shape[0]))
-            )
+            new_time = np.around(cfg.dt * i, decimals=10) # Assumes time start at 0.
+            old_Vs[a][i] = ref_Vs[a][i-1]
+            unc_Vs[a][i] = physics.get_new_state(cfg, old_Vs[a][i], np.zeros((3, cfg.N_x)), 'LxF')
             if cfg.exact_solution_available:
-                ref_Ts[a][i] = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, new_time, alpha)
+                ref_Vs[a][i] = exact_solver.exact_solver(cfg, new_time)
             else:
-                raise Exception("Parametrized datasets currently requires the exact solution to be available.")
-            res_Ts[a][i] = ref_Ts[a][i] - unc_Ts[a][i]
+                raise Exception("Parametrized datasets currently require the exact solution to be available.")
+            res_Vs[a][i] = ref_Vs[a][i] - unc_Vs[a][i]
 
-        for i in range(1, cfg.N_t): # Intentionally leaves the first entry all-zeros.
-            old_time = np.around(cfg.dt * (i - 1), decimals=10)
-            new_time = np.around(cfg.dt * i, decimals=10)
-            sources[a][i] = physics.get_corrective_src_term_2D(
-                cfg, ref_Ts[a][i-1], ref_Ts[a][i], old_time, alpha, cfg.get_q_hat_approx
-            )
-            corrected = physics.simulate_2D(
-                cfg, ref_Ts[a][i-1], old_time, new_time, alpha, cfg.get_q_hat_approx, sources[a][i]
-            )
-            np.testing.assert_allclose(corrected, ref_Ts[a][i], rtol=1e-10, atol=1e-10)
-
-    # Store data
-    simulation_data = {
-        'x': cfg.x_nodes,
-        'y': cfg.y_nodes,
-        'ICs': IC_Ts,
-        'unc': unc_Ts,
-        'ref': ref_Ts,
-        'res': res_Ts,
-        'src': sources,
-        'alphas': cfg.alphas
-    }
-    print()
-    save_filepath = os.path.join(datasets_location, data_tag + ".sav")
-    #joblib.dump(simulation_data, save_filepath)
+            sources[a][i] = physics.get_corr_src_term(cfg, ref_Vs[a][i-1], ref_Vs[a][i], 'LxF')
+            corrected = physics.get_new_state(cfg, old_Vs[a][i], sources[a][i], 'LxF')
+            np.testing.assert_allclose(corrected, ref_Vs[a][i], rtol=1e-10, atol=1e-10)
 
     # Remove data for t=0 from datasets.
-    ICs = np.delete(simulation_data['ICs'], obj=0, axis=1)
-    unc = np.delete(simulation_data['unc'], obj=0, axis=1)
-    ref = np.delete(simulation_data['ref'], obj=0, axis=1)
-    res = np.delete(simulation_data['res'], obj=0, axis=1)
-    src = np.delete(simulation_data['src'], obj=0, axis=1)
+    ICs = np.delete(old_Vs,  obj=0, axis=1)
+    unc = np.delete(unc_Vs,  obj=0, axis=1)
+    ref = np.delete(ref_Vs,  obj=0, axis=1)
+    res = np.delete(res_Vs,  obj=0, axis=1)
+    src = np.delete(sources, obj=0, axis=1)
     times = np.linspace(cfg.dt, cfg.t_end, cfg.N_t - 1, endpoint=True)
     assert times[1] == 2 * cfg.dt
 
+    print("times.shape", times.shape)
+    print("unc.shape", unc.shape)
+    print("cfg.N_t", cfg.N_t)
+    print("N_train_examples:", cfg.N_train_examples)
+
     # Split data into training, validation and testing sets.
 
-    train_ICs = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
-    train_unc = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
-    train_ref = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
-    train_res = np.zeros((cfg.N_train_examples, cfg.N_x + 2, cfg.N_y + 2))
-    train_src = np.zeros((cfg.N_train_examples, cfg.N_x    , cfg.N_y    ))
+    train_ICs = np.zeros((cfg.N_train_examples, 3, cfg.NJ ))
+    train_unc = np.zeros((cfg.N_train_examples, 3, cfg.NJ ))
+    train_ref = np.zeros((cfg.N_train_examples, 3, cfg.NJ ))
+    train_res = np.zeros((cfg.N_train_examples, 3, cfg.NJ ))
+    train_src = np.zeros((cfg.N_train_examples, 3, cfg.N_x))
     train_times = np.zeros(cfg.N_train_examples)
     train_alphas = []
     for a in range(cfg.N_train_alphas):
         print("a", a)
+        print("ICs slice shape:", ICs[a, :, :, :].shape)
+        print("diff:", (cfg.N_t - 1) * (a + 1) - (cfg.N_t - 1) * (a + 0))
         train_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a, :, :, :]
         train_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a, :, :, :]
         train_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a, :, :, :]
@@ -115,11 +96,11 @@ def create_parametrized_datasets(cfg):
         train_alphas.append(cfg.alphas[a])
     train_alphas = np.asarray(train_alphas)
 
-    val_ICs = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
-    val_unc = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
-    val_ref = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
-    val_res = np.zeros((cfg.N_val_examples, cfg.N_x + 2, cfg.N_y + 2))
-    val_src = np.zeros((cfg.N_val_examples, cfg.N_x    , cfg.N_y    ))
+    val_ICs = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
+    val_unc = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
+    val_ref = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
+    val_res = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
+    val_src = np.zeros((cfg.N_val_examples, 3, cfg.N_x))
     val_times = np.zeros(cfg.N_val_examples)
     val_alphas = []
     for a in range(cfg.N_val_alphas):
@@ -134,11 +115,11 @@ def create_parametrized_datasets(cfg):
         val_alphas.append(cfg.alphas[a + offset])
     val_alphas = np.asarray(val_alphas)
 
-    test_ICs = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
-    test_unc = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
-    test_ref = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
-    test_res = np.zeros((cfg.N_test_examples, cfg.N_x + 2, cfg.N_y + 2))
-    test_src = np.zeros((cfg.N_test_examples, cfg.N_x    , cfg.N_y    ))
+    test_ICs = np.zeros((cfg.N_test_examples, 3, cfg.NJ ))
+    test_unc = np.zeros((cfg.N_test_examples, 3, cfg.NJ ))
+    test_ref = np.zeros((cfg.N_test_examples, 3, cfg.NJ ))
+    test_res = np.zeros((cfg.N_test_examples, 3, cfg.NJ ))
+    test_src = np.zeros((cfg.N_test_examples, 3, cfg.N_x))
     test_times = np.zeros(cfg.N_test_examples)
     test_alphas = []
     for a in range(cfg.N_test_alphas):
@@ -216,15 +197,15 @@ def create_parametrized_datasets(cfg):
         train_times = np.concatenate((train_times, train_times), axis=0)
 
     # Calculate statistical properties of training data.
-    train_unc_mean = np.mean(train_unc)
-    train_ref_mean = np.mean(train_ref)
-    train_res_mean = np.mean(train_res)
-    train_src_mean = np.mean(train_src)
+    train_unc_mean = 0.0 # Dirty quick fix to avoid normalization.
+    train_ref_mean = 0.0
+    train_res_mean = 0.0
+    train_src_mean = 0.0
 
-    train_unc_std = np.std(train_unc)
-    train_ref_std = np.std(train_ref)
-    train_res_std = np.std(train_res)
-    train_src_std = np.std(train_src)
+    train_unc_std = 1.0
+    train_ref_std = 1.0
+    train_res_std = 1.0
+    train_src_std = 1.0
 
     # z_normalize data.
     train_unc_normalized = util.z_normalize(train_unc, train_unc_mean, train_unc_std)

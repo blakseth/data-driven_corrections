@@ -11,6 +11,7 @@ Main configuration file.
 
 import numpy as np
 import os
+import scipy.special
 import torch
 
 ########################################################################################################################
@@ -30,7 +31,7 @@ run_names  = [["Euler_GlobalDense_s1_HAM"]]
 systems    = ["SOD"]
 data_tags  = ["SOD"]
 model_type = 'hybrid'
-model_keys = [5]
+model_keys = [7]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 N_x = 20
@@ -59,7 +60,8 @@ class Config:
             'EnsembleLocalDense',
             'EnsembleGlobalCNN',
             'Dense2D',
-            'CNN2D'
+            'CNN2D',
+            'DenseEuler'
         ]
         self.model_name = model_names[model_key]
 
@@ -82,9 +84,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -100,17 +102,21 @@ class Config:
         # Domain configuration.
 
         if self.parametrized_system:
-            lin_alphas   = np.linspace(0.1, 2.0, 20, endpoint=True)
-            permutation  = np.random.RandomState(seed=42).permutation(lin_alphas.shape[0])
-            lin_alphas   = lin_alphas[permutation]
-            extra_alphas = np.asarray([-0.5, 2.5])
-            self.alphas  = np.concatenate((lin_alphas, extra_alphas), axis=0)
+            train_alphas, _ = scipy.special.roots_legendre(16)
+            train_alphas *= 0.5
+            val_alphas = np.asarray([-0.1, 0.1])
+            test_alphas = np.asarray([-1.0, -0.25, 0.0, 0.25, 1.0])
+            self.train_alphas = train_alphas
+            self.val_alphas = val_alphas
+            self.test_alphas = test_alphas
+            self.alphas = np.concatenate((self.train_alphas, self.val_alphas, self.test_alphas), axis=0)
         else:
             self.alphas = np.asarray([1.0])
 
         if self.system == "SOD":
             exact_solution_available = True
             t_end     = 0.2
+            dt        = 2.5e-3
             x_a       = 0.0
             x_b       = 1.0
             x_split   = 0.5
@@ -123,6 +129,132 @@ class Config:
             init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
             init_rho2 = 0.125
             init_p2   = 0.1
+            init_u2   = 0.0
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "123":
+            exact_solution_available = True
+            t_end     = 0.15
+            dt        = 2e-3
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.5
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.0
+            init_p1   = 0.4
+            init_u1   = -2.0
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 1.0
+            init_p2   = 0.4
+            init_u2   = 2.0
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "LWC":
+            exact_solution_available = True
+            t_end     = 0.012
+            dt        = 1e-4
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.5
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.0
+            init_p1   = 1000.0
+            init_u1   = 0.0
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 1.0
+            init_p2   = 0.01
+            init_u2   = 0.0
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "Test4":
+            exact_solution_available = True
+            t_end     = 0.035
+            dt        = 3e-4
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.4
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 6.0
+            init_p1   = 461.0
+            init_u1   = 19.6
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 6.0
+            init_p2   = 46.1
+            init_u2   = -6.2
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "Test5":
+            exact_solution_available = True
+            t_end     = 0.012
+            dt        = 1e-4
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.8
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.0
+            init_p1   = 1000.0
+            init_u1   = -20.0
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 6.0
+            init_p2   = 0.01
+            init_u2   = -20.0
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "Test6":
+            exact_solution_available = True
+            t_end     = 2.0
+            dt        = 7e-3
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.5
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.4
+            init_p1   = 1.0
+            init_u1   = 0.0
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 1.0
+            init_p2   = 1.0
+            init_u2   = 0.0
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "Test7":
+            exact_solution_available = True
+            t_end     = 2.0
+            dt        = 7e-3
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.5
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.4
+            init_p1   = 1.0
+            init_u1   = 0.1
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 1.0
+            init_p2   = 1.0
+            init_u2   = 0.1
+            init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
+        elif self.system == "Thermo":
+            exact_solution_available = True
+            t_end     = 5e-4
+            dt        = 1e-5
+            x_a       = 0.0
+            x_b       = 1.0
+            x_split   = 0.5
+            CFL       = 0.9
+            gamma     = 1.4
+            c_V       = 2.5
+            init_rho1 = 1.0595
+            init_p1   = 1.0e5
+            init_u1   = 0.0
+            init_T1   = init_p1 / (init_rho1*c_V*(gamma - 1))
+            init_rho2 = 0.1324275
+            init_p2   = 1.0e4
             init_u2   = 0.0
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
         else:
@@ -144,6 +276,7 @@ class Config:
         self.init_T2   = init_T2
         self.gamma     = gamma
         self.c_V       = c_V
+        self.dt        = dt
 
         self.dom_vars = set([attr for attr in dir(self) if
                              not callable(getattr(self, attr)) and not attr.startswith("__")]) - other_vars
@@ -163,7 +296,6 @@ class Config:
         self.x_nodes[-1]   = self.x_b
 
         # Temporal discretization.
-        self.dt = 4e-3
         self.N_t = int(self.t_end / self.dt) + 1
 
         self.disc_vars = set([attr for attr in dir(self) if
@@ -176,21 +308,12 @@ class Config:
         self.do_simulation_test = False
 
         # Dataset sizes (unaugmented).
-        self.train_examples_ratio = 0.8
-        self.val_examples_ratio = 0.1
-        self.test_examples_ratio = 0.1
-        assert np.around(self.train_examples_ratio + self.val_examples_ratio + self.test_examples_ratio) == 1.0
-        self.N_train_examples = int(self.train_examples_ratio * self.N_t)
-        self.N_val_examples = int(self.val_examples_ratio * self.N_t)
-        self.N_test_examples = int(self.test_examples_ratio * self.N_t)
-        if self.parametrized_system:
-            self.N_train_examples *= lin_alphas.shape[0]
-            self.N_val_examples *= lin_alphas.shape[0]
-            self.N_test_examples *= lin_alphas.shape[0]
-            self.N_test_examples += self.N_t * extra_alphas.shape[0]
-        self.N_train_alphas = int(self.train_examples_ratio * lin_alphas.shape[0])
-        self.N_val_alphas   = int(self.val_examples_ratio   * lin_alphas.shape[0])
-        self.N_test_alphas  = int(self.test_examples_ratio  * lin_alphas.shape[0]) + extra_alphas.shape[0]
+        self.N_train_examples = int(self.train_alphas.shape[0] * self.N_t)
+        self.N_val_examples = int(self.val_alphas.shape[0] * self.N_t)
+        self.N_test_examples = int(self.test_alphas.shape[0] * self.N_t)
+        self.N_train_alphas = self.train_alphas.shape[0]
+        self.N_val_alphas   = self.val_alphas.shape[0]
+        self.N_test_alphas  = self.test_alphas.shape[0]
         print("N_train_alphas", self.N_train_alphas)
         print("N_val_alphas", self.N_val_alphas)
         print("N_test_alphas", self.N_test_alphas)
@@ -258,7 +381,7 @@ class Config:
         elif self.model_name == 'EnsembleLocalDense':
             self.num_layers = 5
             self.hidden_layer_size = 9
-            self.num_networks = self.N_x * self.N_y
+            self.num_networks = self.N_x
             self.model_specific_params = [self.num_networks, self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():
                 return [self.num_networks, self.num_layers, self.hidden_layer_size]
@@ -267,7 +390,7 @@ class Config:
             self.kernel_size = 3
             self.num_channels = 20
             self.num_fc_layers = 1
-            self.num_networks = self.N_x * self.N_y
+            self.num_networks = self.N_x
             self.model_specific_params = [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
             def get_model_specific_params():
                 return [self.num_networks, self.num_conv_layers, self.kernel_size, self.num_channels, self.num_fc_layers]
@@ -285,6 +408,13 @@ class Config:
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels]
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]
+        elif self.model_name == 'DenseEuler':
+            self.num_layers = 6
+            self.hidden_layer_size = 500
+            # [No. fc layers, No. nodes in each hidden layer]
+            self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_layers, self.hidden_layer_size]
         else:
             raise Exception("Invalid model selection.")
 

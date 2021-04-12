@@ -358,6 +358,8 @@ def create_new_model(cfg, model_specific_params):
         return Model(cfg, 'DenseModule2D', (cfg.N_x + 2, cfg.N_y + 2), (cfg.N_x, cfg.N_y), model_specific_params)
     elif cfg.model_name == 'CNN2D':
         return Model(cfg, 'CNNModule2D', (cfg.N_x + 2, cfg.N_y + 2), (cfg.N_x, cfg.N_y), model_specific_params)
+    elif cfg.model_name == 'DenseEuler':
+        return Model(cfg, 'DenseModule2D', (3, cfg.N_x), (3, cfg.N_x), model_specific_params)
     else:
         raise Exception("Invalid model selection.")
 

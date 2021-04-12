@@ -81,19 +81,19 @@ def train(cfg, model, num):
 
             if cfg.model_type == 'data':
                 #print("Data pass")
-                out_data = model.net(old_data)
+                out_data = model.net(old_data[:, :, 1:-1])
             else:
-                out_data = model.net(unc_data) # out = output (corrected profile or predicted correction source term).
+                out_data = model.net(unc_data[:, :, 1:-1]) # out = output (corrected profile or predicted correction source term).
 
             if cfg.model_type == 'hybrid':
                 loss = model.loss(out_data, src_data)
             elif cfg.model_type == 'residual':
-                loss = model.loss(out_data, res_data[:, 1:-1, 1:-1])
+                loss = model.loss(out_data, res_data[:, :, 1:-1])
             elif cfg.model_type == 'end-to-end':
-                loss = model.loss(out_data, ref_data[:, 1:-1, 1:-1])
+                loss = model.loss(out_data, ref_data[:, :, 1:-1])
             elif cfg.model_type == 'data':
                 #print("Data loss")
-                loss = model.loss(out_data, ref_data[:, 1:-1, 1:-1])
+                loss = model.loss(out_data, ref_data[:, :, 1:-1])
 
             """
             if it == cfg.num_train_it:
@@ -117,11 +117,11 @@ def train(cfg, model, num):
             model.optimizer.step()
 
             if it % cfg.validation_period == 0:
-                print("val it:", it)
+                #print("val it:", it)
                 model.net.eval()
                 with torch.no_grad():
                     for j, val_data in enumerate(dataloader_val):
-                        print("j:", j)
+                        #print("j:", j)
                         unc_data_val = val_data[0].to(cfg.device)
                         ref_data_val = val_data[1].to(cfg.device)
                         res_data_val = val_data[7].to(cfg.device)
@@ -129,19 +129,19 @@ def train(cfg, model, num):
                         if cfg.model_type == 'data':
                             #print("Data val pass")
                             old_data_val = util.z_normalize(val_data[4], ref_mean, ref_std).to(cfg.device)
-                            out_data_val = model.net(old_data_val)
+                            out_data_val = model.net(old_data_val[:, :, 1:-1])
                         else:
-                            out_data_val = model.net(unc_data_val)
+                            out_data_val = model.net(unc_data_val[:, :, 1:-1])
 
                         if cfg.model_type == 'hybrid':
                             val_loss = model.loss(out_data_val, src_data_val)
                         elif cfg.model_type == 'residual':
-                            val_loss = model.loss(out_data_val, res_data_val[:, 1:-1, 1:-1])
+                            val_loss = model.loss(out_data_val, res_data_val[:, :, 1:-1])
                         elif cfg.model_type == 'end-to-end':
-                            val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1, 1:-1])
+                            val_loss = model.loss(out_data_val, ref_data_val[:, :, 1:-1])
                         elif cfg.model_type == 'data':
                             #print("Data val loss")
-                            val_loss = model.loss(out_data_val, ref_data_val[:, 1:-1, 1:-1])
+                            val_loss = model.loss(out_data_val, ref_data_val[:, :, 1:-1])
                         model.val_losses.append(val_loss.item())
                         model.val_iterations.append(it)
                         if val_loss < lowest_val_los:
