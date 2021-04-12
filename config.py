@@ -27,7 +27,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-12_trial_euler"
-run_names  = [["Euler_GlobalDense_s1_HAM2"]]
+run_names  = [["Euler_GlobalDense_s1_HAM3"]]
 systems    = ["SOD"]
 data_tags  = ["SOD"]
 model_type = 'hybrid'
@@ -409,8 +409,8 @@ class Config:
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]
         elif self.model_name == 'DenseEuler':
-            self.num_layers = 6
-            self.hidden_layer_size = 500
+            self.num_layers = 10
+            self.hidden_layer_size = 1000
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():
@@ -509,12 +509,20 @@ def save_config(cfg):
 ########################################################################################################################
 
 def main():
-    lin_alphas = np.linspace(0.1, 2.0, 20, endpoint=True)
-    permutation = np.random.RandomState(seed=42).permutation(lin_alphas.shape[0])
-    lin_alphas = lin_alphas[permutation]
-    extra_alphas = np.asarray([-0.5, 2.5])
-    alphas = np.concatenate((lin_alphas, extra_alphas), axis=0)
-    print(alphas)
+    cfg = Config(
+        use_GPU=use_GPU,
+        group_name=group_name,
+        run_name=run_names[0][0],
+        system=systems[0],
+        data_tag=data_tags[0],
+        model_key=model_keys[0],
+        do_train=False,
+        do_test=False,
+        N_x=N_x,
+        model_type=model_type,
+    )
+    print(cfg.alphas)
+    print(cfg.N_train_examples)
 
 ########################################################################################################################
 
