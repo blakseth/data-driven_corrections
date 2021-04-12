@@ -427,8 +427,8 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Training configuration.
 
-        self.max_train_it = int(1e2)
-        self.min_train_it = int(1e2)
+        self.max_train_it = int(1e6)
+        self.min_train_it = int(1e4)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
         self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.
