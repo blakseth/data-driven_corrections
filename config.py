@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-13_experiment_without_modelling_error_data"
-run_names  = [["GlobalDense_s0", "GlobalDense_s1"]]
-systems    = ["0", "1"]
-data_tags  = ["s0_no_mod_error", "s1_no_mod_error"]
+group_name = "2021-04-13_experiment2_without_modelling_error_data"
+run_names  = [["GlobalDense_s6_finer"]]
+systems    = ["6"]
+data_tags  = ["s6_no_mod_error"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -66,7 +66,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 5
+        self.ensemble_size = 1
 
         self.do_train = do_train
         self.do_test = do_test
@@ -703,7 +703,7 @@ class Config:
         # Discretization.
 
         # Coarse spatial discretization.
-        self.N_coarse = 20
+        self.N_coarse = 200
         self.dx_coarse = (self.x_b - self.x_a) / self.N_coarse
         self.faces_coarse = np.linspace(self.x_a, self.x_b, num=self.N_coarse + 1, endpoint=True)
         self.nodes_coarse = np.zeros(self.N_coarse + 2)
@@ -844,7 +844,7 @@ class Config:
         # Training configuration.
 
         self.max_train_it = int(1e6)
-        self.min_train_it = int(1e4)
+        self.min_train_it = int(2e4)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
         self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.
