@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-13_experiment_without_modelling_error"
+group_name = "2021-04-13_experiment_without_modelling_error_data"
 run_names  = [["GlobalDense_s0", "GlobalDense_s1"]]
 systems    = ["0", "1"]
 data_tags  = ["s0_no_mod_error", "s1_no_mod_error"]
@@ -49,7 +49,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.model_type = 'data' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
         self.synthesize_mod_error = synthesize_modelling_error
 
