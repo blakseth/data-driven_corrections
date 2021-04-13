@@ -66,7 +66,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 1
+        self.ensemble_size = 5
 
         self.do_train = do_train
         self.do_test = do_test
