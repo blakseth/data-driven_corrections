@@ -25,13 +25,14 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-07_20cells_V4"
-run_names  = [["GlobalDense_s1"]]
-systems    = ["1"]
-data_tags  = ["s1_param_src_zero_res"]
+group_name = "2021-04-13_experiment_without_modelling_error"
+run_names  = [["GlobalDense_s0", "GlobalDense_s1"]]
+systems    = ["0", "1"]
+data_tags  = ["s0_no_mod_error", "s1_no_mod_error"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
+synthesize_modelling_error = False
 
 
 ########################################################################################################################
@@ -50,6 +51,8 @@ class Config:
         self.model_key  = model_key
         self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
+        self.synthesize_mod_error = synthesize_modelling_error
+
         model_names = [
             'GlobalDense',
             'GlobalCNN',
@@ -63,7 +66,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 1
+        self.ensemble_size = 5
 
         self.do_train = do_train
         self.do_test = do_test
@@ -78,9 +81,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -104,7 +107,38 @@ class Config:
         else:
             self.alphas = np.asarray([1.0])
 
-        if self.system == "1":
+        if self.system == "0":
+            exact_solution_available = True
+            t_end     = 5.0
+            x_a       = 0.0
+            x_b       = 1.0
+            A         = 1.0
+            rho       = 1.0
+            k_ref     = 1.0
+            cV_ref    = 1.0
+            q_hat_ref = 1.0
+            def get_T_exact(x, t, alpha):
+                return alpha * (t + 0.5 * (x ** 2))
+            def get_T0(x, alpha):
+                return get_T_exact(x, 0, alpha)
+            def get_T_a(t, alpha):
+                return get_T_exact(x_a, t, alpha)
+            def get_T_b(t, alpha):
+                return get_T_exact(x_b, t, alpha)
+            def get_q_hat(x, t, alpha):
+                return np.zeros_like(x)
+            def get_q_hat_approx(x, t, alpha):
+                if synthesize_modelling_error:
+                    return np.zeros_like(x)
+                else:
+                    return get_q_hat(x, t, alpha)
+            def get_k(x):
+                return np.ones_like(x) * k_ref
+            def get_k_approx(x):
+                return get_k(x)
+            def get_cV(x):
+                return np.ones_like(x) * cV_ref
+        elif self.system == "1":
             exact_solution_available = True
             t_end     = 5.0
             x_a       = 0.0
@@ -123,9 +157,12 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return -(1 + alpha) * np.ones_like(x)
+                return (1 - alpha) * np.ones_like(x)
             def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x)
+                if synthesize_modelling_error:
+                    return np.zeros_like(x)
+                else:
+                    return get_q_hat(x, t, alpha)
             def get_k(x):
                 return np.ones_like(x) * k_ref
             def get_k_approx(x):
@@ -151,9 +188,12 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return -1 / (2 * np.sqrt(t + alpha + 1)) - 20 * (6 * (x ** 2) + 3 * x - 2)
+                return 1 / (2 * np.sqrt(t + alpha + 1)) - 20 * (6 * (x ** 2) + 3 * x - 2)
             def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
+                if synthesize_modelling_error:
+                    return np.zeros_like(x)
+                else:
+                    return get_q_hat(x, t, alpha)
             def get_k(x):
                 return np.ones_like(x) * k_ref
             def get_k_approx(x):
@@ -179,7 +219,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return -1 / (np.sqrt(t + alpha + 1)) - 14 * (6 * (x ** 2) + 3 * x - 2)
+                return 1 / (np.sqrt(t + alpha + 1)) - 14 * (6 * (x ** 2) + 3 * x - 2)
             def get_q_hat_approx(x, t, alpha):
                 return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
             def get_k(x):
@@ -319,10 +359,12 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return alpha * (x * (x - 1) - 2 * ((x - 1) * np.tanh(x / (t + 0.1)) + t + 0.1)) / (
-                            ((t + 0.1) * np.cosh(x / (t + 0.1))) ** 2)
+                return alpha*(x*(1-x) + 2*((x-1)*np.tanh(x/(t+0.1)) - t-0.1)) / (((t + 0.1)*np.cosh(x/(t + 0.1)))** 2)
             def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
+                if synthesize_modelling_error:
+                    return np.zeros_like(x)
+                else:
+                    return get_q_hat(x, t, alpha)
             def get_k(x):
                 return np.ones_like(x) * k_ref
             def get_k_approx(x):
@@ -376,10 +418,12 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return 4 * (np.pi ** 2) * np.sin(2 * np.pi * t + alpha) * np.cos(2 * np.pi * x) - 2 * np.pi * np.cos(
-                    2 * np.pi * t + alpha) * np.cos(2 * np.pi * x)
+                return 2*np.pi*(np.cos(2*np.pi*t + alpha) - 2*np.pi*np.sin(2*np.pi*t + alpha))*np.cos(2*np.pi*x)
             def get_q_hat_approx(x, t, alpha):
-                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
+                if synthesize_modelling_error:
+                    return np.zeros_like(x)
+                else:
+                    return get_q_hat(x, t, alpha)
             def get_k(x):
                 return np.ones_like(x) * k_ref
             def get_k_approx(x):
