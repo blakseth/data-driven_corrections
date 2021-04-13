@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-13_experiment2_without_modelling_error_data"
-run_names  = [["GlobalDense_s0_finer_hybrid"]]
+run_names  = [["GlobalDense_s6_finer_hybrid"]]
 systems    = ["6"]
 data_tags  = ["s6_no_mod_error"]
 model_keys = [0]
