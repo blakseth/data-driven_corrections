@@ -18,16 +18,21 @@ import os
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 plt.rcParams.update({
-    "font.family": "serif",
+    "font.family": "DeJavu Serif",
     "font.serif": ["Computer Modern Roman"],
+    "mathtext.fontset": 'cm'
 })
 
 ########################################################################################################################
 # Exact solutions.
 
 def get_exact_solution(system_number, alpha, t):
+    if system_number == 0:
+        return lambda x: alpha * (t + 0.5 * (x ** 2))
+
     if system_number == 1:
         return lambda x: t + 0.5 * alpha * (x ** 2)
 
@@ -82,7 +87,7 @@ def visualize_error_data(iterations, unc_errors, end_errors, hyb_errors, output_
     plt.semilogy(iterations, hyb_errors, 'g-', linewidth=2.0, label="CoSTA")
     plt.xlim([0, len(unc_errors)])
     plt.xlabel("Test Iterations", fontsize=20)
-    plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+    plt.ylabel(r"Relative $\mathcal{l}_2$ Error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -139,7 +144,8 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
 
 def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, output_dir, filename):
     plt.figure()
-    plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="PBM")
+
+    plt.scatter(x, unc_profile, s=35, facecolors='none', edgecolors='r', label="PBM")
     if dat_profile_FCNN is not None:
         plt.scatter(x, dat_profile_FCNN, s=40, marker='s', facecolors='none', edgecolors='b', label="DDM")
     if dat_profile_CNN is not None:
@@ -156,6 +162,11 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
         plt.scatter(x, res_profile_FCNN, s=40, marker='o', facecolors='none', edgecolors='y', label="Residual FCNN")
     if res_profile_CNN is not None:
         plt.scatter(x, res_profile_CNN,  s=40, marker='^', facecolors='none', edgecolors='y', label="Residual CNN")
+    """
+    plt.plot(x, unc_profile, 'r-', linewidth=6.0, label="PBM")
+    plt.plot(x, hyb_profile_FCNN, 'g-', linewidth=3.7, label="HAM")
+    plt.plot(x, dat_profile_FCNN, 'b-', linewidth=2.0, label="DDM")
+    """
     x_dense = np.linspace(x[0], x[-1], 1001, endpoint=True)
     plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
     plt.xlim(x[0], x[-1])
@@ -168,18 +179,31 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
+def visualize_src_terms(x, src, alpha, output_dir, filename):
+    plt.figure()
+    plt.scatter(x, src, s=40, marker='D', facecolor='none', edgecolors='g', label=r"$\hat{\sigma}$")
+    plt.plot(x, np.ones_like(x) - alpha, 'k-', linewidth=2.0, label=r"$1-\alpha$")
+    plt.xlabel(r"$x$ (m)", fontsize=20)
+    plt.ylabel(r"$\hat{\sigma}\ \left(\mathrm{J/m}^3\right)$", fontsize=20)
+    plt.xticks(fontsize=17)
+    plt.yticks(fontsize=17)
+    plt.grid()
+    # plt.legend(prop={'size': 17})
+    plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
+    plt.close()
+
 ########################################################################################################################
 
 def main():
     hybrid_CNN_dir  = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalCNN_rerun/GlobalCNN_s"
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_hybrid/GlobalDense_s"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-13_hybrid/GlobalDense_s"#2021-03-30_hybrid/GlobalDense_s"
     end_CNN_dir     = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalCNN_rerun/GlobalCNN_s"
     end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalDense_rerun/GlobalDense_s"
     res_CNN_dir     = ""
     res_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-29_residual_GlobalDense/GlobalDense_s"
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-03-31_no_legends2"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-13_data/GlobalDense_s"#2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-04-14_new_plots2"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -188,15 +212,16 @@ def main():
     use_res_results   = False
     use_dat_results   = True
 
-    os.makedirs(output_dir, exist_ok=False)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [1, 2, 6, 8]
+    systems_to_include = [0]
 
-    y_lims_interp = [[1e-6, 1e-1], [1e-6, 3e0], None, None, None, [5e-5, 4e-1], None, [3e-5, 1e0]]
-    y_lims_extrap = [[7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-4, 7e-1], None, [4e-5, 1e0]]
+    y_lims_interp = [[5e-8, 5e-2], [1e-6, 1e-1], [1e-6, 3e0], None, None, None, [1e-7, 1e-1], None, [3e-5, 1e0]]
+    y_lims_extrap = [[5e-6, 5e0], [7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-7, 2e-1], None, [4e-5, 1e0]]
 
-    for s in range(num_systems_studied):
+    for s in range(-1, num_systems_studied):
         system_number = s + 1
         if system_number not in systems_to_include:
             continue
@@ -390,71 +415,83 @@ def main():
                 y_lims = y_lims_extrap
 
             filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
-            visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[s])
+            visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[system_number])
             print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
+    """
+    src_dir = os.path.join(output_dir, "srcs")
+    if not os.path.exists(src_dir):
+        os.makedirs(src_dir, exist_ok=False)
 
-        """
-        print("alpha:", alphas[1])
-        last_unc = hybrid_FCNN_plot_dict['unc'][1][-1]
-        last_ref = hybrid_FCNN_plot_dict['ref'][1][-1]
-        last_hyb = hybrid_FCNN_plot_dict['cor_mean'][1][-1]
-        last_end = end_FCNN_plot_dict['cor_mean'][1][-1]
-        last_res = res_FCNN_plot_dict['cor_mean'][1][-1]
-        print("last_unc", last_unc)
-        print("last_ref", last_ref)
-        print("Last_hyb", last_hyb)
-        print("Last_end", last_end)
-        print("Last_res", last_res)
-        ref_norm = util.get_disc_L2_norm(last_ref)
-        unc_error = util.get_disc_L2_norm(last_unc - last_ref) / ref_norm
-        hyb_error = util.get_disc_L2_norm(last_hyb - last_ref) / ref_norm
-        end_error = util.get_disc_L2_norm(last_end - last_ref) / ref_norm
-        res_error = util.get_disc_L2_norm(last_res - last_ref) / ref_norm
-        print("unc_error calculated", unc_error)
-        print("unc_error recorded", hybrid_FCNN_error_dict['unc_L2'][1][-1])
-        print("hyb_error calculated", hyb_error)
-        print("hyb_error recorded", hybrid_FCNN_error_dict['cor_mean_L2'][1][-1])
-        print("end_error calculated", end_error)
-        print("end_error recorded", end_FCNN_error_dict['cor_mean_L2'][1][-1])
-        print("res_error calculated", res_error)
-        print("res_error recorded", res_FCNN_error_dict['cor_mean_L2'][1][-1])
+    with open(os.path.join(hybrid_FCNN_dir + str(1), "plot_data_stats.pkl"), "rb") as f:
+        hybrid_FCNN_plot_dict = pickle.load(f)
+        print("Value, alpha=0.7:", hybrid_FCNN_plot_dict['src_mean'][1][3][10])
+        print("Value, alpha=1.5:", hybrid_FCNN_plot_dict['src_mean'][0][3][10])
+        x = hybrid_FCNN_plot_dict['x']
+        visualize_src_terms(x[1:-1], hybrid_FCNN_plot_dict['src_mean'][0][-1], 1.5, src_dir, "src_alpha1.5.pdf")
+        visualize_src_terms(x[1:-1], hybrid_FCNN_plot_dict['src_mean'][1][-1], 0.7, src_dir, "src_alpha0.7.pdf")
+    """
+    """
+    print("alpha:", alphas[1])
+    last_unc = hybrid_FCNN_plot_dict['unc'][1][-1]
+    last_ref = hybrid_FCNN_plot_dict['ref'][1][-1]
+    last_hyb = hybrid_FCNN_plot_dict['cor_mean'][1][-1]
+    last_end = end_FCNN_plot_dict['cor_mean'][1][-1]
+    last_res = res_FCNN_plot_dict['cor_mean'][1][-1]
+    print("last_unc", last_unc)
+    print("last_ref", last_ref)
+    print("Last_hyb", last_hyb)
+    print("Last_end", last_end)
+    print("Last_res", last_res)
+    ref_norm = util.get_disc_L2_norm(last_ref)
+    unc_error = util.get_disc_L2_norm(last_unc - last_ref) / ref_norm
+    hyb_error = util.get_disc_L2_norm(last_hyb - last_ref) / ref_norm
+    end_error = util.get_disc_L2_norm(last_end - last_ref) / ref_norm
+    res_error = util.get_disc_L2_norm(last_res - last_ref) / ref_norm
+    print("unc_error calculated", unc_error)
+    print("unc_error recorded", hybrid_FCNN_error_dict['unc_L2'][1][-1])
+    print("hyb_error calculated", hyb_error)
+    print("hyb_error recorded", hybrid_FCNN_error_dict['cor_mean_L2'][1][-1])
+    print("end_error calculated", end_error)
+    print("end_error recorded", end_FCNN_error_dict['cor_mean_L2'][1][-1])
+    print("res_error calculated", res_error)
+    print("res_error recorded", res_FCNN_error_dict['cor_mean_L2'][1][-1])
 
-        with open(os.path.join(end_FCNN_dir + str(system_number), "plot_data_raw.pkl"), "rb") as f:
-            raw_end_FCNN_plot_dicts = pickle.load(f)
+    with open(os.path.join(end_FCNN_dir + str(system_number), "plot_data_raw.pkl"), "rb") as f:
+        raw_end_FCNN_plot_dicts = pickle.load(f)
 
-        raw_profiles = []
-        errors = []
-        for i, raw_plot_dict in enumerate(raw_end_FCNN_plot_dicts):
-            raw_profile = raw_plot_dict['cor'][1][-1]
-            error = util.get_disc_L2_norm(raw_profile - last_ref) / ref_norm
-            raw_profiles.append(raw_profile)
-            errors.append(error)
-            print("Profile " + str(i) + ":", raw_profile)
-            print("Error " + str(i) + ":", error)
-        raw_profiles = np.asarray(raw_profiles)
-        errors = np.asarray(errors)
-        mean_profile = np.zeros(raw_profiles.shape[1])
-        for j in range(raw_profiles.shape[1]):
-            for i in range(raw_profiles.shape[0]):
-                mean_profile[j] += (raw_profiles[i][j] / raw_profiles.shape[0])
-        mean_error = 0.0
-        for i in range(errors.shape[0]):
-            mean_error += (errors[i] / errors.shape[0])
-        print("Calculated mean error:", mean_error)
-        print("Recorded mean error:", end_FCNN_error_dict['cor_mean_L2'][1][-1])
-        print("Calculated mean profile:", mean_profile)
-        print("Recorded mean profile:", end_FCNN_plot_dict['cor_mean'][1][-1])
-        print("Error of mean profile:", util.get_disc_L2_norm(mean_profile - last_ref) / ref_norm)
-
-        plt.figure()
+    raw_profiles = []
+    errors = []
+    for i, raw_plot_dict in enumerate(raw_end_FCNN_plot_dicts):
+        raw_profile = raw_plot_dict['cor'][1][-1]
+        error = util.get_disc_L2_norm(raw_profile - last_ref) / ref_norm
+        raw_profiles.append(raw_profile)
+        errors.append(error)
+        print("Profile " + str(i) + ":", raw_profile)
+        print("Error " + str(i) + ":", error)
+    raw_profiles = np.asarray(raw_profiles)
+    errors = np.asarray(errors)
+    mean_profile = np.zeros(raw_profiles.shape[1])
+    for j in range(raw_profiles.shape[1]):
         for i in range(raw_profiles.shape[0]):
-            print("x:", x)
-            print("raw_profiles", raw_profiles[i])
-            plt.plot(x, raw_profiles[i], label=str(i))
-        plt.plot(x, mean_profile, label='mean')
-        plt.legend()
-        plt.show()
-        """
+            mean_profile[j] += (raw_profiles[i][j] / raw_profiles.shape[0])
+    mean_error = 0.0
+    for i in range(errors.shape[0]):
+        mean_error += (errors[i] / errors.shape[0])
+    print("Calculated mean error:", mean_error)
+    print("Recorded mean error:", end_FCNN_error_dict['cor_mean_L2'][1][-1])
+    print("Calculated mean profile:", mean_profile)
+    print("Recorded mean profile:", end_FCNN_plot_dict['cor_mean'][1][-1])
+    print("Error of mean profile:", util.get_disc_L2_norm(mean_profile - last_ref) / ref_norm)
+
+    plt.figure()
+    for i in range(raw_profiles.shape[0]):
+        print("x:", x)
+        print("raw_profiles", raw_profiles[i])
+        plt.plot(x, raw_profiles[i], label=str(i))
+    plt.plot(x, mean_profile, label='mean')
+    plt.legend()
+    plt.show()
+    """
 
 
 ########################################################################################################################
