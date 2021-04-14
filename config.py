@@ -25,14 +25,14 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-13_experiment2_without_modelling_error_data"
-run_names  = [["GlobalDense_s0_hybrid_data"]]
-systems    = ["0"]
-data_tags  = ["s0_no_mod_error"]
+group_name = "2021-04-14_source_term_investigation"
+run_names  = [["GlobalDense_s1_hybrid_fine_time"]]
+systems    = ["1"]
+data_tags  = ["s1_fine_time"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
-synthesize_modelling_error = False
+synthesize_modelling_error = True
 
 
 ########################################################################################################################
@@ -49,7 +49,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_type = 'data' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
         self.synthesize_mod_error = synthesize_modelling_error
 
@@ -66,7 +66,7 @@ class Config:
 
         self.parametrized_system = True
 
-        self.ensemble_size = 5
+        self.ensemble_size = 1
 
         self.do_train = do_train
         self.do_test = do_test
@@ -81,9 +81,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
