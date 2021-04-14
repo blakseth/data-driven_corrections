@@ -69,10 +69,10 @@ def z_normalize_componentwise(x, means, stds):
     x_normalized = np.zeros_like(x)
     if x_normalized.ndim == 2:
         for i in range(3):
-            x_normalized[i, :] = (x[i, :] - stds[i]) / means[i]
+            x_normalized[i, :] = (x[i, :] - means[i]) / stds[i]
     elif x_normalized.ndim == 3:
         for i in range(3):
-            x_normalized[:, i, :] = (x[:, i, :] - stds[i]) / means[i]
+            x_normalized[:, i, :] = (x[:, i, :] - means[i]) / stds[i]
     return x_normalized
 
 def z_unnormalize_componentwise(x_normalized, means, stds):

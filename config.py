@@ -27,11 +27,11 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-14_trial_euler_with_normalization"
-run_names  = [["Euler_GlobalDense_s1_HAM_SOD_local"]]
+run_names  = [["Euler_GlobalDense_s1_HAM_SOD_src_input_conv"]]
 systems    = ["SOD"]
-data_tags  = ["SOD"]
+data_tags  = ["SOD_src_in"]
 model_type = 'hybrid'
-model_keys = [8]
+model_keys = [6]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 N_x = 100
@@ -85,9 +85,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -309,9 +309,9 @@ class Config:
         self.do_simulation_test = False
 
         # Dataset sizes (unaugmented).
-        self.N_train_examples = int(self.train_alphas.shape[0] * (self.N_t-1))
-        self.N_val_examples = int(self.val_alphas.shape[0] * (self.N_t-1))
-        self.N_test_examples = int(self.test_alphas.shape[0] * (self.N_t-1))
+        self.N_train_examples = int(self.train_alphas.shape[0] * (self.N_t-2))
+        self.N_val_examples = int(self.val_alphas.shape[0] * (self.N_t-2))
+        self.N_test_examples = int(self.test_alphas.shape[0] * (self.N_t-2))
         self.N_train_alphas = self.train_alphas.shape[0]
         self.N_val_alphas   = self.val_alphas.shape[0]
         self.N_test_alphas  = self.test_alphas.shape[0]
@@ -403,9 +403,9 @@ class Config:
             def get_model_specific_params():
                 return [self.num_layers, self.hidden_layer_size]
         elif self.model_name == 'CNN2D':
-            self.num_conv_layers = 5
+            self.num_conv_layers = 10
             self.kernel_size = 3
-            self.num_channels = 80
+            self.num_channels = 300
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels]
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]

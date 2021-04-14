@@ -76,31 +76,33 @@ def create_parametrized_datasets(cfg):
             res_Vs[a][i] = ref_Vs[a][i] - unc_Vs[a][i]
 
             sources[a][i] = physics.get_corr_src_term(cfg, ref_Vs[a][i-1], ref_Vs[a][i], 'LxF')
-            if i % 10 == -10:
+            if i == 2 and a == 0:
                 print("time:", new_time)
                 plt.figure()
                 plt.title("Corrective source terms")
                 plt.plot(cfg.x_nodes[1:-1], sources[a][i][0], label='p')
                 plt.plot(cfg.x_nodes[1:-1], sources[a][i][1], label='u')
                 plt.plot(cfg.x_nodes[1:-1], sources[a][i][2], label='T')
-                plt.show()
                 plt.figure()
                 plt.title("Reference profiles")
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][0], label='p')
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][1], label='u')
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][2], label='T')
-                plt.show()
             corrected = physics.get_new_state(cfg, old_Vs[a][i], sources[a][i], 'LxF')
             np.testing.assert_allclose(corrected, ref_Vs[a][i], rtol=1e-10, atol=1e-10)
 
     # Remove data for t=0 from datasets.
-    ICs = np.delete(old_Vs,  obj=0, axis=1)
-    unc = np.delete(unc_Vs,  obj=0, axis=1)
-    ref = np.delete(ref_Vs,  obj=0, axis=1)
-    res = np.delete(res_Vs,  obj=0, axis=1)
-    src = np.delete(sources, obj=0, axis=1)
-    times = np.linspace(cfg.dt, cfg.t_end, cfg.N_t - 1, endpoint=True)
-    assert times[1] == 2 * cfg.dt
+    ICs = np.delete(old_Vs,  obj=[0,1], axis=1)
+    unc = np.delete(unc_Vs,  obj=[0,1], axis=1)
+    ref = np.delete(ref_Vs,  obj=[0,1], axis=1)
+    res = np.delete(res_Vs,  obj=[0,1], axis=1)
+    src = np.delete(sources, obj=[0,1], axis=1)
+    src_old = np.delete(sources_old, obj=[0,1], axis=1)
+    times = np.linspace(cfg.dt*2, cfg.t_end, cfg.N_t - 2, endpoint=True)
+    print("time[1]", times[1])
+    print("3*dt", 3*cfg.dt)
+    assert np.around(times[1], 10) == np.around(3 * cfg.dt, 10)
+    assert src.shape == (cfg.alphas.shape[0], cfg.N_t - 2, 3, cfg.N_x)
 
     print("times.shape", times.shape)
     print("unc.shape", unc.shape)
@@ -114,18 +116,20 @@ def create_parametrized_datasets(cfg):
     train_ref = np.zeros((cfg.N_train_examples, 3, cfg.NJ ))
     train_res = np.zeros((cfg.N_train_examples, 3, cfg.NJ ))
     train_src = np.zeros((cfg.N_train_examples, 3, cfg.N_x))
+    train_src_old = np.zeros((cfg.N_train_examples, 3, cfg.N_x))
     train_times = np.zeros(cfg.N_train_examples)
     train_alphas = []
     for a in range(cfg.N_train_alphas):
         print("a", a)
         print("ICs slice shape:", ICs[a, :, :, :].shape)
-        print("diff:", (cfg.N_t - 1) * (a + 1) - (cfg.N_t - 1) * (a + 0))
-        train_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a, :, :, :]
-        train_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a, :, :, :]
-        train_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a, :, :, :]
-        train_res[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = res[a, :, :, :]
-        train_src[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = src[a, :, :, :]
-        train_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
+        print("diff:", (cfg.N_t - 2) * (a + 1) - (cfg.N_t - 2) * (a + 0))
+        train_ICs[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = ICs[a, :, :, :]
+        train_unc[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = unc[a, :, :, :]
+        train_ref[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = ref[a, :, :, :]
+        train_res[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = res[a, :, :, :]
+        train_src[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = src[a, :, :, :]
+        train_src_old[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = src_old[a, :, :, :]
+        train_times[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1)] = times
         train_alphas.append(cfg.alphas[a])
     train_alphas = np.asarray(train_alphas)
     print("train_ref[-1]:", train_ref[-1])
@@ -135,17 +139,19 @@ def create_parametrized_datasets(cfg):
     val_ref = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
     val_res = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
     val_src = np.zeros((cfg.N_val_examples, 3, cfg.N_x))
+    val_src_old = np.zeros((cfg.N_val_examples, 3, cfg.N_x))
     val_times = np.zeros(cfg.N_val_examples)
     val_alphas = []
     for a in range(cfg.N_val_alphas):
         print("a", a)
         offset = cfg.N_train_alphas
-        val_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a + offset, :, :, :]
-        val_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a + offset, :, :, :]
-        val_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a + offset, :, :, :]
-        val_res[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = res[a + offset, :, :, :]
-        val_src[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = src[a + offset, :, :, :]
-        val_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
+        val_ICs[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = ICs[a + offset, :, :, :]
+        val_unc[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = unc[a + offset, :, :, :]
+        val_ref[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = ref[a + offset, :, :, :]
+        val_res[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = res[a + offset, :, :, :]
+        val_src[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = src[a + offset, :, :, :]
+        val_src_old[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = src_old[a + offset, :, :, :]
+        val_times[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1)] = times
         val_alphas.append(cfg.alphas[a + offset])
     val_alphas = np.asarray(val_alphas)
 
@@ -154,17 +160,19 @@ def create_parametrized_datasets(cfg):
     test_ref = np.zeros((cfg.N_test_examples, 3, cfg.NJ ))
     test_res = np.zeros((cfg.N_test_examples, 3, cfg.NJ ))
     test_src = np.zeros((cfg.N_test_examples, 3, cfg.N_x))
+    test_src_old = np.zeros((cfg.N_test_examples, 3, cfg.N_x))
     test_times = np.zeros(cfg.N_test_examples)
     test_alphas = []
     for a in range(cfg.N_test_alphas):
         print("a", a)
         offset = cfg.N_train_alphas + cfg.N_val_alphas
-        test_ICs[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ICs[a + offset, :, :, :]
-        test_unc[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = unc[a + offset, :, :, :]
-        test_ref[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = ref[a + offset, :, :, :]
-        test_res[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = res[a + offset, :, :, :]
-        test_src[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1), :, :] = src[a + offset, :, :, :]
-        test_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
+        test_ICs[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = ICs[a + offset, :, :, :]
+        test_unc[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = unc[a + offset, :, :, :]
+        test_ref[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = ref[a + offset, :, :, :]
+        test_res[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = res[a + offset, :, :, :]
+        test_src[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = src[a + offset, :, :, :]
+        test_src_old[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1), :, :] = src_old[a + offset, :, :, :]
+        test_times[(cfg.N_t - 2) * (a + 0):(cfg.N_t - 2) * (a + 1)] = times
         test_alphas.append(cfg.alphas[a + offset])
     test_alphas = np.asarray(test_alphas)
     print("train_alphas", train_alphas)
@@ -181,6 +189,7 @@ def create_parametrized_datasets(cfg):
         train_ref_orig = train_ref.copy()
         train_res_orig = train_res.copy()
         train_src_orig = train_src.copy()
+        train_src_old_orig = train_src_old.copy()
         train_times_orig = train_times.copy()
         for i in range(cfg.N_shift_steps):
             # IC temperature
@@ -201,6 +210,7 @@ def create_parametrized_datasets(cfg):
 
             # Correction source term
             train_src = np.concatenate((train_src, train_src_orig), axis=0)
+            train_src_old = np.concatenate((train_src_old, train_src_old_orig), axis=0)
 
             # Time levels
             train_times = np.concatenate((train_times, train_times_orig), axis=0)
@@ -226,6 +236,8 @@ def create_parametrized_datasets(cfg):
         # Correction source term
         train_src_mirror = np.flip(train_src, axis=1).copy()
         train_src = np.concatenate((train_src, train_src_mirror), axis=0)
+        train_src_old_mirror = np.flip(train_src_old, axis=1).copy()
+        train_src_old = np.concatenate((train_src_old, train_src_old_mirror), axis=0)
 
         # Time levels
         train_times = np.concatenate((train_times, train_times), axis=0)
@@ -237,9 +249,16 @@ def create_parametrized_datasets(cfg):
     src_stds  = []
     for i in range(3):
         ref_means.append(np.mean(train_ref[:,i,:]))
-        src_means.append(np.mean(train_src[:,i:,]))
+        src_means.append(0.0)
         ref_stds.append(np.std(train_ref[:,i,:]))
-        src_stds.append(np.std(train_src[:,i:,]))
+        src_stds.append(1.0)
+
+    plt.figure()
+    plt.title("Source before normalization")
+    plt.plot(cfg.x_nodes[1:-1], train_src[0, 0, :], label='p')
+    plt.plot(cfg.x_nodes[1:-1], train_src[0, 1, :], label='u')
+    plt.plot(cfg.x_nodes[1:-1], train_src[0, 2, :], label='T')
+    plt.legend()
 
     # z_normalize data.
     train_unc_normalized = util.z_normalize_componentwise(train_unc, ref_means, ref_stds)
@@ -258,6 +277,19 @@ def create_parametrized_datasets(cfg):
     val_src_normalized   = util.z_normalize_componentwise(val_src,   src_means, src_stds)
     test_src_normalized  = util.z_normalize_componentwise(test_src,  src_means, src_stds)
 
+    print("\n\nSRC MEAN:", src_means, "\n\n")
+
+    plt.figure()
+    plt.title("Source after normalization")
+    plt.plot(cfg.x_nodes[1:-1], train_src_normalized[0, 0, :], label='p')
+    plt.plot(cfg.x_nodes[1:-1], train_src_normalized[0, 1, :], label='u')
+    plt.plot(cfg.x_nodes[1:-1], train_src_normalized[0, 2, :], label='T')
+    plt.legend()
+
+    train_src_old_normalized = util.z_normalize_componentwise(train_src_old, src_means, src_stds)
+    val_src_old_normalized = util.z_normalize_componentwise(val_src_old, src_means, src_stds)
+    test_src_old_normalized = util.z_normalize_componentwise(test_src_old, src_means, src_stds)
+
     # Note that the ICs are not to be used in conjunction with the NN directly,
     # so there is no need to normalize them. Same goes for time levels.
 
@@ -267,6 +299,7 @@ def create_parametrized_datasets(cfg):
     train_ref_tensor = torch.from_numpy(train_ref_normalized)
     train_res_tensor = torch.from_numpy(train_res_normalized)
     train_src_tensor = torch.from_numpy(train_src_normalized)
+    train_src_old_tensor = torch.from_numpy(train_src_old_normalized)
     train_times_tensor = torch.from_numpy(train_times)
 
     val_ICs_tensor = torch.from_numpy(val_ICs)
@@ -274,6 +307,7 @@ def create_parametrized_datasets(cfg):
     val_ref_tensor = torch.from_numpy(val_ref_normalized)
     val_res_tensor = torch.from_numpy(val_res_normalized)
     val_src_tensor = torch.from_numpy(val_src_normalized)
+    val_src_old_tensor = torch.from_numpy(val_src_old_normalized)
     val_times_tensor = torch.from_numpy(val_times)
 
     test_ICs_tensor = torch.from_numpy(test_ICs)
@@ -281,6 +315,7 @@ def create_parametrized_datasets(cfg):
     test_ref_tensor = torch.from_numpy(test_ref_normalized)
     test_res_tensor = torch.from_numpy(test_res_normalized)
     test_src_tensor = torch.from_numpy(test_src_normalized)
+    test_src_old_tensor = torch.from_numpy(test_src_old_normalized)
     test_times_tensor = torch.from_numpy(test_times)
 
     # Create array to store stats used for normalization.
@@ -323,13 +358,47 @@ def create_parametrized_datasets(cfg):
     # Create datasets.
     dataset_train = torch.utils.data.TensorDataset(train_unc_tensor,    train_ref_tensor, train_src_tensor,
                                                    stats_train_tensor,  train_ICs_tensor, train_times_tensor,
-                                                   train_alphas_tensor, train_res_tensor)
+                                                   train_alphas_tensor, train_res_tensor, train_src_old_tensor)
     dataset_val = torch.utils.data.TensorDataset(  val_unc_tensor,      val_ref_tensor,   val_src_tensor,
                                                    stats_val_tensor,    val_ICs_tensor,   val_times_tensor,
-                                                   val_alphas_tensor,   val_res_tensor)
+                                                   val_alphas_tensor,   val_res_tensor,   val_src_old_tensor)
     dataset_test = torch.utils.data.TensorDataset( test_unc_tensor,     test_ref_tensor,  test_src_tensor,
                                                    stats_test_tensor,   test_ICs_tensor,  test_times_tensor,
-                                                   test_alphas_tensor,  test_res_tensor)
+                                                   test_alphas_tensor,  test_res_tensor,  test_src_old_tensor)
+
+    train_src = train_src_tensor.detach().numpy()
+    train_src_old = train_src_old_tensor.detach().numpy()
+
+    plt.figure()
+    plt.title("Source normalized")
+    plt.plot(cfg.x_nodes[1:-1], train_src[0,0,:], label='p')
+    plt.plot(cfg.x_nodes[1:-1], train_src[0,1,:], label='u')
+    plt.plot(cfg.x_nodes[1:-1], train_src[0,2,:], label='T')
+    plt.legend()
+    plt.figure()
+    plt.title("Source old normalized")
+    plt.plot(cfg.x_nodes[1:-1], train_src_old[0, 0, :], label='p')
+    plt.plot(cfg.x_nodes[1:-1], train_src_old[0, 1, :], label='u')
+    plt.plot(cfg.x_nodes[1:-1], train_src_old[0, 2, :], label='T')
+    plt.legend()
+
+    train_src_unnorm = util.z_unnormalize_componentwise(train_src, src_means, src_stds)
+    train_src_old_unnorm = util.z_unnormalize_componentwise(train_src_old, src_means, src_stds)
+
+    plt.figure()
+    plt.title("Source")
+    plt.plot(cfg.x_nodes[1:-1], train_src_unnorm[0, 0, :], label='p')
+    plt.plot(cfg.x_nodes[1:-1], train_src_unnorm[0, 1, :], label='u')
+    plt.plot(cfg.x_nodes[1:-1], train_src_unnorm[0, 2, :], label='T')
+    plt.legend()
+    plt.figure()
+    plt.title("Source old")
+    plt.plot(cfg.x_nodes[1:-1], train_src_old_unnorm[0, 0, :], label='p')
+    plt.plot(cfg.x_nodes[1:-1], train_src_old_unnorm[0, 1, :], label='u')
+    plt.plot(cfg.x_nodes[1:-1], train_src_old_unnorm[0, 2, :], label='T')
+    plt.legend()
+
+    plt.show()
 
     return dataset_train, dataset_val, dataset_test
 

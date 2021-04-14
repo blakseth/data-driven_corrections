@@ -199,7 +199,7 @@ class ConvolutionModule2D(torch.nn.Module):
         assert num_filters     >  0
 
         # Defining input layer.
-        padding = kernel_size // 2 - 1
+        padding = kernel_size // 2
         first_layer = torch.nn.Conv2d(1, num_filters, kernel_size, 1, padding)
         first_activation = None
         if cfg.act_type == 'lrelu':
@@ -357,7 +357,7 @@ def create_new_model(cfg, model_specific_params):
     elif cfg.model_name == 'Dense2D':
         return Model(cfg, 'DenseModule2D', (cfg.N_x + 2, cfg.N_y + 2), (cfg.N_x, cfg.N_y), model_specific_params)
     elif cfg.model_name == 'CNN2D':
-        return Model(cfg, 'CNNModule2D', (cfg.N_x + 2, cfg.N_y + 2), (cfg.N_x, cfg.N_y), model_specific_params)
+        return Model(cfg, 'CNNModule2D', (3, cfg.N_x), (3, cfg.N_x), model_specific_params)
     elif cfg.model_name == 'DenseEuler':
         return Model(cfg, 'DenseModule2D', (3, cfg.N_x), (3, cfg.N_x), model_specific_params)
     elif cfg.model_name == 'LocalEuler':

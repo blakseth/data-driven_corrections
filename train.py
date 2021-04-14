@@ -76,6 +76,7 @@ def train(cfg, model, num):
             src_data = data[2].to(cfg.device) # src = source.
             res_data = data[7].to(cfg.device) # res = residual.
             old_data = torch.from_numpy(util.z_normalize_componentwise(data[4], ref_means, ref_stds)).to(cfg.device) # old = reference at previous time level.
+            src_old_data = data[8].to(cfg.device)
 
             model.net.train()
             if cfg.model_name == 'LocalEuler':
@@ -85,7 +86,7 @@ def train(cfg, model, num):
                     out_data[:,:,j] = torch.squeeze(model.net(in_stencil))
             elif cfg.model_type == 'data':
                 #print("Data pass")
-                out_data = model.net(old_data[:, :, 1:-1])
+                out_data = model.net(src_old_data)
             else:
                 out_data = model.net(old_data[:, :, 1:-1]) # out = output (corrected profile or predicted correction source term).
 
@@ -130,6 +131,7 @@ def train(cfg, model, num):
                         ref_data_val = val_data[1].to(cfg.device)
                         res_data_val = val_data[7].to(cfg.device)
                         src_data_val = val_data[2].to(cfg.device)
+                        src_old_data_val = val_data[2].to(cfg.device)
                         if cfg.model_name == 'LocalEuler':
                             old_data_val = torch.from_numpy(
                                 util.z_normalize_componentwise(val_data[4], ref_means, ref_stds)).to(cfg.device)
@@ -142,7 +144,7 @@ def train(cfg, model, num):
                             old_data_val = torch.from_numpy(util.z_normalize_componentwise(val_data[4], ref_means, ref_stds)).to(cfg.device)
                             out_data_val = model.net(old_data_val[:, :, 1:-1])
                         else:
-                            out_data_val = model.net(unc_data_val[:, :, 1:-1])
+                            out_data_val = model.net(src_old_data_val)
 
                         if cfg.model_type == 'hybrid':
                             val_loss = model.loss(out_data_val, src_data_val)
