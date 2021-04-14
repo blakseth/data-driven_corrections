@@ -40,15 +40,34 @@ def create_parametrized_datasets(cfg):
     res_Vs  = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ ))
     old_Vs  = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ ))
     sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
+    sources_old = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
     for a, alpha in enumerate(cfg.alphas):
         cfg.init_u2 = alpha
+        #print("V_mtx2:", physics.get_init_V_mtx(cfg))
         unc_Vs[a][0] = physics.get_init_V_mtx(cfg)
-        ref_Vs[a][0] = physics.get_init_V_mtx(cfg)
+        ref_Vs[a,0,:,:] = physics.get_init_V_mtx(cfg)
         old_Vs[a][0] = physics.get_init_V_mtx(cfg)
+        """
+        print("ref_Vs[a][0]:", ref_Vs[a][0])
+        print("ref_Vs[a][0].shape", ref_Vs[a][0].shape)
+        print("ref_Vs[a,0,0,:]:", ref_Vs[a,0,0,:])
+        print("ref_Vs[a][0][-1]:", ref_Vs[a][0][-1])
+        print("ref_Vs[a][0][0][0]:", ref_Vs[a][0][0][0])
+        print("ref_Vs[a][0]:", ref_Vs[a][0])
+        plt.figure()
+        plt.title("Initial condition")
+        plt.plot(cfg.x_nodes, ref_Vs[a][0][0], label='p')
+        plt.plot(cfg.x_nodes, ref_Vs[a][0][1], label='u')
+        plt.plot(cfg.x_nodes, ref_Vs[a][0][2], label='T')
+        plt.legend()
+        plt.show()
+        """
+
         # Residual at first time level is already set to zero, which is the correct value.
         for i in range(1, cfg.N_t):
             new_time = np.around(cfg.dt * i, decimals=10) # Assumes time start at 0.
             old_Vs[a][i] = ref_Vs[a][i-1]
+            sources_old[a][i] = sources[a][i - 1]
             unc_Vs[a][i] = physics.get_new_state(cfg, old_Vs[a][i], np.zeros((3, cfg.N_x)), 'LxF')
             if cfg.exact_solution_available:
                 ref_Vs[a][i] = exact_solver.exact_solver(cfg, new_time)
@@ -57,6 +76,20 @@ def create_parametrized_datasets(cfg):
             res_Vs[a][i] = ref_Vs[a][i] - unc_Vs[a][i]
 
             sources[a][i] = physics.get_corr_src_term(cfg, ref_Vs[a][i-1], ref_Vs[a][i], 'LxF')
+            if i % 10 == -10:
+                print("time:", new_time)
+                plt.figure()
+                plt.title("Corrective source terms")
+                plt.plot(cfg.x_nodes[1:-1], sources[a][i][0], label='p')
+                plt.plot(cfg.x_nodes[1:-1], sources[a][i][1], label='u')
+                plt.plot(cfg.x_nodes[1:-1], sources[a][i][2], label='T')
+                plt.show()
+                plt.figure()
+                plt.title("Reference profiles")
+                plt.plot(cfg.x_nodes, ref_Vs[a][i][0], label='p')
+                plt.plot(cfg.x_nodes, ref_Vs[a][i][1], label='u')
+                plt.plot(cfg.x_nodes, ref_Vs[a][i][2], label='T')
+                plt.show()
             corrected = physics.get_new_state(cfg, old_Vs[a][i], sources[a][i], 'LxF')
             np.testing.assert_allclose(corrected, ref_Vs[a][i], rtol=1e-10, atol=1e-10)
 
@@ -95,6 +128,7 @@ def create_parametrized_datasets(cfg):
         train_times[(cfg.N_t - 1) * (a + 0):(cfg.N_t - 1) * (a + 1)] = times
         train_alphas.append(cfg.alphas[a])
     train_alphas = np.asarray(train_alphas)
+    print("train_ref[-1]:", train_ref[-1])
 
     val_ICs = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
     val_unc = np.zeros((cfg.N_val_examples, 3, cfg.NJ ))
@@ -197,32 +231,32 @@ def create_parametrized_datasets(cfg):
         train_times = np.concatenate((train_times, train_times), axis=0)
 
     # Calculate statistical properties of training data.
-    train_unc_mean = 0.0 # Dirty quick fix to avoid normalization.
-    train_ref_mean = 0.0
-    train_res_mean = 0.0
-    train_src_mean = 0.0
-
-    train_unc_std = 1.0
-    train_ref_std = 1.0
-    train_res_std = 1.0
-    train_src_std = 1.0
+    ref_means = []
+    src_means = []
+    ref_stds  = []
+    src_stds  = []
+    for i in range(3):
+        ref_means.append(np.mean(train_ref[:,i,:]))
+        src_means.append(np.mean(train_src[:,i:,]))
+        ref_stds.append(np.std(train_ref[:,i,:]))
+        src_stds.append(np.std(train_src[:,i:,]))
 
     # z_normalize data.
-    train_unc_normalized = util.z_normalize(train_unc, train_unc_mean, train_unc_std)
-    val_unc_normalized   = util.z_normalize(val_unc,   train_unc_mean, train_unc_std)
-    test_unc_normalized  = util.z_normalize(test_unc,  train_unc_mean, train_unc_std)
+    train_unc_normalized = util.z_normalize_componentwise(train_unc, ref_means, ref_stds)
+    val_unc_normalized   = util.z_normalize_componentwise(val_unc,   ref_means, ref_stds)
+    test_unc_normalized  = util.z_normalize_componentwise(test_unc,  ref_means, ref_stds)
 
-    train_ref_normalized = util.z_normalize(train_ref, train_ref_mean, train_ref_std)
-    val_ref_normalized   = util.z_normalize(val_ref,   train_ref_mean, train_ref_std)
-    test_ref_normalized  = util.z_normalize(test_ref,  train_ref_mean, train_ref_std)
+    train_ref_normalized = util.z_normalize_componentwise(train_ref, ref_means, ref_stds)
+    val_ref_normalized   = util.z_normalize_componentwise(val_ref,   ref_means, ref_stds)
+    test_ref_normalized  = util.z_normalize_componentwise(test_ref,  ref_means, ref_stds)
 
-    train_res_normalized = util.z_normalize(train_res, train_res_mean, train_res_std)
-    val_res_normalized   = util.z_normalize(val_res,   train_res_mean, train_res_std)
-    test_res_normalized  = util.z_normalize(test_res,  train_res_mean, train_res_std)
+    train_res_normalized = util.z_normalize_componentwise(train_res, ref_means, ref_stds)
+    val_res_normalized   = util.z_normalize_componentwise(val_res,   ref_means, ref_stds)
+    test_res_normalized  = util.z_normalize_componentwise(test_res,  ref_means, ref_stds)
 
-    train_src_normalized = util.z_normalize(train_src, train_src_mean, train_src_std)
-    val_src_normalized   = util.z_normalize(val_src,   train_src_mean, train_src_std)
-    test_src_normalized  = util.z_normalize(test_src,  train_src_mean, train_src_std)
+    train_src_normalized = util.z_normalize_componentwise(train_src, src_means, src_stds)
+    val_src_normalized   = util.z_normalize_componentwise(val_src,   src_means, src_stds)
+    test_src_normalized  = util.z_normalize_componentwise(test_src,  src_means, src_stds)
 
     # Note that the ICs are not to be used in conjunction with the NN directly,
     # so there is no need to normalize them. Same goes for time levels.
@@ -251,25 +285,21 @@ def create_parametrized_datasets(cfg):
 
     # Create array to store stats used for normalization.
     stats = np.asarray([
-        train_unc_mean,
-        train_ref_mean,
-        train_res_mean,
-        train_src_mean,
-        train_unc_std,
-        train_ref_std,
-        train_res_std,
-        train_src_std
+        np.asarray(ref_means),
+        np.asarray(ref_stds),
+        np.asarray(src_means),
+        np.asarray(src_stds),
     ])
 
     # Pad with zeros to satisfy requirements of Torch's TensorDataset.
     # (Assumes that all datasets contain 6 or more data examples.)
     assert train_unc.shape[0] >= stats.shape[0] and val_unc.shape[0] >= stats.shape[0] and test_unc.shape[0] >= stats.shape[0]
-    stats_train = np.zeros(train_unc.shape[0])
-    stats_val = np.zeros(val_unc.shape[0])
-    stats_test = np.zeros(test_unc.shape[0])
-    stats_train[:stats.shape[0]] = stats
-    stats_val[:stats.shape[0]] = stats
-    stats_test[:stats.shape[0]] = stats
+    stats_train = np.zeros((train_unc.shape[0], 3))
+    stats_val = np.zeros((val_unc.shape[0], 3))
+    stats_test = np.zeros((test_unc.shape[0], 3))
+    stats_train[:stats.shape[0],:] = stats
+    stats_val[:stats.shape[0],:] = stats
+    stats_test[:stats.shape[0],:] = stats
 
     # Convert stats arrays to tensors
     stats_train_tensor = torch.from_numpy(stats_train)

@@ -57,9 +57,9 @@ def train(cfg, model, num):
     lowest_val_los = torch.tensor(float("Inf")).to(cfg.device)
     val_epoch_since_improvement = torch.tensor(0.0).to(cfg.device)
 
-    stats = dataset_train[:8][3].detach().numpy()
-    ref_mean = stats[1]
-    ref_std = stats[5]
+    stats = dataset_train[:4][3].detach().numpy()
+    ref_means = stats[0]
+    ref_stds  = stats[1]
 
     start = time.time()
 
@@ -75,15 +75,19 @@ def train(cfg, model, num):
             ref_data = data[1].to(cfg.device) # ref = reference.
             src_data = data[2].to(cfg.device) # src = source.
             res_data = data[7].to(cfg.device) # res = residual.
-            old_data = util.z_normalize(data[4], ref_mean, ref_std).to(cfg.device) # old = reference at previous time level.
+            old_data = torch.from_numpy(util.z_normalize_componentwise(data[4], ref_means, ref_stds)).to(cfg.device) # old = reference at previous time level.
 
             model.net.train()
-
-            if cfg.model_type == 'data':
+            if cfg.model_name == 'LocalEuler':
+                out_data = torch.zeros((old_data.shape[0], old_data.shape[1], old_data.shape[2] - 2), dtype=torch.double)
+                for j in range(cfg.N_x):
+                    in_stencil = old_data[:, :, j:j + 3]
+                    out_data[:,:,j] = torch.squeeze(model.net(in_stencil))
+            elif cfg.model_type == 'data':
                 #print("Data pass")
                 out_data = model.net(old_data[:, :, 1:-1])
             else:
-                out_data = model.net(unc_data[:, :, 1:-1]) # out = output (corrected profile or predicted correction source term).
+                out_data = model.net(old_data[:, :, 1:-1]) # out = output (corrected profile or predicted correction source term).
 
             if cfg.model_type == 'hybrid':
                 loss = model.loss(out_data, src_data)
@@ -126,9 +130,16 @@ def train(cfg, model, num):
                         ref_data_val = val_data[1].to(cfg.device)
                         res_data_val = val_data[7].to(cfg.device)
                         src_data_val = val_data[2].to(cfg.device)
-                        if cfg.model_type == 'data':
+                        if cfg.model_name == 'LocalEuler':
+                            old_data_val = torch.from_numpy(
+                                util.z_normalize_componentwise(val_data[4], ref_means, ref_stds)).to(cfg.device)
+                            out_data_val = torch.zeros((old_data_val.shape[0], old_data_val.shape[1], old_data_val.shape[2] - 2), dtype=torch.double)
+                            for k in range(cfg.N_x):
+                                in_stencil = old_data_val[:, :, k:k + 3]
+                                out_data_val[:,:,k] = torch.squeeze(model.net(in_stencil))
+                        elif cfg.model_type == 'data':
                             #print("Data val pass")
-                            old_data_val = util.z_normalize(val_data[4], ref_mean, ref_std).to(cfg.device)
+                            old_data_val = torch.from_numpy(util.z_normalize_componentwise(val_data[4], ref_means, ref_stds)).to(cfg.device)
                             out_data_val = model.net(old_data_val[:, :, 1:-1])
                         else:
                             out_data_val = model.net(unc_data_val[:, :, 1:-1])

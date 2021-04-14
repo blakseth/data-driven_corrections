@@ -59,6 +59,40 @@ def z_unnormalize(x_normalized, mean, std):
     """
     return (x_normalized * std) + mean
 
+def z_normalize_componentwise(x, means, stds):
+    """
+    :param x: Numpy array containing data points.
+    :param means: Pre-calculated means to be used for normalization.
+    :param stds: Pre-calculated standard deviations to be used for normalization.
+    :return: Z-scores of the data points in x.
+    """
+    x_normalized = np.zeros_like(x)
+    if x_normalized.ndim == 2:
+        for i in range(3):
+            x_normalized[i, :] = (x[i, :] - stds[i]) / means[i]
+    elif x_normalized.ndim == 3:
+        for i in range(3):
+            x_normalized[:, i, :] = (x[:, i, :] - stds[i]) / means[i]
+    return x_normalized
+
+def z_unnormalize_componentwise(x_normalized, means, stds):
+    """
+    :param x_normalized: Numpy array containing z-normalized data points.
+    :param means: Means of original, unnormalized data.
+    :param stds: Standard deviations of original, unnormalized data.
+    :return: Unnormalized data.
+    """
+    x = np.zeros_like(x_normalized)
+    if x_normalized.ndim == 2:
+        for i in range(3):
+            x[i, :] = (x_normalized[i, :] * stds[i]) + means[i]
+    elif x_normalized.ndim == 3:
+        for i in range(3):
+            x[:, i, :] = (x_normalized[:, i, :] * stds[i]) + means[i]
+    else:
+        raise Exception("Unexpected number of dimensions.")
+    return x
+
 
 ########################################################################################################################
 # Norm calculations.

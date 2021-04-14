@@ -261,9 +261,9 @@ def main():
             cor_Vs[i] = get_new_state(cfg, cor_Vs[i-1], srcs[i], 'LxF')
             np.testing.assert_allclose(ref_Vs[i], cor_Vs[i], rtol=1e-10, atol=1e-10)
 
-        fig, axs = plt.subplots(3, 1)
+        fig, axs = plt.subplots(4, 1)
         ylabels = [r"$p$", r"$u$", r"$T$"]
-        for j, ax in enumerate(fig.get_axes()):
+        for j in range(3):
             axs[j].plot(cfg.x_nodes, unc_Vs[-1, j], 'r-', label='LxF')
             axs[j].plot(cfg.x_nodes, HLL_Vs[-1, j], 'y-', label='HLL')
             axs[j].plot(cfg.x_nodes, cor_Vs[-1, j], 'b-', label='LxF cor')
@@ -272,7 +272,16 @@ def main():
             axs[j].set_xlabel(r'$x$')
             axs[j].set_ylabel(ylabels[j])
             axs[j].grid()
-            ax.label_outer()
+            axs[j].label_outer()
+        axs[3].plot(cfg.x_nodes, unc_Vs[-1, 0] / (cfg.c_V * (cfg.gamma - 1) * unc_Vs[-1,2]), 'r-', label='LxF')
+        axs[3].plot(cfg.x_nodes, HLL_Vs[-1, 0] / (cfg.c_V * (cfg.gamma - 1) * HLL_Vs[-1,2]), 'y-', label='HLL')
+        axs[3].plot(cfg.x_nodes, cor_Vs[-1, 0] / (cfg.c_V * (cfg.gamma - 1) * cor_Vs[-1,2]), 'b-', label='LxF cor')
+        axs[3].plot(cfg.x_nodes, ref_Vs[-1, 0] / (cfg.c_V * (cfg.gamma - 1) * ref_Vs[-1,2]), 'g--', label='Exact')
+        axs[3].legend()
+        axs[3].set_xlabel(r'$x$')
+        axs[3].set_ylabel(r'$\rho$')
+        axs[3].grid()
+        axs[3].label_outer()
         plt.show()
 
         for alpha in cfg.test_alphas:

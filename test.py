@@ -311,20 +311,16 @@ def parametrized_simulation_test(cfg, model):
     _, _, dataset_test = load_datasets(cfg, False, False, True)
 
     num_param_values = cfg.N_test_alphas
-    stats      = dataset_test[:8][3].detach().numpy()
+    stats      = dataset_test[:4][3].detach().numpy()
     ICs        = dataset_test[:][4].detach().numpy()
     times      = dataset_test[:][5].detach().numpy()
     alphas     = dataset_test[:num_param_values][6].detach().numpy()
     #print("alphas", alphas)
 
-    unc_mean = stats[0]
-    unc_std  = stats[4]
-    ref_mean = stats[1]
-    ref_std  = stats[5]
-    res_mean = stats[2]
-    res_std  = stats[6]
-    src_mean = stats[3]
-    src_std  = stats[7]
+    ref_means = stats[0]
+    ref_stds  = stats[1]
+    src_means = stats[2]
+    src_stds  = stats[3]
 
     L2_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
     L2_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
@@ -362,9 +358,10 @@ def parametrized_simulation_test(cfg, model):
             new_unc2 = physics.get_new_state(cfg, old_unc2, np.zeros((3, cfg.N_x)), 'HLL')
             #if i == 0:
             #    print("First unc:", new_unc)
-            new_unc_ = physics.get_new_state(cfg, old_cor, np.zeros((3, cfg.N_x)), 'LxF')
-            new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std)), 0)
-            old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std)), 0)
+            if not cfg.model_type == 'data':
+                new_unc_ = physics.get_new_state(cfg, old_cor, np.zeros((3, cfg.N_x)), 'LxF')
+                new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize_componentwise(new_unc_, ref_means, ref_stds)), 0)
+            old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize_componentwise(old_cor,  ref_means, ref_stds)), 0)
 
             if cfg.exact_solution_available:
                 cfg.init_u2 = alpha
@@ -375,25 +372,25 @@ def parametrized_simulation_test(cfg, model):
 
             new_cor = np.zeros_like(new_unc)
             if cfg.model_type == 'hybrid':
-                new_src = util.z_unnormalize(
-                    model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), src_mean, src_std
+                new_src = util.z_unnormalize_componentwise(
+                    model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
                 )
                 new_cor = physics.get_new_state(cfg, old_cor, new_src, 'LxF')
             elif cfg.model_type == 'residual':
                 new_res = np.zeros(new_unc.shape)
                 unnomralized_res = model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy()
-                new_res[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), res_mean, res_std)
+                new_res[:, 1:-1] = util.z_unnormalize_componentwise(model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_means, ref_stds)
                 new_cor = new_unc_ + new_res
                 #print("unnormalized_res:", unnomralized_res)
                 #print("new_res:", new_res)
                 #print("new_unc_:", new_unc_)
                 #print("new_cor:", new_cor)
             elif cfg.model_type == 'end-to-end':
-                new_cor[:, 1:-1] = util.z_unnormalize(model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 1:-1] = util.z_unnormalize_componentwise(model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_means, ref_stds)
                 new_cor[:, 0] = new_cor[:, 1]
                 new_cor[:, -1] = new_cor[:, -2]
             elif cfg.model_type == 'data':
-                new_cor[:, 1:-1] = util.z_unnormalize(model.net(old_cor_tensor[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[:, 1:-1] = util.z_unnormalize_componentwise(model.net(old_cor_tensor[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), ref_means, ref_stds)
                 new_cor[:, 0] = new_cor[:, 1]
                 new_cor[:, -1] = new_cor[:, -2]
 

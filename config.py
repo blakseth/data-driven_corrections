@@ -26,12 +26,12 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-12_trial_euler"
-run_names  = [["Euler_GlobalDense_s1_HAM3"]]
+group_name = "2021-04-14_trial_euler_with_normalization"
+run_names  = [["Euler_GlobalDense_s1_HAM_SOD_local"]]
 systems    = ["SOD"]
 data_tags  = ["SOD"]
 model_type = 'hybrid'
-model_keys = [7]
+model_keys = [8]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 N_x = 100
@@ -61,7 +61,8 @@ class Config:
             'EnsembleGlobalCNN',
             'Dense2D',
             'CNN2D',
-            'DenseEuler'
+            'DenseEuler',
+            'LocalEuler'
         ]
         self.model_name = model_names[model_key]
 
@@ -84,9 +85,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -203,10 +204,10 @@ class Config:
             init_p2   = 0.01
             init_u2   = -20.0
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
-        elif self.system == "Test6":
+        elif self.system == "StatCDisc":
             exact_solution_available = True
             t_end     = 2.0
-            dt        = 7e-3
+            dt        = 4e-3
             x_a       = 0.0
             x_b       = 1.0
             x_split   = 0.5
@@ -221,7 +222,7 @@ class Config:
             init_p2   = 1.0
             init_u2   = 0.0
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
-        elif self.system == "Test7":
+        elif self.system == "MovCDisc":
             exact_solution_available = True
             t_end     = 2.0
             dt        = 7e-3
@@ -308,9 +309,9 @@ class Config:
         self.do_simulation_test = False
 
         # Dataset sizes (unaugmented).
-        self.N_train_examples = int(self.train_alphas.shape[0] * self.N_t)
-        self.N_val_examples = int(self.val_alphas.shape[0] * self.N_t)
-        self.N_test_examples = int(self.test_alphas.shape[0] * self.N_t)
+        self.N_train_examples = int(self.train_alphas.shape[0] * (self.N_t-1))
+        self.N_val_examples = int(self.val_alphas.shape[0] * (self.N_t-1))
+        self.N_test_examples = int(self.test_alphas.shape[0] * (self.N_t-1))
         self.N_train_alphas = self.train_alphas.shape[0]
         self.N_val_alphas   = self.val_alphas.shape[0]
         self.N_test_alphas  = self.test_alphas.shape[0]
@@ -347,7 +348,7 @@ class Config:
         self.loss_func = 'MSE'
 
         self.optimizer = 'adam'
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-4
 
         self.act_type = 'lrelu'
         self.act_param = 0.01
@@ -409,8 +410,15 @@ class Config:
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]
         elif self.model_name == 'DenseEuler':
-            self.num_layers = 10
-            self.hidden_layer_size = 1000
+            self.num_layers = 5
+            self.hidden_layer_size = 100
+            # [No. fc layers, No. nodes in each hidden layer]
+            self.model_specific_params = [self.num_layers, self.hidden_layer_size]
+            def get_model_specific_params():
+                return [self.num_layers, self.hidden_layer_size]
+        elif self.model_name == 'LocalEuler':
+            self.num_layers = 5
+            self.hidden_layer_size = 25
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():

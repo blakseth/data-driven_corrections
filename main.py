@@ -130,7 +130,7 @@ def main():
                     if cfg.model_name[:8] == 'Ensemble':
                         print("Ensemble model containing " + str(len(model.nets)) + " networks as shown below.")
                         print(model.nets[0].net)
-                    elif cfg.model_name[:5] == 'Local':
+                    elif cfg.model_name[:10] == 'LocalDense':
                         print("Ensemble model containing " + str(len(model.net.nets)) + " networks as shown below.")
                         print(model.net.nets[0])
                     else:
