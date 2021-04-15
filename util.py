@@ -93,6 +93,15 @@ def z_unnormalize_componentwise(x_normalized, means, stds):
         raise Exception("Unexpected number of dimensions.")
     return x
 
+def noise_gate(x, threshold):
+    x_shape = x.shape
+    flat_x = x.flatten()
+    gated_flat_x = np.zeros_like(flat_x)
+    for i, x_val in enumerate(flat_x):
+        if x_val >= threshold:
+            gated_flat_x[i] = x_val
+    gated_x = np.reshape(gated_flat_x, x_shape)
+    return gated_x
 
 ########################################################################################################################
 # Norm calculations.

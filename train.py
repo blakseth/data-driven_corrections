@@ -86,12 +86,14 @@ def train(cfg, model, num):
                     out_data[:,:,j] = torch.squeeze(model.net(in_stencil))
             elif cfg.model_type == 'data':
                 #print("Data pass")
-                out_data = model.net(src_old_data)
+                out_data = model.net(old_data[:, :, 1:-1])
             else:
-                out_data = model.net(old_data[:, :, 1:-1]) # out = output (corrected profile or predicted correction source term).
+                out_data = model.net(src_old_data) # out = output (corrected profile or predicted correction source term).
 
             if cfg.model_type == 'hybrid':
                 loss = model.loss(out_data, src_data)
+                print("src_old_data[0]:", src_old_data[0])
+                print("src_data[0]:", src_data[0])
             elif cfg.model_type == 'residual':
                 loss = model.loss(out_data, res_data[:, :, 1:-1])
             elif cfg.model_type == 'end-to-end':

@@ -93,7 +93,7 @@ def check_valid_dt(cfg, u_vec, c_vec, CFL, dx):
         raise Exception("Invalid dt.")
 
 def interior_step(U_mtx, F_est, dt, dx, corr_src):
-    return U_mtx[:, 1:-1] - (dt/dx)*(F_est[:, 1:] - F_est[:, :-1]) + dt * corr_src
+    return U_mtx[:, 1:-1] - (dt/dx)*(F_est[:, 1:] - F_est[:, :-1]) + corr_src
 
 def find_implicit_vars(cfg, U_mtx):
     V_mtx = np.zeros_like(U_mtx)
@@ -216,11 +216,43 @@ def get_corr_src_term(cfg, old_V_mtx_ref, new_V_mtx_ref, solver_type):
     new_U_mtx_num, _ = solve(
         cfg, old_V_mtx_ref, old_U_mtx_ref, old_F_mtx_ref, old_T_vec_ref, cfg.dx, cfg.dt, cfg.CFL, np.zeros(cfg.N_x), solver_type
     )
-    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1]) / cfg.dt
+    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1])
 
 ########################################################################################################################
 
 def main():
+    cfg = config.Config(
+        use_GPU=config.use_GPU,
+        group_name=config.group_name,
+        run_name=config.run_names[0][0],
+        system=config.systems[0],
+        data_tag=config.data_tags[0],
+        model_key=config.model_keys[0],
+        do_train=False,
+        do_test=False,
+        N_x=100,
+        model_type=config.model_type,
+    )
+    for time in [0.0001, 0.001, 0.005, 0.01, 0.03, 0.07, 0.12, 2.0]:
+        V = exact_solver.exact_solver(cfg, time)
+        fig, axs = plt.subplots(4, 1)
+        fig.suptitle("Time: " + str(time))
+        ylabels = [r"$p$", r"$u$", r"$T$"]
+        for j in range(3):
+            axs[j].plot(cfg.x_nodes, V[j])
+            axs[j].legend()
+            axs[j].set_xlabel(r'$x$')
+            axs[j].set_ylabel(ylabels[j])
+            axs[j].grid()
+            axs[j].label_outer()
+        axs[3].plot(cfg.x_nodes, V[0] / (cfg.c_V * (cfg.gamma - 1) * V[2]))
+        axs[3].set_xlabel(r'$x$')
+        axs[3].set_ylabel(r'$\rho$')
+        axs[3].grid()
+        axs[3].label_outer()
+    plt.show()
+
+
     N_xs = [100]#, 9, 27]#, 81, 81*3, 81*9]
     errors = []
     for N_x in N_xs:

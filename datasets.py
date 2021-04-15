@@ -17,6 +17,9 @@ import joblib
 import torch
 import torch.utils.data
 
+import pandas as pd
+import ppscore as pps
+
 ########################################################################################################################
 # File imports.
 
@@ -42,7 +45,8 @@ def create_parametrized_datasets(cfg):
     sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
     sources_old = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
     for a, alpha in enumerate(cfg.alphas):
-        cfg.init_u2 = alpha
+        cfg.init_u2 = 0.1*alpha
+        cfg.init_u1 = 0.1*alpha
         #print("V_mtx2:", physics.get_init_V_mtx(cfg))
         unc_Vs[a][0] = physics.get_init_V_mtx(cfg)
         ref_Vs[a,0,:,:] = physics.get_init_V_mtx(cfg)
@@ -76,7 +80,7 @@ def create_parametrized_datasets(cfg):
             res_Vs[a][i] = ref_Vs[a][i] - unc_Vs[a][i]
 
             sources[a][i] = physics.get_corr_src_term(cfg, ref_Vs[a][i-1], ref_Vs[a][i], 'LxF')
-            if i == 2 and a == 0:
+            if i %50== 1 and a == 0:
                 print("time:", new_time)
                 plt.figure()
                 plt.title("Corrective source terms")
@@ -90,7 +94,7 @@ def create_parametrized_datasets(cfg):
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][2], label='T')
             corrected = physics.get_new_state(cfg, old_Vs[a][i], sources[a][i], 'LxF')
             np.testing.assert_allclose(corrected, ref_Vs[a][i], rtol=1e-10, atol=1e-10)
-
+    plt.show()
     # Remove data for t=0 from datasets.
     ICs = np.delete(old_Vs,  obj=[0,1], axis=1)
     unc = np.delete(unc_Vs,  obj=[0,1], axis=1)
@@ -248,9 +252,9 @@ def create_parametrized_datasets(cfg):
     ref_stds  = []
     src_stds  = []
     for i in range(3):
-        ref_means.append(np.mean(train_ref[:,i,:]))
+        ref_means.append(0.0)
         src_means.append(0.0)
-        ref_stds.append(np.std(train_ref[:,i,:]))
+        ref_stds.append(1.0)
         src_stds.append(1.0)
 
     plt.figure()
@@ -368,6 +372,16 @@ def create_parametrized_datasets(cfg):
 
     train_src = train_src_tensor.detach().numpy()
     train_src_old = train_src_old_tensor.detach().numpy()
+
+    ppscores = []
+    for i in range(0, train_src.shape[0], 10):
+        train_src_flat = train_src[i].flatten()
+        train_src_old_flat = train_src_old[i].flatten()
+        df = pd.DataFrame()
+        df["x"] = train_src_flat.tolist()
+        df["y"] = train_src_old_flat.tolist()
+        ppscores.append(pps.score(df, "x", "y")['ppscore'])
+    print("Mean ppscore =", np.mean(np.asarray(ppscores)))
 
     plt.figure()
     plt.title("Source normalized")

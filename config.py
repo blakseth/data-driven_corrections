@@ -26,12 +26,12 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-14_trial_euler_with_normalization"
-run_names  = [["Euler_GlobalDense_s1_HAM_SOD_src_input_conv"]]
-systems    = ["SOD"]
-data_tags  = ["SOD_src_in"]
+group_name = "2021-04-15_trial_euler"
+run_names  = [["Euler_Dense_MovingContact_debug_train_pps"]]
+systems    = ["MovCDisc"]
+data_tags  = ["MovCDisc_src_in"]
 model_type = 'hybrid'
-model_keys = [6]
+model_keys = [7]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
 N_x = 100
@@ -85,9 +85,9 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Environment configuration.
 
-        #self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
+        self.base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
         #self.base_dir     = '/lustre1/work/sindresb/msc_thesis/data-driven_corrections/'
-        self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+        #self.base_dir      = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
         self.datasets_dir = os.path.join(self.base_dir, 'datasets')
         self.results_dir  = os.path.join(self.base_dir, 'results')
         self.group_dir    = os.path.join(self.results_dir, group_name)
@@ -104,9 +104,9 @@ class Config:
 
         if self.parametrized_system:
             train_alphas, _ = scipy.special.roots_legendre(16)
-            train_alphas *= 0.5
-            val_alphas = np.asarray([-0.1, 0.1])
-            test_alphas = np.asarray([-1.0, -0.25, 0.0, 0.25, 1.0])
+            train_alphas = train_alphas * 0.5 + 0.5
+            val_alphas = np.asarray([0.25, 0.75])
+            test_alphas = np.asarray([0.1, 0.5, 0.9, 1.5])
             self.train_alphas = train_alphas
             self.val_alphas = val_alphas
             self.test_alphas = test_alphas
@@ -117,7 +117,7 @@ class Config:
         if self.system == "SOD":
             exact_solution_available = True
             t_end     = 0.2
-            dt        = 2.5e-3
+            dt        = 5.0e-4
             x_a       = 0.0
             x_b       = 1.0
             x_split   = 0.5
@@ -224,8 +224,8 @@ class Config:
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
         elif self.system == "MovCDisc":
             exact_solution_available = True
-            t_end     = 2.0
-            dt        = 7e-3
+            t_end     = 1.3
+            dt        = 5e-3
             x_a       = 0.0
             x_b       = 1.0
             x_split   = 0.5
@@ -325,7 +325,7 @@ class Config:
 
         # Test iterations at which temperature profiles are saved.
         if self.parametrized_system:
-            base = self.N_t - 1
+            base = self.N_t - 2
         else:
             base = self.N_test_examples
         self.profile_save_steps = np.asarray([
@@ -354,7 +354,7 @@ class Config:
         self.act_param = 0.01
 
         self.use_dropout = True
-        self.dropout_prob = 0.0
+        self.dropout_prob = 0.2
 
         self.model_specific_params = []
         if self.model_name == 'GlobalDense':
@@ -403,9 +403,9 @@ class Config:
             def get_model_specific_params():
                 return [self.num_layers, self.hidden_layer_size]
         elif self.model_name == 'CNN2D':
-            self.num_conv_layers = 10
+            self.num_conv_layers = 5
             self.kernel_size = 3
-            self.num_channels = 300
+            self.num_channels = 50
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels]
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]
@@ -443,7 +443,7 @@ class Config:
         self.save_model_period = int(5e10)  # Number of training iterations per model save.
         self.validation_period = int(1e2)  # Number of training iterations per validation.
 
-        self.batch_size_train = 32
+        self.batch_size_train = 8
         self.batch_size_val = self.N_val_examples
         self.batch_size_test = self.N_test_examples
 

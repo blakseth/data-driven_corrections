@@ -82,14 +82,14 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             unc2_V = plot_stats_dict['unc2'][a][i]
             cor_V = plot_stats_dict['cor_mean'][a][i]
             cfg.N_x = dense_N_x
-            cfg.init_u2 = alpha
+            cfg.init_u1 = cfg.init_u2 = 0.1*alpha
             ref_V = exact_solver.exact_solver(cfg, plot_times[i])
             cfg.N_x = normal_N_x
 
-            unc_rho  = np.expand_dims(unc_V[0, :]  / (unc_V[2, :]  * cfg.c_V * cfg.gamma), axis=0)
-            unc2_rho = np.expand_dims(unc2_V[0, :] / (unc2_V[2, :] * cfg.c_V * cfg.gamma), axis=0)
-            cor_rho  = np.expand_dims(cor_V[0, :]  / (cor_V[2, :]  * cfg.c_V * cfg.gamma), axis=0)
-            ref_rho  = np.expand_dims(ref_V[0, :]  / (ref_V[2, :]  * cfg.c_V * cfg.gamma), axis=0)
+            unc_rho  = np.expand_dims(unc_V[0, :]  / (unc_V[2, :]  * cfg.c_V * (cfg.gamma - 1)), axis=0)
+            unc2_rho = np.expand_dims(unc2_V[0, :] / (unc2_V[2, :] * cfg.c_V * (cfg.gamma - 1)), axis=0)
+            cor_rho  = np.expand_dims(cor_V[0, :]  / (cor_V[2, :]  * cfg.c_V * (cfg.gamma - 1)), axis=0)
+            ref_rho  = np.expand_dims(ref_V[0, :]  / (ref_V[2, :]  * cfg.c_V * (cfg.gamma - 1)), axis=0)
 
             unc_V  = np.concatenate((unc_rho,  unc_V ), axis=0)
             unc2_V = np.concatenate((unc2_rho, unc2_V), axis=0)
@@ -313,6 +313,8 @@ def parametrized_simulation_test(cfg, model):
     num_param_values = cfg.N_test_alphas
     stats      = dataset_test[:4][3].detach().numpy()
     ICs        = dataset_test[:][4].detach().numpy()
+    old_srcs   = dataset_test[:][8].detach().numpy()
+    srcs       = dataset_test[:][2].detach().numpy()
     times      = dataset_test[:][5].detach().numpy()
     alphas     = dataset_test[:num_param_values][6].detach().numpy()
     #print("alphas", alphas)
@@ -322,12 +324,12 @@ def parametrized_simulation_test(cfg, model):
     src_means = stats[2]
     src_stds  = stats[3]
 
-    L2_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
-    L2_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
-    L2_errors_cor = np.zeros((num_param_values, cfg.N_t - 1))
-    Linfty_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
-    Linfty_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
-    Linfty_errors_cor = np.zeros((num_param_values, cfg.N_t - 1))
+    L2_errors_unc = np.zeros((num_param_values, cfg.N_t - 2))
+    L2_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 2))
+    L2_errors_cor = np.zeros((num_param_values, cfg.N_t - 2))
+    Linfty_errors_unc = np.zeros((num_param_values, cfg.N_t - 2))
+    Linfty_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 2))
+    Linfty_errors_cor = np.zeros((num_param_values, cfg.N_t - 2))
 
     num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
@@ -342,19 +344,25 @@ def parametrized_simulation_test(cfg, model):
     if cfg.model_type == 'hybrid' and cfg.exact_solution_available:
         plot_data_dict['src'] = np.zeros((num_param_values, num_profile_plots, 3, cfg.N_x))
 
+    print("profile_save_steps:", cfg.profile_save_steps)
+
     for a, alpha in enumerate(alphas):
-        IC = ICs[a * (cfg.N_t - 1)]
-        #print("IC:", IC)
+        cfg.init_u1 = cfg.init_u2 = 0.1*alpha
+        IC = ICs[a * (cfg.N_t - 2)]
+        old_src = torch.from_numpy(old_srcs[a * (cfg.N_t - 2)])
+        print("IC:", IC)
         old_unc = IC
         old_unc2 = IC
         old_cor = IC
         plot_num = 0
-        for i in range(cfg.N_t - 1):
-            index = a * (cfg.N_t - 1) + i
+        for i in range(cfg.N_t - 2):
+            index = a * (cfg.N_t - 2) + i
             old_time = np.around(times[index] - cfg.dt, decimals=10)
             new_time = np.around(times[index], decimals=10)
 
             new_unc = physics.get_new_state(cfg, old_unc, np.zeros((3, cfg.N_x)), 'LxF')
+            print("new_time:", new_time)
+            print("LxF:", new_unc)
             new_unc2 = physics.get_new_state(cfg, old_unc2, np.zeros((3, cfg.N_x)), 'HLL')
             #if i == 0:
             #    print("First unc:", new_unc)
@@ -364,7 +372,6 @@ def parametrized_simulation_test(cfg, model):
             old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize_componentwise(old_cor,  ref_means, ref_stds)), 0)
 
             if cfg.exact_solution_available:
-                cfg.init_u2 = alpha
                 new_ref = exact_solver.exact_solver(cfg, new_time)
                 #print("new_ref:", new_ref)
             else:
@@ -373,9 +380,15 @@ def parametrized_simulation_test(cfg, model):
             new_cor = np.zeros_like(new_unc)
             if cfg.model_type == 'hybrid':
                 new_src = util.z_unnormalize_componentwise(
-                    model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
+                    model.net(torch.unsqueeze(old_src, dim=0).to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
                 )
-                new_cor = physics.get_new_state(cfg, old_cor, new_src, 'LxF')
+                gated_src = util.noise_gate(new_src, 1e-4)
+                #gated_src[:, 1:, :] = util.noise_gate(gated_src[:,1:,:], np.inf)
+                print("gated_src:", gated_src)
+                print("true src:", srcs[index])
+                #print("non-gated_src:", new_src)
+                new_cor = physics.get_new_state(cfg, old_cor, gated_src, 'LxF')
+                print("cor:", new_cor)
             elif cfg.model_type == 'residual':
                 new_res = np.zeros(new_unc.shape)
                 unnomralized_res = model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy()
@@ -414,7 +427,11 @@ def parametrized_simulation_test(cfg, model):
             Linfty_errors_cor[a][i] = cor_error_norm_Linfty
 
             if i in cfg.profile_save_steps:
+                print("Saved profiles for i=", i)
+                print("Time:", new_time)
+                print("LxF to save:", new_unc)
                 plot_data_dict['unc'][a][plot_num] = new_unc
+                print("LxF saved:", plot_data_dict['unc'][a][plot_num])
                 plot_data_dict['unc2'][a][plot_num] = new_unc2
                 plot_data_dict['ref'][a][plot_num] = new_ref
                 plot_data_dict['cor'][a][plot_num] = new_cor
@@ -424,6 +441,7 @@ def parametrized_simulation_test(cfg, model):
                     plot_data_dict['time'][plot_num] = new_time
                 plot_num += 1
 
+            old_src = torch.from_numpy(physics.get_corr_src_term(cfg, old_cor, new_cor, 'LxF'))
             old_cor = new_cor
             old_unc = new_unc
             old_unc2 = new_unc2
@@ -437,6 +455,10 @@ def parametrized_simulation_test(cfg, model):
         'cor_Linfty': Linfty_errors_cor,
         'alphas': alphas
     }
+
+    print("cor_l2_errors:", L2_errors_cor)
+    print("plot_times", cfg.profile_save_steps)
+    print("plot_data_dict['unc'][0]", plot_data_dict['unc'][0])
 
     return error_dict, plot_data_dict
 
