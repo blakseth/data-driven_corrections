@@ -80,6 +80,17 @@ def create_parametrized_datasets(cfg):
             res_Vs[a][i] = ref_Vs[a][i] - unc_Vs[a][i]
 
             sources[a][i] = physics.get_corr_src_term(cfg, ref_Vs[a][i-1], ref_Vs[a][i], 'LxF')
+            #if not np.around(np.amax(sources[a][i][0]),10) == -np.around(np.amin(sources[a][i][0]),10):
+            #    print("0:", sources[a][i][0])
+            #if not np.around(np.amax(sources[a][i][1]),10) == -np.around(np.amin(sources[a][i][1]),10):
+            #    print("1:", sources[a][i][1])
+            #if not np.around(np.amax(sources[a][i][2]),10) == -np.around(np.amin(sources[a][i][2]),10):
+            #    print("2:", sources[a][i][2])
+            if not np.argmax(sources[a][i]) + 1 == np.argmin(sources[a][i]):
+                print("alpha:", alpha)
+                print("ARGMAX ERROR:", sources[a][i])
+                print("old_ref:", old_Vs[a][i])
+                print("ref.", ref_Vs[a][i])
             if i %50== 1 and a == 0:
                 print("time:", new_time)
                 plt.figure()

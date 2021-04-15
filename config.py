@@ -27,7 +27,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-15_trial_euler"
-run_names  = [["Euler_Dense_MovingContact_L1_2"]]
+run_names  = [["Euler_Dense_MovingContact_L1_5"]]
 systems    = ["MovCDisc"]
 data_tags  = ["MovCDisc_src_in"]
 model_type = 'hybrid'
