@@ -92,8 +92,9 @@ def train(cfg, model, num):
 
             if cfg.model_type == 'hybrid':
                 loss = model.loss(out_data, src_data)
-                print("src_old_data[0]:", src_old_data[0])
-                print("src_data[0]:", src_data[0])
+                #print("src_old_data[0]:", src_old_data[0])
+                #print("src_data[0]:", src_data[0])
+                #print("out_data[0]:", out_data[0])
             elif cfg.model_type == 'residual':
                 loss = model.loss(out_data, res_data[:, :, 1:-1])
             elif cfg.model_type == 'end-to-end':

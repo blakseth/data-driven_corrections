@@ -382,13 +382,16 @@ def parametrized_simulation_test(cfg, model):
                 new_src = util.z_unnormalize_componentwise(
                     model.net(torch.unsqueeze(old_src, dim=0).to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
                 )
-                gated_src = util.noise_gate(new_src, 1e-4)
-                #gated_src[:, 1:, :] = util.noise_gate(gated_src[:,1:,:], np.inf)
-                print("gated_src:", gated_src)
-                print("true src:", srcs[index])
-                #print("non-gated_src:", new_src)
-                new_cor = physics.get_new_state(cfg, old_cor, gated_src, 'LxF')
-                print("cor:", new_cor)
+                if index == 0:
+                    print("pred src:", new_src)
+                    #gated_src = util.noise_gate(new_src, 1e-4)
+                    #gated_src[:, 1:, :] = util.noise_gate(gated_src[:,1:,:], np.inf)
+                    #print("gated_src:", gated_src)
+                    print("true src:", srcs[index])
+                    #print("non-gated_src:", new_src)
+                new_cor = physics.get_new_state(cfg, old_cor, np.squeeze(new_src), 'LxF')
+                if index == 0:
+                    print("cor:", new_cor)
             elif cfg.model_type == 'residual':
                 new_res = np.zeros(new_unc.shape)
                 unnomralized_res = model.net(new_unc_tensor_[:,:, 1:-1].to(cfg.device)).detach().cpu().numpy()

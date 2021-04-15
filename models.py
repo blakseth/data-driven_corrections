@@ -310,6 +310,8 @@ class Model:
         # Defining loss function.
         if cfg.loss_func == 'MSE':
             self.loss = torch.nn.MSELoss(reduction='mean')
+        elif cfg.loss_func == 'L1':
+            self.loss = torch.nn.L1Loss(reduction='sum')
         else:
             raise Exception("Invalid loss function selection.")
 

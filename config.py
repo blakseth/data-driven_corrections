@@ -27,7 +27,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-15_trial_euler"
-run_names  = [["Euler_Dense_MovingContact_debug_train_pps"]]
+run_names  = [["Euler_Dense_MovingContact_L1_2"]]
 systems    = ["MovCDisc"]
 data_tags  = ["MovCDisc_src_in"]
 model_type = 'hybrid'
@@ -345,7 +345,7 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Model configuration.
 
-        self.loss_func = 'MSE'
+        self.loss_func = 'L1'
 
         self.optimizer = 'adam'
         self.learning_rate = 1e-4
