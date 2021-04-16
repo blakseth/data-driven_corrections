@@ -14,6 +14,7 @@ import numpy as np
 #import scipy.linalg
 #from scipy.sparse import diags
 #import sys
+import pickle
 
 ########################################################################################################################
 # File imports.
@@ -122,6 +123,9 @@ def setup_euler(cfg, V_mtx):
     U_mtx = np.zeros_like(V_mtx)
 
     e = cfg.c_V * V_mtx[2,:]
+    for energy in e:
+        if not energy > 0:
+            print("WARNING: Zero energy in setup_euler")
     U_mtx[0,:] = V_mtx[0,:] / ((cfg.gamma - 1)*e)
     U_mtx[1,:] = U_mtx[0,:] * V_mtx[1,:]
     U_mtx[2,:] = U_mtx[0,:]*e + 0.5*U_mtx[0,:]*V_mtx[1,:]**2
@@ -144,6 +148,7 @@ def solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, corr_src, solver_type)
         check_valid_dt(cfg, u_vec, c_vec, CFL, dx)
         t = np.around(t + cfg.dt, decimals=10)
         print("t =", t)
+        print("tmax = ", tmax)
 
         if solver_type == 'LxF':
             F_est = LxF_flux(U_mtx, F_mtx, dt, dx)
@@ -202,6 +207,9 @@ def simulate_euler(cfg, t_end, solver_type):
 ########################################################################################################################
 
 def get_new_state(cfg, old_V_mtx, corr_src, solver_type):
+    for T in old_V_mtx[2,:]:
+        if not T > 0:
+            print("Non-positive T, get_new_state")
     old_U_mtx, old_F_mtx = setup_euler(cfg, old_V_mtx)
     old_T_vec = old_V_mtx[2,:]
     _, V_mtx = solve(cfg, old_V_mtx, old_U_mtx, old_F_mtx, old_T_vec, cfg.dx, cfg.dt, cfg.CFL, corr_src, solver_type)
@@ -221,6 +229,7 @@ def get_corr_src_term(cfg, old_V_mtx_ref, new_V_mtx_ref, solver_type):
 ########################################################################################################################
 
 def main():
+
     cfg = config.Config(
         use_GPU=config.use_GPU,
         group_name=config.group_name,
@@ -233,6 +242,7 @@ def main():
         N_x=100,
         model_type=config.model_type,
     )
+    print("alphas:", cfg.alphas)
     for time in [0.0001, 0.001, 0.005, 0.01, 0.03, 0.07, 0.12, 2.0]:
         V = exact_solver.exact_solver(cfg, time)
         fig, axs = plt.subplots(4, 1)
@@ -269,29 +279,117 @@ def main():
             model_type=config.model_type,
         )
 
-        unc_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
-        HLL_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
-        cor_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
-        ref_Vs = np.zeros((cfg.N_t, 3, cfg.NJ))
-        srcs   = np.zeros((cfg.N_t, 3, cfg.N_x))
+        unc_Vs = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ))
+        HLL_Vs = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ))
+        cor_Vs = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ))
+        ref_Vs = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.NJ))
+        srcs   = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
 
-        time = 0.0
+        maxs = []
+        mins = []
+        twos = []
 
-        unc_Vs[0] = get_init_V_mtx(cfg)
-        HLL_Vs[0] = get_init_V_mtx(cfg)
-        cor_Vs[0] = get_init_V_mtx(cfg)
-        ref_Vs[0] = get_init_V_mtx(cfg)
+        for a, alpha in enumerate(cfg.alphas):
+            print("alpha:", alpha)
+            max_up = np.zeros(3)
+            max_down = np.zeros(3)
+            two = np.zeros(3)
 
-        for i in range(1, cfg.N_t):
-            time      = np.around(time + cfg.dt, decimals=10)
-            unc_Vs[i] = get_new_state(cfg, unc_Vs[i-1], np.zeros((3, cfg.N_x)), 'LxF')
-            HLL_Vs[i] = get_new_state(cfg, HLL_Vs[i - 1], np.zeros((3, cfg.N_x)), 'HLL')
-            _, num_sol = simulate_euler(cfg, time, 'LxF')
-            np.testing.assert_allclose(num_sol, unc_Vs[i], rtol=1e-10, atol=1e-10)
-            ref_Vs[i] = exact_solver.exact_solver(cfg, time)
-            srcs[i]   = get_corr_src_term(cfg, ref_Vs[i-1], ref_Vs[i], 'LxF')
-            cor_Vs[i] = get_new_state(cfg, cor_Vs[i-1], srcs[i], 'LxF')
-            np.testing.assert_allclose(ref_Vs[i], cor_Vs[i], rtol=1e-10, atol=1e-10)
+            cfg.init_u1 = cfg.init_u2 = 0.1 * alpha
+
+            unc_Vs[a][0] = get_init_V_mtx(cfg)
+            #print("unv_Vs[a][0]", unc_Vs[a][0])
+            HLL_Vs[a][0] = get_init_V_mtx(cfg)
+            cor_Vs[a][0] = get_init_V_mtx(cfg)
+            ref_Vs[a][0] = get_init_V_mtx(cfg)
+
+            time = 0.0
+
+            for i in range(1, cfg.N_t - 1):
+                flag = False
+                time      = np.around(time + cfg.dt, decimals=10)
+                #print("i:", i)
+                unc_Vs[a][i] = get_new_state(cfg, unc_Vs[a][i-1], np.zeros((3, cfg.N_x)), 'LxF')
+                #print("unc_Vs[a][i-1]:", unc_Vs[a][i-1])
+                HLL_Vs[a][i] = get_new_state(cfg, HLL_Vs[a][i - 1], np.zeros((3, cfg.N_x)), 'HLL')
+                _, num_sol = simulate_euler(cfg, time, 'LxF')
+                np.testing.assert_allclose(num_sol, unc_Vs[a][i], rtol=1e-10, atol=1e-10)
+                ref_Vs[a][i] = np.around(exact_solver.exact_solver(cfg, time), 10)
+                srcs[a][i]   = np.around(get_corr_src_term(cfg, ref_Vs[a][i-1], ref_Vs[a][i], 'LxF'), 10)
+                cor_Vs[a][i] = get_new_state(cfg, cor_Vs[a][i-1], srcs[a][i], 'LxF')
+                np.testing.assert_allclose(ref_Vs[a][i], cor_Vs[a][i], rtol=1e-9, atol=1e-9)
+
+                if np.around(max_up[0],10) == np.around(0.0, 10) and np.around(np.amin(srcs[a][i]), 10) < np.around(0.0, 10):
+                    max_up = np.amax(srcs[a][i], axis=1)
+                    max_down = np.amin(srcs[a][i], axis=1)
+                    print("Set max_up and max_down")
+                    print("max_up set to", max_up)
+                    print("max_down set to", max_down)
+                elif np.around(two[0],10) == np.around(0.0, 10) and np.around(np.amin(srcs[a][i]), 10) == np.around(0.0, 10):
+                    two = np.amax(srcs[a][i], axis=1)
+                    print("two set to", two)
+                    print("Set two")
+                for j in range(3):
+                    if np.around(np.amax(srcs[a][i][j]),7) not in [np.around(max_up[j],7), np.around(two[j],7)]:
+                        print("WARNING3")
+                        print("max_up[j]:", max_up[j])
+                        print("two[j]:", two[j])
+                        print("srcs[a][i]:", srcs[a][i])
+                        print("ref_Vs[a][i]:", ref_Vs[a][i])
+                        print("j=", j)
+                        flag = True
+                    if np.around(np.amin(srcs[a][i][j]),7) not in [np.around(max_down[j],7), np.around(0.0,7)]:
+                        print("WARNING4")
+                        print("max_down[j]:", max_down[j])
+                        print("srcs[a][i]:", srcs[a][i])
+                        print("ref_Vs[a][i]:", ref_Vs[a][i])
+                        print("j=", j)
+                        flag = True
+
+
+
+                for j in range(3):
+                    if (not np.argmax(srcs[a][i][j]) + 1 == np.argmin(srcs[a][i][j])) and (not (np.around(srcs[a][i][j][np.argmax(srcs[a][i][j])], 5) == np.around(srcs[a][i][j][np.argmax(srcs[a][i][j]) + 1], 5) or np.around(srcs[a][i][j][np.argmax(srcs[a][i][j])], 5) == np.around(srcs[a][i][j][np.argmax(srcs[a][i][j]) - 1], 5) )):
+                        print("WARNING1")
+                        print("src:", srcs[a][i])
+                        print("ref:", ref_Vs[a][i])
+                        print("j=", j)
+                        flag = True
+
+                diff_V = np.abs(ref_Vs[a, i, :, 1:] - ref_Vs[a, i, :, :-1])
+                print("ref_Vs.shape", ref_Vs.shape)
+                print("diff_V-shape", diff_V.shape)
+                for j in range(3):
+                    if np.argmax(diff_V[j]) != 0 and (not np.argmax(diff_V[j]) == np.argmax(srcs[a][i][j])+1) and (not (np.around(srcs[a][i][j][np.argmax(srcs[a][i][j])], 5) == np.around(srcs[a][i][j][np.argmax(srcs[a][i][j]) + 1], 5) or np.around(srcs[a][i][j][np.argmax(srcs[a][i][j])], 5) == np.around(srcs[a][i][j][np.argmax(srcs[a][i][j]) - 1], 5) )):
+                        print("WARNING2")
+                        print("index1:", np.argmax(diff_V[j]))
+                        print("index2:", np.argmax(srcs[a][i][j]))
+                        print("src:", srcs[a][i])
+                        print("diff_V:", diff_V)
+                        print("ref_V:", ref_Vs[a][i])
+                        print("j=", j)
+                        flag = True
+
+                if flag:
+                    raise Exception
+
+            maxs.append(max_up)
+            mins.append(max_down)
+            twos.append(two)
+
+        my_dict = {
+            "maxs": np.asarray(maxs),
+            "mins": np.asarray(mins),
+            "twos": np.asarray(twos)
+        }
+
+        print("my_dict", my_dict)
+
+        pickle.dump(my_dict, open("targets.pkl", "wb"))
+
+        loaded_dict = pickle.load(open("targets.pkl", "rb"))
+
+        print("loaded_dict:", loaded_dict)
 
         fig, axs = plt.subplots(4, 1)
         ylabels = [r"$p$", r"$u$", r"$T$"]

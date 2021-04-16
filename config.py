@@ -104,7 +104,7 @@ class Config:
 
         if self.parametrized_system:
             train_alphas, _ = scipy.special.roots_legendre(16)
-            train_alphas = train_alphas * 0.5 + 0.5
+            train_alphas = train_alphas * 0.5 + 0.75
             val_alphas = np.asarray([0.25, 0.75])
             test_alphas = np.asarray([0.1, 0.5, 0.9, 1.5])
             self.train_alphas = train_alphas
@@ -224,7 +224,7 @@ class Config:
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
         elif self.system == "MovCDisc":
             exact_solution_available = True
-            t_end     = 1.3
+            t_end     = 1.4
             dt        = 5e-3
             x_a       = 0.0
             x_b       = 1.0

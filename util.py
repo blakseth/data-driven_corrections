@@ -59,7 +59,7 @@ def z_unnormalize(x_normalized, mean, std):
     """
     return (x_normalized * std) + mean
 
-def z_normalize_componentwise(x, means, stds):
+def z_normalize_componentwise(x, means, stds, axis):
     """
     :param x: Numpy array containing data points.
     :param means: Pre-calculated means to be used for normalization.
@@ -67,15 +67,15 @@ def z_normalize_componentwise(x, means, stds):
     :return: Z-scores of the data points in x.
     """
     x_normalized = np.zeros_like(x)
-    if x_normalized.ndim == 2:
-        for i in range(3):
-            x_normalized[i, :] = (x[i, :] - means[i]) / stds[i]
-    elif x_normalized.ndim == 3:
-        for i in range(3):
-            x_normalized[:, i, :] = (x[:, i, :] - means[i]) / stds[i]
+    if axis == 0:
+        for i in range(x.shape[0]):
+            x_normalized[i] = (x[i] - means[i]) / stds[i]
+    elif axis == 1:
+        for i in range(x.shape[1]):
+            x_normalized[:, i] = (x[:, i] - means[i]) / stds[i]
     return x_normalized
 
-def z_unnormalize_componentwise(x_normalized, means, stds):
+def z_unnormalize_componentwise(x_normalized, means, stds, axis):
     """
     :param x_normalized: Numpy array containing z-normalized data points.
     :param means: Means of original, unnormalized data.
@@ -83,12 +83,12 @@ def z_unnormalize_componentwise(x_normalized, means, stds):
     :return: Unnormalized data.
     """
     x = np.zeros_like(x_normalized)
-    if x_normalized.ndim == 2:
-        for i in range(3):
-            x[i, :] = (x_normalized[i, :] * stds[i]) + means[i]
-    elif x_normalized.ndim == 3:
-        for i in range(3):
-            x[:, i, :] = (x_normalized[:, i, :] * stds[i]) + means[i]
+    if axis == 0:
+        for i in range(x.shape[0]):
+            x[i] = (x_normalized[i] * stds[i]) + means[i]
+    elif axis == 1:
+        for i in range(x.shape[1]):
+            x[:, i] = (x_normalized[:, i] * stds[i]) + means[i]
     else:
         raise Exception("Unexpected number of dimensions.")
     return x
