@@ -103,7 +103,7 @@ class Config:
         # Domain configuration.
 
         if self.parametrized_system:
-            train_alphas, _ = scipy.special.roots_legendre(16)
+            train_alphas, _ = scipy.special.roots_legendre(1000)
             train_alphas = train_alphas * 0.5 + 0.75
             val_alphas = np.asarray([0.25, 0.75])
             test_alphas = np.asarray([0.1, 0.5, 0.9, 1.5])

@@ -159,7 +159,7 @@ def train(model, dataset_train, dataset_val):
     val_epoch_since_improvement = torch.tensor(0.0)
     lowest_val_los = torch.tensor(1e30)
 
-    print_train_loss_period = 1
+    print_train_loss_period = 100
     save_train_loss_period  = 10
     validation_period       = 100
 
@@ -180,6 +180,7 @@ def train(model, dataset_train, dataset_val):
 
     it = 0
     for epoch in range(int(max_iter)):
+        flag = True
         for i, data in enumerate(dataloader_train):
             if it >= max_iter or (val_epoch_since_improvement >= overfit_limit and it >= min_iter):
                 break
@@ -218,8 +219,11 @@ def train(model, dataset_train, dataset_val):
                             val_epoch_since_improvement = 0
                         else:
                             val_epoch_since_improvement += 1
-            print("it", it)
-        print("epoch:", epoch)
+            flag = False
+            #print("it", it)
+        #print("epoch:", epoch)
+        if flag:
+            break
 
     data_dict = dict()
     data_dict['Training loss'] = np.asarray([model.train_iterations, model.train_losses])
@@ -241,6 +245,10 @@ def test(cfg, model, dataset_train):
     L2_errors_unc = np.zeros((cfg.test_alphas.shape[0], cfg.N_t - 1))
     L2_errors_cor = np.zeros((cfg.test_alphas.shape[0], cfg.N_t - 1))
 
+    abcs = pickle.load(open("targets.pkl", 'rb'))
+    loaded_maxs = abcs['maxs']
+    loaded_mins = abcs['mins']
+
     for a, alpha in enumerate(cfg.test_alphas):
         print("alpha:", alpha)
         u = cfg.init_u1 = cfg.init_u2 = 0.1*alpha
@@ -252,20 +260,41 @@ def test(cfg, model, dataset_train):
         old_cd_loc = cfg.x_split
         old_cd_index = get_last_left_state_index(cfg.x_nodes, old_cd_loc)
 
+        print("tensor alpha:", torch.tensor(alpha).reshape((1,1)))
+        alpha_in = torch.tensor(alpha).reshape((1,1)).double()
+        predictions = util.z_unnormalize_componentwise(model.net(alpha_in).detach().numpy(), means, stds, axis=1)
+        maxs = np.squeeze(predictions)[:3]
+        mins = np.squeeze(predictions)[3:]
+
+        print("loaded_maxs:", loaded_maxs[18])
+        print("maxs", maxs)
+        print("loaded_mins:", loaded_mins[18])
+        print("mins", mins)
+
         for i in range(1, cfg.N_t):
             new_time = np.around(old_time + cfg.dt, decimals=10)
 
             new_cd_loc = old_cd_loc + u*cfg.dt
             new_cd_index = get_last_left_state_index(cfg.x_nodes, new_cd_loc)
-            predictions = util.z_normalize_componentwise(model.net(alpha).detach().numpy(), means, stds, axis=1)
-            maxs = predictions[:3]
-            mins = predictions[:3]
+
             src = np.zeros((3, cfg.N_x))
-            if new_cd_index == old_cd_index:
+            if math.isclose(new_cd_loc, cfg.x_nodes[new_cd_index]):
+                #print("0")
+                src[:, new_cd_index-2] = maxs
+                src[:, new_cd_index-1] = mins
+            elif math.isclose(old_cd_loc, cfg.x_nodes[old_cd_index]):
+                #print("3")
+                src[:, new_cd_index - 2] = src[:, new_cd_index - 1] = maxs
+            elif new_cd_index == old_cd_index:
+                #print("1")
+                #print("src[:,new_cd_index-1].shape", src[:,new_cd_index-1].shape)
+                #print("maxs.shape", maxs.shape)
                 src[:,new_cd_index-1] = maxs
                 src[:,new_cd_index]   = mins
             else:
-                src[:,new_cd_index-1] = src[:,new_cd_index] = maxs
+                #print("2")
+                src[:,new_cd_index-2] = src[:,new_cd_index-1] = maxs
+
             new_cor_V = physics.get_new_state(cfg, old_cor_V, src, 'LxF')
 
             new_unc_V = physics.get_new_state(cfg, old_unc_V, np.zeros_like(src), 'LxF')
@@ -276,9 +305,12 @@ def test(cfg, model, dataset_train):
             L2_errors_unc[a][i-1] = util.get_disc_L2_norm(new_unc_V - new_ref_V) / ref_norm
             L2_errors_cor[a][i-1] = util.get_disc_L2_norm(new_cor_V - new_ref_V) / ref_norm
 
-            old_unc_V = new_unc_V
-            old_cor_V = new_cor_V
-            old_ref_V = new_ref_V
+            old_unc_V    = new_unc_V
+            old_cor_V    = new_cor_V
+            old_ref_V    = new_ref_V
+            old_time     = new_time
+            old_cd_loc   = new_cd_loc
+            old_cd_index = new_cd_index
 
         final_profiles['unc'][a] = old_unc_V
         final_profiles['cor'][a] = old_cor_V
@@ -416,8 +448,8 @@ def main():
     print("--------------------------------------")
     print("Model creation initiated.")
     model = Model(
-        depth     = 5,
-        width     = 10,
+        depth     = 10,
+        width     = 5,
         dp        = 0.0,
         loss_func = 'MSE',
         lr        = 1e-4,
@@ -429,6 +461,11 @@ def main():
     print("--------------------------------------")
     print("Training initiated.")
     train_data = train(model, dataset_train, dataset_val)
+    plt.figure()
+    plt.semilogy(train_data['Training loss'][0], train_data['Training loss'][1], label='train')
+    plt.semilogy(train_data['Validation loss'][0], train_data['Validation loss'][1], label='val')
+    plt.legend()
+    plt.show()
     print("Training completed.")
     print("--------------------------------------\n")
 
@@ -437,6 +474,27 @@ def main():
     errors, profiles = test(cfg, model, dataset_train)
     print("Errors unc:", errors['unc'])
     print("Errors cor:", errors['cor'])
+    for a, alpha in enumerate(cfg.test_alphas):
+        fig, axs = plt.subplots(4, 1)
+        ylabels = [r"$p$", r"$u$", r"$T$"]
+        for j in range(3):
+            axs[j].plot(cfg.x_nodes, profiles['unc'][a][j], 'r-', label='LxF')
+            axs[j].plot(cfg.x_nodes, profiles['cor'][a][j], 'g-', label='HAM')
+            axs[j].plot(cfg.x_nodes, profiles['ref'][a][j], 'k-', label='Exact')
+            axs[j].legend()
+            axs[j].set_xlabel(r'$x$')
+            axs[j].set_ylabel(ylabels[j])
+            axs[j].grid()
+            axs[j].label_outer()
+        axs[3].plot(cfg.x_nodes, profiles['unc'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['unc'][a][2]), 'r-', label='LxF')
+        axs[3].plot(cfg.x_nodes, profiles['cor'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['cor'][a][2]), 'g-', label='HAM')
+        axs[3].plot(cfg.x_nodes, profiles['ref'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['ref'][a][2]), 'k-', label='Exact')
+        axs[3].legend()
+        axs[3].set_xlabel(r'$x$')
+        axs[3].set_ylabel(r'$\rho$')
+        axs[3].grid()
+        axs[3].label_outer()
+    plt.show()
     print("Testing completed.")
     print("--------------------------------------\n")
 
