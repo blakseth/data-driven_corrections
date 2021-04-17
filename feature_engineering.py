@@ -38,42 +38,48 @@ def get_last_left_state_index(xs, loc):
 
 def create_dataset(cfg):
     train_alphas  = cfg.train_alphas
-    train_targets = np.zeros((train_alphas.shape[0], 6))
+    train_targets = np.zeros((train_alphas.shape[0], 4))
     for a in range(train_alphas.shape[0]):
-        cfg.init_u1 = cfg.init_u1 = 0.1 * train_alphas[a]
+        cfg.init_u1 = cfg.init_u2 = 0.1 * train_alphas[a]
         ref_V0 = physics.get_init_V_mtx(cfg)
         ref_V1 = exact_solver.exact_solver(cfg, cfg.dt)
         src    = physics.get_corr_src_term(cfg, ref_V0, ref_V1, 'LxF')
-        train_targets[a, :3] = np.amax(src, axis=1)
-        train_targets[a, 3:] = np.amin(src, axis=1)
+        train_targets[a, :2] = np.amax(src, axis=1)[1:]
+        train_targets[a, 2:] = np.amin(src, axis=1)[1:]
 
     val_alphas = cfg.val_alphas
-    val_targets = np.zeros((val_alphas.shape[0], 6))
+    val_targets = np.zeros((val_alphas.shape[0], 4))
     for a in range(val_alphas.shape[0]):
-        cfg.init_u1 = cfg.init_u1 = 0.1 * val_alphas[a]
+        cfg.init_u1 = cfg.init_u2 = 0.1 * val_alphas[a]
         ref_V0 = physics.get_init_V_mtx(cfg)
         ref_V1 = exact_solver.exact_solver(cfg, cfg.dt)
         src    = physics.get_corr_src_term(cfg, ref_V0, ref_V1, 'LxF')
-        val_targets[a, :3] = np.amax(src, axis=1)
-        val_targets[a, 3:] = np.amin(src, axis=1)
+        val_targets[a, :2] = np.amax(src, axis=1)[1:]
+        val_targets[a, 2:] = np.amin(src, axis=1)[1:]
 
     train_target_means = np.mean(train_targets, axis=0)
     train_target_stds  = np.std( train_targets, axis=0)
-    assert train_target_means.shape[0] == train_target_stds.shape[0] == 6
+    assert train_target_means.shape[0] == train_target_stds.shape[0] == 4
 
     train_targets_normal = util.z_normalize_componentwise(train_targets, train_target_means, train_target_stds, axis=1)
     val_targets_normal   = util.z_normalize_componentwise(val_targets,   train_target_means, train_target_stds, axis=1)
 
+    print("train_targets", train_targets)
+    print("train_targets_normal", train_targets_normal)
+    print("train_means", train_target_means)
+    print("train_stds:", train_target_stds)
+    #raise Exception
+
     train_alphas_tensor  = torch.from_numpy(train_alphas)
     train_targets_tensor = torch.from_numpy(train_targets_normal)
-    stats_train          = np.zeros((train_alphas.shape[0], 6))
+    stats_train          = np.zeros((train_alphas.shape[0], 4))
     stats_train[0,:]     = train_target_means
     stats_train[1,:]     = train_target_stds
     stats_train_tensor   = torch.from_numpy(stats_train)
 
     val_alphas_tensor    = torch.from_numpy(val_alphas)
     val_targets_tensor   = torch.from_numpy(val_targets_normal)
-    stats_val            = np.zeros((val_alphas.shape[0], 6))
+    stats_val            = np.zeros((val_alphas.shape[0], 4))
     stats_val[0, :]      = train_target_means
     stats_val[1, :]      = train_target_stds
     stats_val_tensor     = torch.from_numpy(stats_val)
@@ -110,7 +116,7 @@ class DenseModule(torch.nn.Module):
         ]
 
         # Defining output layer.
-        last_layer = torch.nn.Linear(hidden_layer_size, 6)
+        last_layer = torch.nn.Linear(hidden_layer_size, 4)
 
         # Defining full architecture.
         self.net = torch.nn.Sequential(
@@ -235,8 +241,8 @@ def train(model, dataset_train, dataset_val):
 # Testing.
 
 def test(cfg, model, dataset_train):
-    means = dataset_train[0][2].detach().numpy()[:6]
-    stds  = dataset_train[1][2].detach().numpy()[:6]
+    means = dataset_train[0][2].detach().numpy()[:4]
+    stds  = dataset_train[1][2].detach().numpy()[:4]
     final_profiles = {
         'unc': np.zeros((cfg.test_alphas.shape[0], 3, cfg.x_nodes.shape[0])),
         'cor': np.zeros((cfg.test_alphas.shape[0], 3, cfg.x_nodes.shape[0])),
@@ -263,12 +269,16 @@ def test(cfg, model, dataset_train):
         print("tensor alpha:", torch.tensor(alpha).reshape((1,1)))
         alpha_in = torch.tensor(alpha).reshape((1,1)).double()
         predictions = util.z_unnormalize_componentwise(model.net(alpha_in).detach().numpy(), means, stds, axis=1)
-        maxs = np.squeeze(predictions)[:3]
-        mins = np.squeeze(predictions)[3:]
+        maxs = np.zeros(3)
+        mins = np.zeros(3)
+        maxs[0] = 0.2 - 0.01*alpha
+        mins[0] = -0.2 - 0.01*alpha
+        maxs[1:] = np.squeeze(predictions)[:2]
+        mins[1:] = np.squeeze(predictions)[2:]
 
-        print("loaded_maxs:", loaded_maxs[18])
+        print("loaded_maxs:", loaded_maxs[18 + a])
         print("maxs", maxs)
-        print("loaded_mins:", loaded_mins[18])
+        print("loaded_mins:", loaded_mins[18 + a])
         print("mins", mins)
 
         for i in range(1, cfg.N_t):
@@ -448,8 +458,8 @@ def main():
     print("--------------------------------------")
     print("Model creation initiated.")
     model = Model(
-        depth     = 10,
-        width     = 5,
+        depth     = 15,
+        width     = 20,
         dp        = 0.0,
         loss_func = 'MSE',
         lr        = 1e-4,
