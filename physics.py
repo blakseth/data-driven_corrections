@@ -24,28 +24,22 @@ import exact_solver
 
 ########################################################################################################################
 
-def get_init_V_mtx(cfg):
+def get_init_V_mtx(cfg, alpha):
     V_mtx = np.zeros((3, cfg.x_nodes.shape[0]))
-    for i in range(cfg.x_nodes.shape[0]):
-        if cfg.x_nodes[i] <= cfg.x_split:
-            V_mtx[0, i] = cfg.init_p1
-            V_mtx[1, i] = cfg.init_u1
-            V_mtx[2, i] = cfg.init_T1
-        else:
-            V_mtx[0, i] = cfg.init_p2
-            V_mtx[1, i] = cfg.init_u2
-            V_mtx[2, i] = cfg.init_T2
+    V_mtx[0,:] = cfg.get_p0(cfg.x_nodes, alpha)
+    V_mtx[1,:] = cfg.get_u0(cfg.x_nodes, alpha)
+    V_mtx[2,:] = cfg.get_T0(cfg.x_nodes, alpha)
     return V_mtx
 
 def LxF_flux(U_mtx, F_mtx, dt, dx):
     return 0.5 * ( F_mtx[:, :-1] + F_mtx[:, 1:] - (dx/dt)*(U_mtx[:, 1:] - U_mtx[:, :-1]) )
 
 def find_wave_speed_Roe_avg(rho_L, u_L, p_L, c_L, rho_R, u_R, p_R, c_R, gamma):
-    u_avg = (np.sqrt(rho_L) * u_L + np.sqrt(rho_R) * u_R) / (np.sqrt(rho_L) + np.sqrt(rho_R))
-    H_L = 0.5 * u_L ** 2 + c_L ** 2 / (gamma - 1)
-    H_R = 0.5 * u_R ** 2 + c_R ** 2 / (gamma - 1)
-    H_avg = (np.sqrt(rho_L) * H_L + np.sqrt(rho_R) * H_R) / (np.sqrt(rho_L) + np.sqrt(rho_R))
-    c_avg = np.sqrt((gamma - 1) * (H_avg - 0.5 * u_avg ** 2))
+    u_avg = (np.sqrt(rho_L)*u_L + np.sqrt(rho_R)*u_R) / (np.sqrt(rho_L) + np.sqrt(rho_R))
+    H_L = 0.5*u_L**2 + (c_L**2)/(gamma - 1)
+    H_R = 0.5*u_R**2 + (c_R**2)/(gamma - 1)
+    H_avg = (np.sqrt(rho_L)*H_L + np.sqrt(rho_R)*H_R) / (np.sqrt(rho_L) + np.sqrt(rho_R))
+    c_avg = np.sqrt((gamma-1) * (H_avg - 0.5*u_avg**2))
 
     SL = min(u_L - c_L, u_avg - c_avg)
     SR = max(u_R + c_R, u_avg + c_avg)
@@ -77,10 +71,46 @@ def HLL_flux(U_mtx, V_mtx, F_mtx, c_vec, gamma):
             F_est[:,i] = f_HLL
     return F_est
 
+def HLLC_flux(U_mtx, V_mtx, F_mtx, c_vec, gamma):
+    F_est = np.zeros((F_mtx.shape[0], F_mtx.shape[1] - 1))
+    U_est_L = np.zeros((3, 1))
+    U_est_R = np.zeros((3, 1))
+    for i in range(U_mtx.shape[0] - 1):
+        rho_L = U_mtx[0, i]
+        u_L   = V_mtx[1, i]
+        p_L   = V_mtx[0, i]
+        c_L   = c_vec[i]
+
+        rho_R = U_mtx[0, i+1]
+        u_R   = V_mtx[1, i+1]
+        p_R   = V_mtx[0, i+1]
+        c_R   = c_vec[i+1]
+
+        SL, SM, SR = find_wave_speed_Roe_avg(rho_L, u_L, p_L, c_L, rho_R, u_R, p_R, c_R, gamma)
+
+        if SL >= 0.0: # Right-going supersonic flow.
+            F_est[:,i] = F_mtx[:,i]
+        elif SR <= 0.0: # Left-going supersonic flow.
+            F_est[:,i] = F_mtx[:,i+1]
+        else: # Subsonic flow.
+            if SM >= 0.0: # Flow to the right (from the left).
+                U_est_L[0, 0] = rho_L*(SL - u_L)/(SL - SM)
+                U_est_L[1, 0] = U_est_L[0, 0]*SM
+                U_est_L[2, 0] = U_est_L[0, 0]*((U_mtx[2, i]/rho_L) + (SM - u_L)*(SM + p_L/(rho_L*(SL - u_L))))
+                print("HELLO")
+                F_est[:, i] = F_mtx[:, i] + SL*(U_est_L[:, 0] - U_mtx[:, i])
+            else: # Flow to the left (from the right).
+                U_est_R[0, 0] = rho_R*(SR - u_R)/(SR - SM)
+                U_est_R[1, 0] = U_est_R[0, 0]*SM
+                U_est_R[2, 0] = U_est_R[0, 0]*(U_mtx[2, i+1]/rho_R + (SM - u_R)*(SM + p_R/(rho_R*(SR - u_R))))
+
+                F_est[:, i] = F_mtx[:, i+1] + SR*(U_est_R[:, 0] - U_mtx[:, i+1])
+    return F_est
+
 def find_c(cfg, T_vec):
     if np.amin(T_vec) < 0:
         raise Exception("Negative T in find_c.")
-    return np.sqrt((cfg.gamma - 1)*(cfg.gamma*cfg.c_V)*T_vec)
+    return np.sqrt((cfg.gamma - 1)*cfg.gamma*cfg.c_V*T_vec)
 
 def find_dt(u_vec, c_vec, CFL, dx):
     lam = np.amax(np.abs(u_vec) + c_vec)
@@ -149,6 +179,8 @@ def solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, corr_src, solver_type)
             F_est = LxF_flux(U_mtx, F_mtx, dt, dx)
         elif solver_type == 'HLL':
             F_est = HLL_flux(U_mtx, V_mtx, F_mtx, c_vec, cfg.gamma)
+        elif solver_type == 'HLLC':
+            F_est = HLLC_flux(U_mtx, V_mtx, F_mtx, c_vec, cfg.gamma)
         else:
             raise Exception("Invalid solver type.")
 
@@ -174,7 +206,7 @@ def solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, corr_src, solver_type)
 
 ########################################################################################################################
 
-def simulate_euler(cfg, t_end, solver_type):
+def simulate_euler(cfg, t_end, alpha, solver_type):
     NJ = cfg.NJ # Includes boundary nodes.
     dx = cfg.dx
     V_mtx = np.zeros((3, NJ))
@@ -183,15 +215,7 @@ def simulate_euler(cfg, t_end, solver_type):
     tmax = t_end
     CFL  = cfg.CFL
 
-    for i in range(NJ):
-        if cfg.x_nodes[i] <= cfg.x_split:
-            V_mtx[0, i] = cfg.init_p1
-            V_mtx[1, i] = cfg.init_u1
-            V_mtx[2, i] = cfg.init_T1
-        else:
-            V_mtx[0, i] = cfg.init_p2
-            V_mtx[1, i] = cfg.init_u2
-            V_mtx[2, i] = cfg.init_T2
+    V_mtx = get_init_V_mtx(cfg, alpha)
 
     U_mtx, F_mtx = setup_euler(cfg, V_mtx)
 
@@ -216,7 +240,7 @@ def get_corr_src_term(cfg, old_V_mtx_ref, new_V_mtx_ref, solver_type):
     new_U_mtx_num, _ = solve(
         cfg, old_V_mtx_ref, old_U_mtx_ref, old_F_mtx_ref, old_T_vec_ref, cfg.dx, cfg.dt, cfg.CFL, np.zeros(cfg.N_x), solver_type
     )
-    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1])
+    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1]) / cfg.dt
 
 ########################################################################################################################
 
@@ -234,24 +258,44 @@ def main():
         model_type=config.model_type,
     )
     for time in [0.0001, 0.001, 0.005, 0.01, 0.03, 0.07, 0.12, 2.0]:
-        V = exact_solver.exact_solver(cfg, time)
+        #if time >= 0.002:
+        #    raise Exception
+        alpha = 1.0
+        V_exact = np.zeros((3, cfg.x_nodes.shape[0]))
+        V_exact[0, :] = cfg.get_p(cfg.x_nodes, time, alpha)
+        V_exact[1, :] = cfg.get_u(cfg.x_nodes, time, alpha)
+        V_exact[2, :] = cfg.get_T(cfg.x_nodes, time, alpha)
+        print("LxF")
+        _, V_num = simulate_euler(cfg, time, alpha, 'LxF')
+        #print("HLL")
+        #_, V_num2 = simulate_euler(cfg, time, alpha, 'HLL')
+        #print("HLLC")
+        #_, V_num3 = simulate_euler(cfg, time, alpha, 'HLLC')
         fig, axs = plt.subplots(4, 1)
         fig.suptitle("Time: " + str(time))
         ylabels = [r"$p$", r"$u$", r"$T$"]
         for j in range(3):
-            axs[j].plot(cfg.x_nodes, V[j])
+            axs[j].scatter(cfg.x_nodes, V_num[j], s=40, marker='o', facecolors='none', edgecolors='red', label="LxF")
+            #axs[j].plot(cfg.x_nodes, V_num2[j],  label="HLL")
+            #axs[j].plot(cfg.x_nodes, V_num3[j],  label="HLLC")
+            axs[j].plot(cfg.x_nodes, V_exact[j], 'k-', label="Exact")
             axs[j].legend()
             axs[j].set_xlabel(r'$x$')
             axs[j].set_ylabel(ylabels[j])
             axs[j].grid()
             axs[j].label_outer()
-        axs[3].plot(cfg.x_nodes, V[0] / (cfg.c_V * (cfg.gamma - 1) * V[2]))
+        axs[3].scatter(cfg.x_nodes, V_num[0,:] / (cfg.c_V * cfg.gamma * V_num[2,:]), s=40, marker='o', facecolors='none', edgecolors='red', label='LxF')
+        #axs[3].plot(cfg.x_nodes, V_num2[0, :] / (cfg.c_V * cfg.gamma * V_num2[2, :]), label='HLL')
+        #axs[3].plot(cfg.x_nodes, V_num3[0, :] / (cfg.c_V * cfg.gamma * V_num3[2, :]), label='HLLC')
+        axs[3].plot(cfg.x_nodes, cfg.get_rho(cfg.x_nodes, time, alpha), 'k-', label='Exact')
         axs[3].set_xlabel(r'$x$')
         axs[3].set_ylabel(r'$\rho$')
         axs[3].grid()
         axs[3].label_outer()
+        axs[3].legend()
     plt.show()
 
+    raise Exception
 
     N_xs = [100]#, 9, 27]#, 81, 81*3, 81*9]
     errors = []
