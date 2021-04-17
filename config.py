@@ -26,10 +26,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-15_trial_euler"
-run_names  = [["Euler_Dense_MovingContact_L1_5"]]
-systems    = ["MovCDisc"]
-data_tags  = ["MovCDisc_src_in"]
+group_name = "2021-04-15_trial_euler_manufactured"
+run_names  = [["trial1"]]
+systems    = ["ManSol1"]
+data_tags  = ["ManSol1"]
 model_type = 'hybrid'
 model_keys = [7]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -114,6 +114,48 @@ class Config:
         else:
             self.alphas = np.asarray([1.0])
 
+        if self.system == "ManSol1":
+            exact_solution_available = True
+            x_a = 0.0
+            x_b = 1.0
+            t_end = 1.0
+            CFL = 0.99
+            dt = 2.5e-3
+            x_split = 0.5
+            c_V = 2.5
+            gamma = 1.4
+            p_ref = 1.5
+            def get_T(x, t, alpha):
+                return np.ones_like(x)
+            def get_p(x, t, alpha):
+                if t == 0.0:
+                    return get_p0(x, alpha)
+                else:
+                    return p_ref + alpha*np.tanh((x_split - x)/t)
+            def get_rho(x, t, alpha):
+                return get_p(x, t, alpha) / (c_V * gamma * get_T(x, t, alpha))
+            def get_c(x, t, alpha):
+                return np.sqrt((gamma - 1)*gamma*c_V*get_T(x, t, alpha))
+            def get_u(x, t, alpha):
+                return get_c(x, t, alpha) / (1 + np.exp(-10*alpha*x*(t**(1/4))))
+            def get_T0(x, alpha):
+                return get_T(x, 0, alpha)
+            def get_p0(x, alpha):
+                p0 = np.zeros_like(x)
+                for x_index, x_value in enumerate(x):
+                    if x_value <= x_split:
+                        p0[x_index] = p_ref + alpha
+                    else:
+                        p0[x_index] = p_ref - alpha
+                return p0
+            def get_rho0(x, alpha):
+                return get_rho(x, 0, alpha)
+            def get_u0(x, alpha):
+                return get_u(x, 0, alpha)
+        else:
+            raise Exception("Invalid domain selection.")
+
+        """
         if self.system == "SOD":
             exact_solution_available = True
             t_end     = 0.2
@@ -260,6 +302,7 @@ class Config:
             init_T2   = init_p2 / (init_rho2*c_V*(gamma - 1))
         else:
             raise Exception("Invalid domain selection.")
+        """
 
         self.exact_solution_available = exact_solution_available
         self.t_end     = t_end
@@ -267,14 +310,14 @@ class Config:
         self.x_b       = x_b
         self.x_split   = x_split
         self.CFL       = CFL
-        self.init_rho1 = init_rho1
-        self.init_p1   = init_p1
-        self.init_u1   = init_u1
-        self.init_T1   = init_T1
-        self.init_rho2 = init_rho2
-        self.init_p2   = init_p2
-        self.init_u2   = init_u2
-        self.init_T2   = init_T2
+        self.get_T     = get_T
+        self.get_p     = get_p
+        self.get_u     = get_u
+        self.get_rho   = get_rho
+        self.get_T0    = get_T0
+        self.get_p0    = get_p0
+        self.get_u0    = get_u0
+        self.get_rho0  = get_rho0
         self.gamma     = gamma
         self.c_V       = c_V
         self.dt        = dt
