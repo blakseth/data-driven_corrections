@@ -16,6 +16,12 @@ import os
 import pickle
 import torch
 
+
+plt.rcParams.update({
+    "font.family": "DejaVu Serif",
+    "font.serif": ["Computer Modern Roman"],
+})
+
 ########################################################################################################################
 # File imports.
 
@@ -315,6 +321,8 @@ def test(cfg, model, dataset_train):
             L2_errors_unc[a][i-1] = util.get_disc_L2_norm(new_unc_V - new_ref_V) / ref_norm
             L2_errors_cor[a][i-1] = util.get_disc_L2_norm(new_cor_V - new_ref_V) / ref_norm
 
+            print("L2_errors_unc[a][i-1].shape:", L2_errors_unc[a][i-1])
+
             old_unc_V    = new_unc_V
             old_cor_V    = new_cor_V
             old_ref_V    = new_ref_V
@@ -437,17 +445,18 @@ def main():
 
     # Create configuration object.
     cfg = config.Config(
-        use_GPU     = False,
-        group_name  = "2021-04-16_feature_engineering",
-        run_name    = "trial1",
-        system      = "MovCDisc",
-        data_tag    = "MovCDisc_features",
-        model_key   = 0,
-        do_train    = True,
-        do_test     = True,
+        use_GPU     = config.use_GPU,
+        group_name  = config.group_name,
+        run_name    = config.run_names[0][0],
+        system      = config.systems[0],
+        data_tag    = config.data_tags[0],
+        model_key   = config.model_keys[0],
+        do_train    = False,
+        do_test     = False,
         N_x         = 100,
-        model_type  = 'hybrid',
+        model_type  = config.model_type,
     )
+    os.makedirs(cfg.run_dir, exist_ok=False)
 
     print("--------------------------------------")
     print("Dataset creation initiated.")
@@ -471,11 +480,6 @@ def main():
     print("--------------------------------------")
     print("Training initiated.")
     train_data = train(model, dataset_train, dataset_val)
-    plt.figure()
-    plt.semilogy(train_data['Training loss'][0], train_data['Training loss'][1], label='train')
-    plt.semilogy(train_data['Validation loss'][0], train_data['Validation loss'][1], label='val')
-    plt.legend()
-    plt.show()
     print("Training completed.")
     print("--------------------------------------\n")
 
@@ -484,28 +488,74 @@ def main():
     errors, profiles = test(cfg, model, dataset_train)
     print("Errors unc:", errors['unc'])
     print("Errors cor:", errors['cor'])
-    for a, alpha in enumerate(cfg.test_alphas):
-        fig, axs = plt.subplots(4, 1)
-        ylabels = [r"$p$", r"$u$", r"$T$"]
-        for j in range(3):
-            axs[j].plot(cfg.x_nodes, profiles['unc'][a][j], 'r-', label='LxF')
-            axs[j].plot(cfg.x_nodes, profiles['cor'][a][j], 'g-', label='HAM')
-            axs[j].plot(cfg.x_nodes, profiles['ref'][a][j], 'k-', label='Exact')
-            axs[j].legend()
-            axs[j].set_xlabel(r'$x$')
-            axs[j].set_ylabel(ylabels[j])
-            axs[j].grid()
-            axs[j].label_outer()
-        axs[3].plot(cfg.x_nodes, profiles['unc'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['unc'][a][2]), 'r-', label='LxF')
-        axs[3].plot(cfg.x_nodes, profiles['cor'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['cor'][a][2]), 'g-', label='HAM')
-        axs[3].plot(cfg.x_nodes, profiles['ref'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['ref'][a][2]), 'k-', label='Exact')
-        axs[3].legend()
-        axs[3].set_xlabel(r'$x$')
-        axs[3].set_ylabel(r'$\rho$')
-        axs[3].grid()
-        axs[3].label_outer()
-    plt.show()
+
     print("Testing completed.")
+    print("--------------------------------------\n")
+
+    print("--------------------------------------")
+    print("Data saving initiated.")
+    with open(os.path.join(cfg.run_dir, "plot_data_raw" + ".pkl"), "wb") as f:
+        pickle.dump(profiles, f)
+    with open(os.path.join(cfg.run_dir, "error_data_raw" + ".pkl"), "wb") as f:
+        pickle.dump(errors, f)
+    with open(os.path.join(cfg.run_dir, "train_data_raw" + ".pkl"), "wb") as f:
+        pickle.dump(train_data, f)
+    print("Data saving completed.")
+    print("--------------------------------------")
+
+    print("--------------------------------------")
+    print("Data visualization initiated.")
+    for a, alpha in enumerate(cfg.test_alphas):
+        # Profiles.
+        unc = np.append(profiles['unc'][a], np.reshape(profiles['unc'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['unc'][a][2]), (1, cfg.x_nodes.shape[0])), axis=0)
+        cor = np.append(profiles['cor'][a], np.reshape(profiles['cor'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['cor'][a][2]), (1, cfg.x_nodes.shape[0])), axis=0)
+        ref = np.append(profiles['ref'][a], np.reshape(profiles['ref'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['ref'][a][2]), (1, cfg.x_nodes.shape[0])), axis=0)
+        fig, axs = plt.subplots(2, 2, sharex=True)
+        ylabels = [r"$p$", r"$u$", r"$T$", r"$\rho$"]
+        for j in range(4):
+            axs[j // 2][j % 2].scatter(cfg.x_nodes, unc[j], s=10, marker='o', facecolors='none', edgecolors='r', linewidths = 0.5, label='LxF')
+            axs[j // 2][j % 2].scatter(cfg.x_nodes, cor[j], s=10, marker='D', facecolors='none', edgecolors='g', linewidths = 0.5, label='HAM')
+            axs[j // 2][j % 2].plot(cfg.x_nodes, ref[j], 'k-', label='Exact')
+            #axs[j].legend()
+            axs[j // 2][j % 2].set_xlabel(r'$x$')
+            axs[j // 2][j % 2].set_ylabel(ylabels[j])
+            axs[j // 2][j % 2].set_axisbelow(True)
+            axs[j // 2][j % 2].grid()
+            #axs[j // 2][j % 2].label_outer()
+        plt.subplots_adjust(top=0.92, bottom=0.08, left=0.10, right=0.95, hspace=0.25, wspace=0.4)
+        plt.savefig(os.path.join(cfg.run_dir, "profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
+            np.around(cfg.t_end, decimals=5)) + ".pdf"), bbox_inches='tight')
+        plt.close()
+
+        # Errors.
+        print("errors['unc'].shape", errors['unc'].shape)
+        iterations = np.arange(1, errors['unc'].shape[1] + 1, 1)
+        print("iterations:", iterations)
+        plt.figure()
+        plt.semilogy(iterations, errors['unc'][a], 'r-', linewidth=2.0, label="LxF")
+        plt.semilogy(iterations, errors['cor'][a], 'g-', linewidth=2.0, label="HAM")
+        plt.xlim([0, len(errors['unc'][a])])
+        plt.xlabel("Test Iterations", fontsize=20)
+        plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+        plt.xticks(fontsize=17)
+        plt.yticks(fontsize=17)
+        plt.grid()
+        #plt.legend(prop={'size': 17})
+        plt.savefig(os.path.join(cfg.run_dir, "errors_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
+            np.around(cfg.t_end, decimals=5)) + ".pdf"), bbox_inches='tight')
+        plt.close()
+
+    # Losses
+    plt.figure()
+    plt.semilogy(train_data['Training loss'][0], train_data['Training loss'][1], label='train')
+    plt.semilogy(train_data['Validation loss'][0], train_data['Validation loss'][1], label='val')
+    plt.xlabel("Iterations")
+    plt.ylabel("MSE loss")
+    plt.legend()
+    plt.savefig(os.path.join(cfg.run_dir, "losses.pdf"), bbox_inches='tight')
+    plt.close()
+
+    print("Data visualization completed.")
     print("--------------------------------------\n")
 
     print("EXECUTION COMPLETED")
