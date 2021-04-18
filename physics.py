@@ -217,6 +217,8 @@ def simulate_euler(cfg, t_end, alpha, solver_type):
 
     V_mtx = get_init_V_mtx(cfg, alpha)
 
+    T_vec = V_mtx[2,:]
+
     U_mtx, F_mtx = setup_euler(cfg, V_mtx)
 
     U_mtx, V_mtx = solve(cfg, V_mtx, U_mtx, F_mtx, T_vec, dx, tmax, CFL, np.zeros((3, NJ - 2)), solver_type)
