@@ -161,7 +161,7 @@ class Config:
         if self.system == "SOD":
             exact_solution_available = True
             t_end = 0.2
-            dt = 4e-4
+            dt = 4e-3
             x_a = 0.0
             x_b = 1.0
             x_split = 0.5

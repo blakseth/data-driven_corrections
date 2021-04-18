@@ -29,6 +29,7 @@ def get_init_V_mtx(cfg, alpha):
     V_mtx[0,:] = cfg.get_p0(cfg.x_nodes, alpha)
     V_mtx[1,:] = cfg.get_u0(cfg.x_nodes, alpha)
     V_mtx[2,:] = cfg.get_T0(cfg.x_nodes, alpha)
+    print("Init V:", V_mtx)
     return V_mtx
 
 def LxF_flux(U_mtx, F_mtx, dt, dx):
@@ -286,7 +287,7 @@ def main():
             axs[j].set_ylabel(ylabels[j])
             axs[j].grid()
             axs[j].label_outer()
-        axs[3].scatter(cfg.x_nodes, V_num[0,:] / (cfg.c_V * cfg.gamma * V_num[2,:]), s=40, marker='o', facecolors='none', edgecolors='red', label='LxF')
+        axs[3].scatter(cfg.x_nodes, V_num[0,:] / (cfg.c_V * (cfg.gamma-1) * V_num[2,:]), s=40, marker='o', facecolors='none', edgecolors='red', label='LxF')
         #axs[3].plot(cfg.x_nodes, V_num2[0, :] / (cfg.c_V * cfg.gamma * V_num2[2, :]), label='HLL')
         #axs[3].plot(cfg.x_nodes, V_num3[0, :] / (cfg.c_V * cfg.gamma * V_num3[2, :]), label='HLLC')
         axs[3].plot(cfg.x_nodes, cfg.get_rho(cfg.x_nodes, time, alpha), 'k-', label='Exact')
