@@ -178,7 +178,6 @@ def simulate_euler(cfg, t_end, solver_type):
     NJ = cfg.NJ # Includes boundary nodes.
     dx = cfg.dx
     V_mtx = np.zeros((3, NJ))
-    T_vec = np.zeros(NJ)
 
     tmax = t_end
     CFL  = cfg.CFL
@@ -192,6 +191,8 @@ def simulate_euler(cfg, t_end, solver_type):
             V_mtx[0, i] = cfg.init_p2
             V_mtx[1, i] = cfg.init_u2
             V_mtx[2, i] = cfg.init_T2
+
+    T_vec = V_mtx[2,:]
 
     U_mtx, F_mtx = setup_euler(cfg, V_mtx)
 
@@ -225,7 +226,7 @@ def main():
         use_GPU=config.use_GPU,
         group_name=config.group_name,
         run_name=config.run_names[0][0],
-        system=config.systems[0],
+        system="SOD",
         data_tag=config.data_tags[0],
         model_key=config.model_keys[0],
         do_train=False,
@@ -235,23 +236,27 @@ def main():
     )
     for time in [0.0001, 0.001, 0.005, 0.01, 0.03, 0.07, 0.12, 2.0]:
         V = exact_solver.exact_solver(cfg, time)
+        _, V_num = simulate_euler(cfg, time, 'LxF')
         fig, axs = plt.subplots(4, 1)
         fig.suptitle("Time: " + str(time))
         ylabels = [r"$p$", r"$u$", r"$T$"]
         for j in range(3):
-            axs[j].plot(cfg.x_nodes, V[j])
+            axs[j].plot(cfg.x_nodes, V[j], label="Exact")
+            axs[j].plot(cfg.x_nodes, V_num[j], label="LxF")
             axs[j].legend()
             axs[j].set_xlabel(r'$x$')
             axs[j].set_ylabel(ylabels[j])
             axs[j].grid()
             axs[j].label_outer()
-        axs[3].plot(cfg.x_nodes, V[0] / (cfg.c_V * (cfg.gamma - 1) * V[2]))
+        axs[3].plot(cfg.x_nodes, V[0] / (cfg.c_V * (cfg.gamma - 1) * V[2]), label="Exact")
+        axs[3].plot(cfg.x_nodes, V_num[0] / (cfg.c_V * (cfg.gamma - 1) * V_num[2]), label='LxF')
         axs[3].set_xlabel(r'$x$')
         axs[3].set_ylabel(r'$\rho$')
         axs[3].grid()
         axs[3].label_outer()
     plt.show()
 
+    raise Exception
 
     N_xs = [100]#, 9, 27]#, 81, 81*3, 81*9]
     errors = []
