@@ -269,17 +269,19 @@ def main():
         V_exact[1, :] = cfg.get_u(cfg.x_nodes, time, alpha)
         V_exact[2, :] = cfg.get_T(cfg.x_nodes, time, alpha)
         print("LxF")
+        cfg.dt = 4e-3
         _, V_num = simulate_euler(cfg, time, alpha, 'LxF')
         #print("HLL")
-        #_, V_num2 = simulate_euler(cfg, time, alpha, 'HLL')
+        _, V_num2 = simulate_euler(cfg, time, alpha, 'HLL')
         #print("HLLC")
-        #_, V_num3 = simulate_euler(cfg, time, alpha, 'HLLC')
+        cfg.dt = 2e-3
+        _, V_num3 = simulate_euler(cfg, time, alpha, 'HLLC')
         fig, axs = plt.subplots(4, 1)
         fig.suptitle("Time: " + str(time))
         ylabels = [r"$p$", r"$u$", r"$T$"]
         for j in range(3):
             axs[j].scatter(cfg.x_nodes, V_num[j], s=40, marker='o', facecolors='none', edgecolors='red', label="LxF")
-            #axs[j].plot(cfg.x_nodes, V_num2[j],  label="HLL")
+            axs[j].plot(cfg.x_nodes, V_num2[j],  label="HLL")
             #axs[j].plot(cfg.x_nodes, V_num3[j],  label="HLLC")
             axs[j].plot(cfg.x_nodes, V_exact[j], 'k-', label="Exact")
             axs[j].legend()
@@ -288,8 +290,8 @@ def main():
             axs[j].grid()
             axs[j].label_outer()
         axs[3].scatter(cfg.x_nodes, V_num[0,:] / (cfg.c_V * (cfg.gamma-1) * V_num[2,:]), s=40, marker='o', facecolors='none', edgecolors='red', label='LxF')
-        #axs[3].plot(cfg.x_nodes, V_num2[0, :] / (cfg.c_V * cfg.gamma * V_num2[2, :]), label='HLL')
-        #axs[3].plot(cfg.x_nodes, V_num3[0, :] / (cfg.c_V * cfg.gamma * V_num3[2, :]), label='HLLC')
+        axs[3].plot(cfg.x_nodes, V_num2[0, :] / (cfg.c_V * (cfg.gamma-1) * V_num2[2, :]), label='HLL')
+        #axs[3].plot(cfg.x_nodes, V_num3[0, :] / (cfg.c_V * (cfg.gamma-1) * V_num3[2, :]), label='HLLC')
         axs[3].plot(cfg.x_nodes, cfg.get_rho(cfg.x_nodes, time, alpha), 'k-', label='Exact')
         axs[3].set_xlabel(r'$x$')
         axs[3].set_ylabel(r'$\rho$')
