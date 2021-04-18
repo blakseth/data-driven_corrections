@@ -139,7 +139,7 @@ class Config:
                 else:
                     return p_ref + alpha*np.tanh((x_split - x)/t)
             def get_rho(x, t, alpha):
-                return get_p(x, t, alpha) / (c_V * gamma * get_T(x, t, alpha))
+                return get_p(x, t, alpha) / (c_V * (gamma-1) * get_T(x, t, alpha))
             def get_c(x, t, alpha):
                 return np.sqrt((gamma - 1)*gamma*c_V*get_T(x, t, alpha))
             def get_u(x, t, alpha):
@@ -158,7 +158,7 @@ class Config:
                 return get_rho(x, 0, alpha)
             def get_u0(x, alpha):
                 return get_u(x, 0, alpha)
-        if self.system == "SOD":
+        elif self.system == "SOD":
             exact_solution_available = True
             t_end = 0.2
             dt = 4e-3
