@@ -83,7 +83,10 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             cor_V = plot_stats_dict['cor_mean'][a][i]
             cfg.N_x = dense_N_x
             cfg.init_u1 = cfg.init_u2 = 0.1*alpha
-            ref_V = exact_solver.exact_solver(cfg, plot_times[i])
+            ref_V = np.zeros((3, dense_nodes.shape[0]))
+            ref_V[0] = cfg.get_p(dense_nodes, plot_times[i], alpha)
+            ref_V[1] = cfg.get_u(dense_nodes, plot_times[i], alpha)
+            ref_V[2] = cfg.get_T(dense_nodes, plot_times[i], alpha)
             cfg.N_x = normal_N_x
 
             unc_rho  = np.expand_dims(unc_V[0, :]  / (unc_V[2, :]  * cfg.c_V * (cfg.gamma - 1)), axis=0)
@@ -347,7 +350,6 @@ def parametrized_simulation_test(cfg, model):
     print("profile_save_steps:", cfg.profile_save_steps)
 
     for a, alpha in enumerate(alphas):
-        cfg.init_u1 = cfg.init_u2 = 0.1*alpha
         IC = ICs[a * (cfg.N_t - 2)]
         old_src = torch.from_numpy(old_srcs[a * (cfg.N_t - 2)])
         print("IC:", IC)
@@ -372,16 +374,25 @@ def parametrized_simulation_test(cfg, model):
             old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize_componentwise(old_cor,  ref_means, ref_stds)), 0)
 
             if cfg.exact_solution_available:
-                new_ref = exact_solver.exact_solver(cfg, new_time)
+                new_ref = np.zeros((3, cfg.x_nodes.shape[0]))
+                new_ref[0] = cfg.get_p(cfg.x_nodes, new_time, alpha)
+                new_ref[1] = cfg.get_u(cfg.x_nodes, new_time, alpha)
+                new_ref[2] = cfg.get_T(cfg.x_nodes, new_time, alpha)
                 #print("new_ref:", new_ref)
             else:
                 raise Exception("Invalid config.")
 
             new_cor = np.zeros_like(new_unc)
             if cfg.model_type == 'hybrid':
-                new_src = util.z_unnormalize_componentwise(
-                    model.net(torch.unsqueeze(old_src, dim=0).to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
-                )
+                if cfg.src_in:
+                    new_src = util.z_unnormalize_componentwise(
+                        model.net(torch.unsqueeze(old_src, dim=0).to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
+                    )
+                else:
+                    new_src = util.z_unnormalize_componentwise(
+                        model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), src_means,
+                        src_stds
+                    )
                 if index == 0:
                     print("pred src:", new_src)
                     #gated_src = util.noise_gate(new_src, 1e-4)

@@ -87,8 +87,10 @@ def train(cfg, model, num):
             elif cfg.model_type == 'data':
                 #print("Data pass")
                 out_data = model.net(old_data[:, :, 1:-1])
+            elif cfg.src_in:
+                out_data = model.net(src_old_data)
             else:
-                out_data = model.net(src_old_data) # out = output (corrected profile or predicted correction source term).
+                out_data = model.net(unc_data[:, :, 1:-1]) # out = output (corrected profile or predicted correction source term).
 
             if cfg.model_type == 'hybrid':
                 loss = model.loss(out_data, src_data)
@@ -146,8 +148,10 @@ def train(cfg, model, num):
                             #print("Data val pass")
                             old_data_val = torch.from_numpy(util.z_normalize_componentwise(val_data[4], ref_means, ref_stds)).to(cfg.device)
                             out_data_val = model.net(old_data_val[:, :, 1:-1])
-                        else:
+                        elif cfg.src_in:
                             out_data_val = model.net(src_old_data_val)
+                        else:
+                            out_data_val = model.net(unc_data_val[:, :, 1:-1])
 
                         if cfg.model_type == 'hybrid':
                             val_loss = model.loss(out_data_val, src_data_val)

@@ -15,6 +15,11 @@ import scipy.special
 import torch
 
 ########################################################################################################################
+# File imports.
+
+import exact_solver
+
+########################################################################################################################
 # Reproducibility.
 
 torch.manual_seed(0)
@@ -26,8 +31,8 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-15_trial_euler_manufactured"
-run_names  = [["trial1"]]
+group_name = "2021-04-17_trial_euler_manufactured"
+run_names  = [["trial_dense3"]]
 systems    = ["ManSol1"]
 data_tags  = ["ManSol1"]
 model_type = 'hybrid'
@@ -52,6 +57,7 @@ class Config:
         self.data_tag   = data_tag
         self.model_key  = model_key
         self.model_type = model_type # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.src_in     = True
 
         model_names = [
             'GlobalDense',
@@ -104,9 +110,9 @@ class Config:
 
         if self.parametrized_system:
             train_alphas, _ = scipy.special.roots_legendre(16)
-            train_alphas = train_alphas * 0.5 + 0.5
-            val_alphas = np.asarray([0.25, 0.75])
-            test_alphas = np.asarray([0.1, 0.5, 0.9, 1.5])
+            train_alphas = train_alphas * 0.5 + 1.0
+            val_alphas = np.asarray([0.8, 1.2])
+            test_alphas = np.asarray([0.25, 0.9, 1.1, 1.75])
             self.train_alphas = train_alphas
             self.val_alphas = val_alphas
             self.test_alphas = test_alphas
@@ -124,7 +130,7 @@ class Config:
             x_split = 0.5
             c_V = 2.5
             gamma = 1.4
-            p_ref = 1.5
+            p_ref = 2.0
             def get_T(x, t, alpha):
                 return np.ones_like(x)
             def get_p(x, t, alpha):
@@ -152,6 +158,67 @@ class Config:
                 return get_rho(x, 0, alpha)
             def get_u0(x, alpha):
                 return get_u(x, 0, alpha)
+        if self.system == "SOD":
+            exact_solution_available = True
+            t_end = 0.2
+            dt = 5.0e-4
+            x_a = 0.0
+            x_b = 1.0
+            x_split = 0.5
+            CFL = 0.9
+            gamma = 1.4
+            c_V = 2.5
+            self.init_rho1 = 1.0
+            self.init_p1 = 1.0
+            self.init_u1 = 0.0
+            self.init_T1 = self.init_p1 / (self.init_rho1 * c_V * (gamma - 1))
+            self.init_rho2 = 0.125
+            self.init_p2 = 0.1
+            self.init_u2 = 0.0
+            self.init_T2 = self.init_p2 / (self.init_rho2 * c_V * (gamma - 1))
+            def get_p(x, t, alpha):
+                self.init_u1 = self.init_u2 = alpha
+                self.x_nodes = x
+                return exact_solver.exact_solver(self, t)[0,:]
+            def get_u(x, t, alpha):
+                self.init_u1 = self.init_u2 = alpha
+                self.x_nodes = x
+                return exact_solver.exact_solver(self, t)[1,:]
+            def get_T(x, t, alpha):
+                self.init_u1 = self.init_u2 = alpha
+                self.x_nodes = x
+                return exact_solver.exact_solver(self, t)[2,:]
+            def get_rho(x, t, alpha):
+                return get_p(x, t, alpha) / ((gamma-1)*c_V*get_T(x, t, alpha))
+            def get_p0(x, alpha):
+                self.init_u1 = self.init_u2 = alpha
+                p0 = np.zeros_like(x)
+                for x_index, x_val in enumerate(x):
+                    if x_val <= x_split:
+                        p0[x_index] = self.init_p1
+                    else:
+                        p0[x_index] = self.init_p2
+                return p0
+            def get_u0(x, alpha):
+                self.init_u1 = self.init_u2 = alpha
+                u0 = np.zeros_like(x)
+                for x_index, x_val in enumerate(x):
+                    if x_val <= x_split:
+                        u0[x_index] = self.init_u1
+                    else:
+                        u0[x_index] = self.init_u2
+                return u0
+            def get_T0(x, alpha):
+                self.init_u1 = self.init_u2 = alpha
+                T0 = np.zeros_like(x)
+                for x_index, x_val in enumerate(x):
+                    if x_val <= x_split:
+                        T0[x_index] = self.init_T1
+                    else:
+                        T0[x_index] = self.init_T2
+                return T0
+            def get_rho0(x, alpha):
+               return get_p0(x, alpha) / ((gamma-1)*c_V*get_T0(x, alpha))
         else:
             raise Exception("Invalid domain selection.")
 
@@ -388,16 +455,16 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Model configuration.
 
-        self.loss_func = 'L1'
+        self.loss_func = 'MSE'
 
         self.optimizer = 'adam'
-        self.learning_rate = 1e-4
+        self.learning_rate = 1e-5
 
         self.act_type = 'lrelu'
         self.act_param = 0.01
 
         self.use_dropout = True
-        self.dropout_prob = 0.2
+        self.dropout_prob = 0.1
 
         self.model_specific_params = []
         if self.model_name == 'GlobalDense':
@@ -448,13 +515,13 @@ class Config:
         elif self.model_name == 'CNN2D':
             self.num_conv_layers = 5
             self.kernel_size = 3
-            self.num_channels = 50
+            self.num_channels = 80
             self.model_specific_params = [self.num_conv_layers, self.kernel_size, self.num_channels]
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]
         elif self.model_name == 'DenseEuler':
             self.num_layers = 5
-            self.hidden_layer_size = 100
+            self.hidden_layer_size = 20
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():

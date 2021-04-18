@@ -45,12 +45,10 @@ def create_parametrized_datasets(cfg):
     sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
     sources_old = np.zeros((cfg.alphas.shape[0], cfg.N_t, 3, cfg.N_x))
     for a, alpha in enumerate(cfg.alphas):
-        cfg.init_u2 = 0.1*alpha
-        cfg.init_u1 = 0.1*alpha
         #print("V_mtx2:", physics.get_init_V_mtx(cfg))
-        unc_Vs[a][0] = physics.get_init_V_mtx(cfg)
-        ref_Vs[a,0,:,:] = physics.get_init_V_mtx(cfg)
-        old_Vs[a][0] = physics.get_init_V_mtx(cfg)
+        unc_Vs[a][0] = physics.get_init_V_mtx(cfg, alpha)
+        ref_Vs[a,0,:,:] = physics.get_init_V_mtx(cfg, alpha)
+        old_Vs[a][0] = physics.get_init_V_mtx(cfg, alpha)
         """
         print("ref_Vs[a][0]:", ref_Vs[a][0])
         print("ref_Vs[a][0].shape", ref_Vs[a][0].shape)
@@ -74,7 +72,9 @@ def create_parametrized_datasets(cfg):
             sources_old[a][i] = sources[a][i - 1]
             unc_Vs[a][i] = physics.get_new_state(cfg, old_Vs[a][i], np.zeros((3, cfg.N_x)), 'LxF')
             if cfg.exact_solution_available:
-                ref_Vs[a][i] = exact_solver.exact_solver(cfg, new_time)
+                ref_Vs[a][i][0] = cfg.get_p(cfg.x_nodes, new_time, alpha)
+                ref_Vs[a][i][1] = cfg.get_u(cfg.x_nodes, new_time, alpha)
+                ref_Vs[a][i][2] = cfg.get_T(cfg.x_nodes, new_time, alpha)
             else:
                 raise Exception("Parametrized datasets currently require the exact solution to be available.")
             res_Vs[a][i] = ref_Vs[a][i] - unc_Vs[a][i]
@@ -86,12 +86,13 @@ def create_parametrized_datasets(cfg):
             #    print("1:", sources[a][i][1])
             #if not np.around(np.amax(sources[a][i][2]),10) == -np.around(np.amin(sources[a][i][2]),10):
             #    print("2:", sources[a][i][2])
-            if not np.argmax(sources[a][i]) + 1 == np.argmin(sources[a][i]):
-                print("alpha:", alpha)
-                print("ARGMAX ERROR:", sources[a][i])
-                print("old_ref:", old_Vs[a][i])
-                print("ref.", ref_Vs[a][i])
-            if i %50== 1 and a == 0:
+            #if not np.argmax(sources[a][i]) + 1 == np.argmin(sources[a][i]):
+            #    print("alpha:", alpha)
+            #    print("ARGMAX ERROR:", sources[a][i])
+            #    print("old_ref:", old_Vs[a][i])
+            #    print("ref.", ref_Vs[a][i])
+            """
+            if i % 50 == 1 and a == 0:
                 print("time:", new_time)
                 plt.figure()
                 plt.title("Corrective source terms")
@@ -103,8 +104,11 @@ def create_parametrized_datasets(cfg):
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][0], label='p')
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][1], label='u')
                 plt.plot(cfg.x_nodes, ref_Vs[a][i][2], label='T')
+            """
             corrected = physics.get_new_state(cfg, old_Vs[a][i], sources[a][i], 'LxF')
-            np.testing.assert_allclose(corrected, ref_Vs[a][i], rtol=1e-10, atol=1e-10)
+            #print("corrected:", corrected)
+            #print("ref_Vs[a][i]:", ref_Vs[a][i])
+            np.testing.assert_allclose(corrected[:, 1:-1], ref_Vs[a][i][:, 1:-1], rtol=1e-10, atol=1e-10)
     plt.show()
     # Remove data for t=0 from datasets.
     ICs = np.delete(old_Vs,  obj=[0,1], axis=1)

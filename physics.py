@@ -240,7 +240,7 @@ def get_corr_src_term(cfg, old_V_mtx_ref, new_V_mtx_ref, solver_type):
     new_U_mtx_num, _ = solve(
         cfg, old_V_mtx_ref, old_U_mtx_ref, old_F_mtx_ref, old_T_vec_ref, cfg.dx, cfg.dt, cfg.CFL, np.zeros(cfg.N_x), solver_type
     )
-    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1]) / cfg.dt
+    return (new_U_mtx_ref[:,1:-1] - new_U_mtx_num[:,1:-1])
 
 ########################################################################################################################
 
@@ -249,7 +249,7 @@ def main():
         use_GPU=config.use_GPU,
         group_name=config.group_name,
         run_name=config.run_names[0][0],
-        system=config.systems[0],
+        system="SOD",
         data_tag=config.data_tags[0],
         model_key=config.model_keys[0],
         do_train=False,
@@ -260,7 +260,7 @@ def main():
     for time in [0.0001, 0.001, 0.005, 0.01, 0.03, 0.07, 0.12, 2.0]:
         #if time >= 0.002:
         #    raise Exception
-        alpha = 1.0
+        alpha = 0.0
         V_exact = np.zeros((3, cfg.x_nodes.shape[0]))
         V_exact[0, :] = cfg.get_p(cfg.x_nodes, time, alpha)
         V_exact[1, :] = cfg.get_u(cfg.x_nodes, time, alpha)

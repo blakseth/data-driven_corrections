@@ -51,9 +51,9 @@ class ConvLayerWithAct(torch.nn.Module):
             self.layer = torch.nn.Conv2d(
                 in_channels  = num_in_ch,
                 out_channels = num_out_ch,
-                kernel_size  = kernel_size,
+                kernel_size  = (1, kernel_size),
                 stride       = 1,
-                padding      = padding
+                padding      = (0, padding)
             )
         else:
             raise Exception("Invalid dimensionality of conv layer.")
@@ -200,7 +200,7 @@ class ConvolutionModule2D(torch.nn.Module):
 
         # Defining input layer.
         padding = kernel_size // 2
-        first_layer = torch.nn.Conv2d(1, num_filters, kernel_size, 1, padding)
+        first_layer = torch.nn.Conv2d(1, num_filters, (1, kernel_size), 1, (0, padding))
         first_activation = None
         if cfg.act_type == 'lrelu':
             first_activation = torch.nn.LeakyReLU(cfg.act_param)
@@ -212,7 +212,7 @@ class ConvolutionModule2D(torch.nn.Module):
 
         # Defining output layer.
         padding = kernel_size // 2
-        last_layer = torch.nn.Conv2d(num_filters, 1, kernel_size, 1, padding)
+        last_layer = torch.nn.Conv2d(num_filters, 1, (1, kernel_size), 1, (0, padding))
 
         # Defining full architecture.
         self.net = torch.nn.Sequential(
@@ -311,7 +311,7 @@ class Model:
         if cfg.loss_func == 'MSE':
             self.loss = torch.nn.MSELoss(reduction='mean')
         elif cfg.loss_func == 'L1':
-            self.loss = torch.nn.L1Loss(reduction='sum')
+            self.loss = torch.nn.L1Loss(reduction='mean')
         else:
             raise Exception("Invalid loss function selection.")
 
