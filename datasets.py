@@ -53,7 +53,7 @@ def create_parametrized_datasets(cfg):
                 cfg.nodes_coarse, cfg.faces_coarse, unc_IC,
                 lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x,t,alpha),
+                lambda x,t: cfg.get_q_hat(x,t,alpha),
                 np.zeros_like(cfg.nodes_coarse[1:-1]),
                 cfg.dt_coarse, old_time, new_time, False
             )
@@ -71,7 +71,7 @@ def create_parametrized_datasets(cfg):
                 ref_Ts[a][i], ref_Ts[a][i-1],
                 lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x, t, alpha),
+                lambda x,t: cfg.get_q_hat(x, t, alpha),
                 cfg.dt_coarse, old_time, False
             )
             corrected = physics.simulate(
@@ -79,7 +79,7 @@ def create_parametrized_datasets(cfg):
                 ref_Ts[a][i-1],
                 lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x, t, alpha), sources[a][i],
+                lambda x,t: cfg.get_q_hat(x, t, alpha), sources[a][i],
                 cfg.dt_coarse, old_time, new_time, False
             )
             np.testing.assert_allclose(corrected, ref_Ts[a][i], rtol=1e-10, atol=1e-10)

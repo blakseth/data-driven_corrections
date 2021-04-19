@@ -202,6 +202,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             plt.close()
 
     # Visualize correction source terms (if applicable).
+    """
     if 'src_mean' in plot_stats_dict.keys():
         if cfg.parametrized_system:
             for a, alpha in enumerate(plot_stats_dict['alphas']):
@@ -246,7 +247,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 plt.legend(prop={'size': 17})
                 plt.savefig(os.path.join(cfg.run_dir, "src_profiles_t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"), bbox_inches='tight')
                 plt.close()
-
+    """
     #plt.show()
 
 
@@ -455,7 +456,7 @@ def single_step_test(cfg, model, num):
                     cfg.nodes_coarse, cfg.faces_coarse,
                     IC, cfg.get_T_a, cfg.get_T_b,
                     cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                    cfg.get_q_hat_approx, new_src,
+                    cfg.get_q_hat, new_src,
                     cfg.dt_coarse, old_time, new_time, False
                 )
             else:
@@ -470,7 +471,7 @@ def single_step_test(cfg, model, num):
                     cfg.nodes_coarse, cfg.faces_coarse,
                     IC, cfg.get_T_a, cfg.get_T_b,
                     cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                    cfg.get_q_hat_approx, new_src,
+                    cfg.get_q_hat, new_src,
                     cfg.dt_coarse, old_time, new_time, False
                 )
             else:
@@ -583,7 +584,7 @@ def parametrized_simulation_test(cfg, model):
                 cfg.nodes_coarse, cfg.faces_coarse,
                 old_unc, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x,t,alpha), np.zeros(cfg.N_coarse),
+                lambda x,t: cfg.get_q_hat(x,t,alpha), np.zeros(cfg.N_coarse),
                 cfg.dt_coarse, old_time, new_time, False
             )
             #if i == 0:
@@ -592,7 +593,7 @@ def parametrized_simulation_test(cfg, model):
                 cfg.nodes_coarse, cfg.faces_coarse,
                 old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x, t: cfg.get_q_hat_approx(x, t, alpha), np.zeros(cfg.N_coarse),
+                lambda x, t: cfg.get_q_hat(x, t, alpha), np.zeros(cfg.N_coarse),
                 cfg.dt_coarse, old_time, new_time, False
             )
             new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std)), dim=0)
@@ -617,7 +618,7 @@ def parametrized_simulation_test(cfg, model):
                         cfg.nodes_coarse, cfg.faces_coarse,
                         old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                         cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                        lambda x,t: cfg.get_q_hat_approx(x, t, alpha), new_src,
+                        lambda x,t: cfg.get_q_hat(x, t, alpha), new_src,
                         cfg.dt_coarse, old_time, new_time, False
                     )
                 elif cfg.model_type == 'residual':
@@ -654,7 +655,7 @@ def parametrized_simulation_test(cfg, model):
                         cfg.nodes_coarse, cfg.faces_coarse,
                         old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
                         cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                        lambda x, t: cfg.get_q_hat_approx(x, t, alpha), new_src,
+                        lambda x, t: cfg.get_q_hat(x, t, alpha), new_src,
                         cfg.dt_coarse, old_time, new_time, False
                     )
                 elif cfg.model_type == 'residual':
@@ -760,7 +761,7 @@ def simulation_test(cfg, model, num):
             cfg.nodes_coarse, cfg.faces_coarse,
             old_unc, cfg.get_T_a, cfg.get_T_b,
             cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-            cfg.get_q_hat_approx, np.zeros(cfg.N_coarse),
+            cfg.get_q_hat, np.zeros(cfg.N_coarse),
             cfg.dt_coarse, old_time, new_time, False
         )
         new_unc_ = torch.from_numpy(util.z_normalize(
@@ -768,7 +769,7 @@ def simulation_test(cfg, model, num):
                 cfg.nodes_coarse, cfg.faces_coarse,
                 old_cor, cfg.get_T_a, cfg.get_T_b,
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                cfg.get_q_hat_approx, np.zeros(cfg.N_coarse),
+                cfg.get_q_hat, np.zeros(cfg.N_coarse),
                 cfg.dt_coarse, old_time, new_time, False
             ), unc_mean, unc_std
         ))
@@ -780,7 +781,7 @@ def simulation_test(cfg, model, num):
                 cfg.nodes_coarse, cfg.faces_coarse,
                 old_cor, cfg.get_T_a, cfg.get_T_b,
                 cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                cfg.get_q_hat_approx, new_src,
+                cfg.get_q_hat, new_src,
                 cfg.dt_coarse, old_time, new_time, False
             )
         else:
