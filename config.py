@@ -31,10 +31,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-17_trial_euler_manufactured"
-run_names  = [["trial_dense3"]]
+group_name = "2021-04-19_trial_euler_manufactured"
+run_names  = [["dense_hybrid_srcin_dt0-0025_v2"]]
 systems    = ["ManSol1"]
-data_tags  = ["ManSol1"]
+data_tags  = ["ManSol1_dt0-0025"]
 model_type = 'hybrid'
 model_keys = [7]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -109,10 +109,10 @@ class Config:
         # Domain configuration.
 
         if self.parametrized_system:
-            train_alphas, _ = scipy.special.roots_legendre(16)
+            train_alphas, _ = scipy.special.roots_legendre(100)
             train_alphas = train_alphas * 0.5 + 1.0
             val_alphas = np.asarray([0.8, 1.2])
-            test_alphas = np.asarray([0.25, 0.9, 1.1, 1.75])
+            test_alphas = np.asarray([0.25, 0.9, 1.1])#, 1.75])
             self.train_alphas = train_alphas
             self.val_alphas = val_alphas
             self.test_alphas = test_alphas
@@ -143,7 +143,7 @@ class Config:
             def get_c(x, t, alpha):
                 return np.sqrt((gamma - 1)*gamma*c_V*get_T(x, t, alpha))
             def get_u(x, t, alpha):
-                return get_c(x, t, alpha) / (1 + np.exp(-10*alpha*x*(t**(1/4))))
+                return get_c(x, t, alpha) / (1 + np.exp(-10*alpha*x*(t**(1/2))))
             def get_T0(x, alpha):
                 return get_T(x, 0, alpha)
             def get_p0(x, alpha):
@@ -154,6 +154,61 @@ class Config:
                     else:
                         p0[x_index] = p_ref - alpha
                 return p0
+
+            self.init_p1 = p_ref + 1.0
+            self.init_u1 = np.sqrt((gamma-1)*gamma*c_V) / 2.0
+            self.init_T1 = 1.0
+            self.init_rho1 = self.init_p1 / (c_V * (gamma-1) * self.init_T1)
+            self.init_p2 = p_ref - 1.0
+            self.init_u2 = np.sqrt((gamma-1)*gamma*c_V) / 2.0
+            self.init_T2 = 1.0
+            self.init_rho2 = self.init_p2 / (c_V * (gamma-1) * self.init_T2)
+            def get_rho0(x, alpha):
+                return get_rho(x, 0, alpha)
+            def get_u0(x, alpha):
+                return get_u(x, 0, alpha)
+        elif self.system == "ManSol2":
+            exact_solution_available = True
+            x_a = 0.0
+            x_b = 1.0
+            t_end = 1.0
+            CFL = 0.99
+            dt = 2e-3
+            x_split = 0.5
+            c_V = 2.5
+            gamma = 1.4
+            p_ref = 2.0
+            def get_p(x, t, alpha):
+                if t == 0.0:
+                    return get_p0(x, alpha)
+                else:
+                    return p_ref + alpha*np.tanh((x_split - x)/t)
+            def get_rho(x, t, alpha):
+                return np.ones_like(x)
+            def get_T(x, t, alpha):
+                return get_p(x, t, alpha)/(get_rho(x, t, alpha)*c_V*(gamma-1))
+            def get_c(x, t, alpha):
+                return np.sqrt(gamma*get_p(x, t, alpha)/get_rho(x, t, alpha))
+            def get_u(x, t, alpha):
+                return np.amin(get_c(x, t, alpha))*np.exp(-5*t)*np.ones_like(x)
+            def get_T0(x, alpha):
+                return get_T(x, 0, alpha)
+            def get_p0(x, alpha):
+                p0 = np.zeros_like(x)
+                for x_index, x_value in enumerate(x):
+                    if x_value <= x_split:
+                        p0[x_index] = p_ref + alpha
+                    else:
+                        p0[x_index] = p_ref - alpha
+                return p0
+            self.init_p1 = p_ref + 1.0
+            self.init_u1 = np.sqrt((p_ref - 1.0)*gamma/1.0)
+            self.init_rho1 = 1.0
+            self.init_T1 = self.init_p1 / (c_V * (gamma-1) * self.init_rho1)
+            self.init_p2 = p_ref - 1.0
+            self.init_u2 = self.init_u1
+            self.init_rho2 = self.init_rho1
+            self.init_T2 = self.init_p2 / (c_V * (gamma-1) * self.init_rho2)
             def get_rho0(x, alpha):
                 return get_rho(x, 0, alpha)
             def get_u0(x, alpha):
@@ -520,8 +575,8 @@ class Config:
             def get_model_specific_params():
                 return [self.num_conv_layers, self.kernel_size, self.num_channels]
         elif self.model_name == 'DenseEuler':
-            self.num_layers = 5
-            self.hidden_layer_size = 20
+            self.num_layers = 7
+            self.hidden_layer_size = 50
             # [No. fc layers, No. nodes in each hidden layer]
             self.model_specific_params = [self.num_layers, self.hidden_layer_size]
             def get_model_specific_params():

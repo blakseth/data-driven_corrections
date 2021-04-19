@@ -229,6 +229,7 @@ def simulate_euler(cfg, t_end, alpha, solver_type):
 ########################################################################################################################
 
 def get_new_state(cfg, old_V_mtx, corr_src, solver_type):
+    print("old_V_mtx:", old_V_mtx)
     old_U_mtx, old_F_mtx = setup_euler(cfg, old_V_mtx)
     old_T_vec = old_V_mtx[2,:]
     _, V_mtx = solve(cfg, old_V_mtx, old_U_mtx, old_F_mtx, old_T_vec, cfg.dx, cfg.dt, cfg.CFL, corr_src, solver_type)
@@ -252,7 +253,7 @@ def main():
         use_GPU=config.use_GPU,
         group_name=config.group_name,
         run_name=config.run_names[0][0],
-        system="SOD",
+        system="ManSol2",
         data_tag=config.data_tags[0],
         model_key=config.model_keys[0],
         do_train=False,
@@ -260,22 +261,23 @@ def main():
         N_x=100,
         model_type=config.model_type,
     )
-    for time in [0.0001, 0.001, 0.005, 0.01, 0.03, 0.07, 0.12, 2.0]:
+    for time in [0.0001, 0.001, 0.05, 0.01, 0.03, 0.07, 0.1, 1.0]:
         #if time >= 0.002:
         #    raise Exception
-        alpha = 0.0
+        alpha = 0.9
+        V_exact_riemann = exact_solver.exact_solver(cfg, time)
         V_exact = np.zeros((3, cfg.x_nodes.shape[0]))
         V_exact[0, :] = cfg.get_p(cfg.x_nodes, time, alpha)
         V_exact[1, :] = cfg.get_u(cfg.x_nodes, time, alpha)
         V_exact[2, :] = cfg.get_T(cfg.x_nodes, time, alpha)
         print("LxF")
-        cfg.dt = 4e-3
+        #cfg.dt = 4e-3
         _, V_num = simulate_euler(cfg, time, alpha, 'LxF')
         #print("HLL")
         _, V_num2 = simulate_euler(cfg, time, alpha, 'HLL')
         #print("HLLC")
-        cfg.dt = 2e-3
-        _, V_num3 = simulate_euler(cfg, time, alpha, 'HLLC')
+        #cfg.dt = 2e-3
+        #_, V_num3 = simulate_euler(cfg, time, alpha, 'HLLC')
         fig, axs = plt.subplots(4, 1)
         fig.suptitle("Time: " + str(time))
         ylabels = [r"$p$", r"$u$", r"$T$"]
@@ -283,7 +285,8 @@ def main():
             axs[j].scatter(cfg.x_nodes, V_num[j], s=40, marker='o', facecolors='none', edgecolors='red', label="LxF")
             axs[j].plot(cfg.x_nodes, V_num2[j],  label="HLL")
             #axs[j].plot(cfg.x_nodes, V_num3[j],  label="HLLC")
-            axs[j].plot(cfg.x_nodes, V_exact[j], 'k-', label="Exact")
+            axs[j].plot(cfg.x_nodes, V_exact[j], 'k-', label="Manufact")
+            axs[j].plot(cfg.x_nodes, V_exact_riemann[j], 'y--', label="Exact Rie")
             axs[j].legend()
             axs[j].set_xlabel(r'$x$')
             axs[j].set_ylabel(ylabels[j])
@@ -292,12 +295,14 @@ def main():
         axs[3].scatter(cfg.x_nodes, V_num[0,:] / (cfg.c_V * (cfg.gamma-1) * V_num[2,:]), s=40, marker='o', facecolors='none', edgecolors='red', label='LxF')
         axs[3].plot(cfg.x_nodes, V_num2[0, :] / (cfg.c_V * (cfg.gamma-1) * V_num2[2, :]), label='HLL')
         #axs[3].plot(cfg.x_nodes, V_num3[0, :] / (cfg.c_V * (cfg.gamma-1) * V_num3[2, :]), label='HLLC')
-        axs[3].plot(cfg.x_nodes, cfg.get_rho(cfg.x_nodes, time, alpha), 'k-', label='Exact')
+        axs[3].plot(cfg.x_nodes, cfg.get_rho(cfg.x_nodes, time, alpha), 'k-', label='Manufact')
+        axs[3].plot(cfg.x_nodes, V_exact_riemann[0, :] / (cfg.c_V * (cfg.gamma-1) * V_exact_riemann[2, :]), 'y--', label='Exact Rie')
         axs[3].set_xlabel(r'$x$')
         axs[3].set_ylabel(r'$\rho$')
         axs[3].grid()
         axs[3].label_outer()
         axs[3].legend()
+        #plt.savefig("ref_" + str(time) + ".pdf", bbox_inches='tight')
     plt.show()
 
     raise Exception

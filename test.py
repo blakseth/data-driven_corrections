@@ -327,12 +327,12 @@ def parametrized_simulation_test(cfg, model):
     src_means = stats[2]
     src_stds  = stats[3]
 
-    L2_errors_unc = np.zeros((num_param_values, cfg.N_t - 2))
-    L2_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 2))
-    L2_errors_cor = np.zeros((num_param_values, cfg.N_t - 2))
-    Linfty_errors_unc = np.zeros((num_param_values, cfg.N_t - 2))
-    Linfty_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 2))
-    Linfty_errors_cor = np.zeros((num_param_values, cfg.N_t - 2))
+    L2_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
+    L2_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
+    L2_errors_cor = np.zeros((num_param_values, cfg.N_t - 1))
+    Linfty_errors_unc = np.zeros((num_param_values, cfg.N_t - 1))
+    Linfty_errors_unc2 = np.zeros((num_param_values, cfg.N_t - 1))
+    Linfty_errors_cor = np.zeros((num_param_values, cfg.N_t - 1))
 
     num_profile_plots = cfg.profile_save_steps.shape[0]
     plot_data_dict = {
@@ -350,19 +350,25 @@ def parametrized_simulation_test(cfg, model):
     print("profile_save_steps:", cfg.profile_save_steps)
 
     for a, alpha in enumerate(alphas):
-        IC = ICs[a * (cfg.N_t - 2)]
-        old_src = torch.from_numpy(old_srcs[a * (cfg.N_t - 2)])
+        IC = physics.get_init_V_mtx(cfg, alpha)
+        old_src_tensor = torch.zeros((3, cfg.N_x))
         print("IC:", IC)
         old_unc = IC
         old_unc2 = IC
         old_cor = IC
+        old_ref = IC
         plot_num = 0
-        for i in range(cfg.N_t - 2):
-            index = a * (cfg.N_t - 2) + i
-            old_time = np.around(times[index] - cfg.dt, decimals=10)
-            new_time = np.around(times[index], decimals=10)
+        old_time = 0.0
+        for i in range(cfg.N_t - 1):
+            index = a * (cfg.N_t - 1) + i
+            new_time = np.around(old_time + cfg.dt, decimals=10)
 
             new_unc = physics.get_new_state(cfg, old_unc, np.zeros((3, cfg.N_x)), 'LxF')
+            _, new_unc_v2 = physics.simulate_euler(cfg, new_time, alpha, 'LxF')
+            print("i=", i)
+            print("new_unc:", new_unc)
+            print("new_unc_v2:", new_unc_v2)
+            np.testing.assert_allclose(new_unc, new_unc_v2, rtol=1e-8, atol=1e-8)
             print("new_time:", new_time)
             print("LxF:", new_unc)
             new_unc2 = physics.get_new_state(cfg, old_unc2, np.zeros((3, cfg.N_x)), 'HLL')
@@ -385,22 +391,28 @@ def parametrized_simulation_test(cfg, model):
             new_cor = np.zeros_like(new_unc)
             if cfg.model_type == 'hybrid':
                 if cfg.src_in:
+                    if i == 0:
+                        new_src_tensor = torch.from_numpy(util.z_normalize_componentwise(
+                            physics.get_corr_src_term(cfg, old_ref, new_ref, 'LxF'), src_means, src_stds)
+                        )
+                    else:
+                        new_src_tensor = model.net(torch.unsqueeze(old_src_tensor, dim=0).to(cfg.device))
                     new_src = util.z_unnormalize_componentwise(
-                        model.net(torch.unsqueeze(old_src, dim=0).to(cfg.device)).detach().cpu().numpy(), src_means, src_stds
+                        new_src_tensor.detach().cpu().numpy(), src_means, src_stds
                     )
                 else:
                     new_src = util.z_unnormalize_componentwise(
                         model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy(), src_means,
                         src_stds
                     )
-                if index == 0:
-                    print("pred src:", new_src)
+                #if index == 0:
+                #    print("pred src:", new_src)
                     #gated_src = util.noise_gate(new_src, 1e-4)
                     #gated_src[:, 1:, :] = util.noise_gate(gated_src[:,1:,:], np.inf)
                     #print("gated_src:", gated_src)
-                    print("true src:", srcs[index])
+                #    print("true src:", srcs[index])
                     #print("non-gated_src:", new_src)
-                new_cor = physics.get_new_state(cfg, old_cor, np.squeeze(new_src), 'LxF')
+                new_cor = physics.get_new_state(cfg, old_cor, new_src, 'LxF')
                 if index == 0:
                     print("cor:", new_cor)
             elif cfg.model_type == 'residual':
@@ -455,10 +467,12 @@ def parametrized_simulation_test(cfg, model):
                     plot_data_dict['time'][plot_num] = new_time
                 plot_num += 1
 
-            old_src = torch.from_numpy(physics.get_corr_src_term(cfg, old_cor, new_cor, 'LxF'))
+            old_src_tensor = util.z_normalize_componentwise(torch.from_numpy(physics.get_corr_src_term(cfg, old_cor, new_cor, 'LxF')), src_means, src_stds)
             old_cor = new_cor
             old_unc = new_unc
             old_unc2 = new_unc2
+            old_ref = new_ref
+            old_time = new_time
 
     error_dict = {
         'unc_L2': L2_errors_unc,
