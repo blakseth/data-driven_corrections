@@ -30,50 +30,40 @@ plt.rcParams.update({
 # Exact solutions.
 
 def get_exact_solution(system_number, alpha, t):
-    if system_number == 0:
-        return lambda x: alpha * (t + 0.5 * (x ** 2))
-
     if system_number == 1:
-        return lambda x: t + 0.5 * alpha * (x ** 2)
+        return lambda x: t + alpha*x
 
     if system_number == 2:
-        return lambda x: np.sqrt(t + alpha + 1) + 10 * (x ** 2) * (x - 1) * (x + 2)
+        return lambda x: 5 - alpha*x/(1 + t)
 
     if system_number == 3:
-        return lambda x: 2 * (x ** (alpha + 4)) - (t ** 2) * x * (x - 1)
+        def get_T_exact(x, tt, alphaa):
+            if type(x) == np.ndarray:
+                T = np.zeros_like(x)
+                for x_index, x_val in enumerate(x):
+                    if x_val <= 0.5:
+                        T[x_index] = alphaa + 2 * x_val
+                    else:
+                        T[x_index] = alphaa + 0.75 + 0.5 * x_val
+            else:
+                if x <= 0.5:
+                    T = alphaa + 2 * x
+                else:
+                    T = alphaa + 0.75 + 0.5 * x
+            return np.exp(-tt) * T
+        return lambda x: get_T_exact(x, t, alpha)
 
     if system_number == 4:
-        return lambda x: np.sin(2 * np.pi * x) * np.exp(-alpha * (t+0.1))
+        return lambda x: alpha*(t + 1)*np.cos(2*np.pi*x)
 
     if system_number == 5:
-        return lambda x: -2 * (x ** 3) * (x - alpha) / (t + 0.5)
+        return lambda x: alpha*t*(x+1)
 
     if system_number == 6:
-        return lambda x: 2 + alpha * (x - 1) * np.tanh(x / (t + 0.1))
+        return lambda x: (x + alpha)/(t + 1)
 
     if system_number == 7:
-        return lambda x: np.sin(2 * np.pi * t) + alpha * np.sin(2 * np.pi * x)
-
-    if system_number == 8:
-        return lambda x: 1 + np.sin(2 * np.pi * t + alpha) * np.cos(2 * np.pi * x)
-
-    if system_number == 9:
-        return lambda x: 1 + alpha * np.cos(2 * np.pi * x * (t ** 2))
-
-    if system_number == 10:
-        return lambda x: 5 + x * (x - 1) / (t + 0.1) + 0.1 * t * np.sin(2 * np.pi * x + alpha)
-
-    if system_number == 11:
-        return lambda x: 1 + np.sin(5 * x * t) * np.exp(-0.2 * x * t) + alpha * (x ** 3)
-
-    if system_number == 12:
-        return lambda x: 5 * t * (x ** 2) * np.sin(10 * np.pi * t) + np.sin(2 * np.pi * alpha * x) / (t + 0.2)
-
-    if system_number == 13:
-        return lambda x: 1 + t / (1 + ((x - 0.5 * alpha) ** 2))
-
-    if system_number == 14:
-        return lambda x: 1 + t * np.exp(-1000 * (alpha + 1) * (x - 0.5) ** 2)
+        return lambda x: 4*(x**3) - 4*(x**2) + alpha*(t + 1)
 
     print("No exact solution was chosen for system_number =", system_number)
 
@@ -182,7 +172,8 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
 def visualize_src_terms(x, src, alpha, output_dir, filename):
     plt.figure()
     plt.scatter(x, src, s=40, marker='D', facecolor='none', edgecolors='g', label=r"$\hat{\sigma}$")
-    plt.plot(x, np.ones_like(x) - alpha, 'k-', linewidth=2.0, label=r"$1-\alpha$")
+    if alpha is not None:
+        plt.plot(x, np.ones_like(x) - alpha, 'k-', linewidth=2.0, label=r"$1-\alpha$")
     plt.xlabel(r"$x$ (m)", fontsize=20)
     plt.ylabel(r"$\hat{\sigma}\ \left(\mathrm{J/m}^3\right)$", fontsize=20)
     plt.xticks(fontsize=17)
@@ -195,18 +186,19 @@ def visualize_src_terms(x, src, alpha, output_dir, filename):
 ########################################################################################################################
 
 def main():
-    hybrid_CNN_dir  = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalCNN_rerun/GlobalCNN_s"
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-13_hybrid/GlobalDense_s"#2021-03-30_hybrid/GlobalDense_s"
-    end_CNN_dir     = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalCNN_rerun/GlobalCNN_s"
-    end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalDense_rerun/GlobalDense_s"
+    hybrid_CNN_dir  = ""
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-19_HAM_missing_conductivity/GlobalDense_hybrid_k"
+    end_CNN_dir     = ""
+    end_FCNN_dir    = ""
     res_CNN_dir     = ""
-    res_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-29_residual_GlobalDense/GlobalDense_s"
+    res_FCNN_dir    = ""
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-13_data/GlobalDense_s"#2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-04-14_new_plots2"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-20_DDM_missing_conductivity/GlobalDense_DDM_k"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/missing_conductivity"
 
     use_CNN_results   = False
     use_FCNN_results  = True
+
     use_end_results   = False
     use_hyb_results   = True
     use_res_results   = False
@@ -216,10 +208,10 @@ def main():
         os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [0]
+    systems_to_include = [1, 3, 6, 7]
 
-    y_lims_interp = [[5e-8, 5e-2], [1e-6, 1e-1], [1e-6, 3e0], None, None, None, [1e-7, 1e-1], None, [3e-5, 1e0]]
-    y_lims_extrap = [[5e-6, 5e0], [7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-7, 2e-1], None, [4e-5, 1e0]]
+    y_lims_interp = [None, [1e-7, 2e-1], None, [1e-6, 3e-1], None, None, [4e-7, 2e0], [1e-6, 5e-1]]
+    y_lims_extrap = [None, [1e-5, 2e0],  None, [1e-5, 1e0],  None, None, [1e-5, 1e0], [1e-6, 4e-1]]
 
     for s in range(-1, num_systems_studied):
         system_number = s + 1
@@ -227,7 +219,7 @@ def main():
             continue
 
 
-        # Plotting profiles.
+        # Plotting temperature profiles.
 
         if use_FCNN_results and use_hyb_results:
             with open(os.path.join(hybrid_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
@@ -325,6 +317,18 @@ def main():
                 filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
                 visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, plot_dir, filename)
                 print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
+
+        src_dir = os.path.join(output_dir, "src")
+        if not os.path.exists(src_dir):
+            os.makedirs(src_dir, exist_ok=False)
+
+        # Plotting corrective source terms, if applicable.
+        if use_hyb_results and use_FCNN_results:
+            for a, alpha in enumerate(alphas):
+                for plot_num, t in enumerate(plot_times):
+                    src = hybrid_FCNN_plot_dict['src_mean'][a][plot_num]
+                    filename = "src_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                    visualize_src_terms(x[1:-1], src, None, src_dir, filename)
 
 
         # Plotting l2 errors.

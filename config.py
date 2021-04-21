@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-19_trial_missing_conductivity"
-run_names  = [["GlobalDense_hybrid_k7"]]
-systems    = ["k7"]
-data_tags  = ["k7_50cells"]
+group_name = "2021-04-20_DDM_missing_conductivity"
+run_names  = [["GlobalDense_DDM_k1"]]
+systems    = ["k1"]
+data_tags  = ["k1_50cells"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -49,7 +49,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.model_type = 'data' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
         self.synthesize_mod_error = synthesize_modelling_error
 
