@@ -712,7 +712,7 @@ class Config:
         self.nodes_coarse[-1] = self.x_b
 
         # Fine spatial discretization.
-        self.N_fine = 20
+        self.N_fine = 1000
         self.dx_fine = (self.x_b - self.x_a) / self.N_fine
         self.faces_fine = np.linspace(self.x_a, self.x_b, num=self.N_fine + 1, endpoint=True)
         self.nodes_fine = np.zeros(self.N_fine + 2)
@@ -721,7 +721,7 @@ class Config:
         self.nodes_fine[-1] = self.x_b
 
         # Temporal discretization.
-        self.dt_fine = 0.001
+        self.dt_fine = 0.0001
         self.dt_coarse = 0.001
         self.Nt_fine = int(self.t_end / self.dt_fine) + 1
         self.Nt_coarse = int(self.t_end / self.dt_coarse) + 1
