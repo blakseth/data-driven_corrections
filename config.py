@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-10_2D_experiment"
-run_names  = [["2D_GlobalDense_s1_HAM"]]
-systems    = ["1"]
-data_tags  = ["2D_s1"]
+group_name = "2021-04-22_2D_experiment"
+run_names  = [["2D_GlobalDense_s2_HAM"]]
+systems    = ["2"]
+data_tags  = ["2D_s2"]
 model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -153,6 +153,165 @@ class Config:
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
                 return (1 - 2*alpha) * np.ones((x.shape[0], y.shape[0]))
+            def get_q_hat_approx(x, y, t, alpha):
+                return np.zeros((x.shape[0], y.shape[0]))
+            def get_k(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
+            def get_k_approx(x, y):
+                return get_k(x, y)
+            def get_cV(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * cV_ref
+        elif self.system == "2":
+            exact_solution_available = True
+            t_end     = 5.0
+            x_a       = 0.0
+            x_b       = 1.0
+            y_c       = 0.0
+            y_d       = 1.0
+            A         = 1.0
+            rho       = 1.0
+            k_ref     = 1.0
+            cV_ref    = 1.0
+            q_hat_ref = 1.0
+            def get_T_exact(x, y, t, alpha):
+                def local_T(x, y, t, alpha):
+                    return np.sqrt(t + alpha + 1) + x*(x - 1)*y*(y -1)
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    T = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            T[j, i] = local_T(x_, y_, t, alpha)
+                    return T
+                elif type(x) is np.ndarray:
+                    T = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        T[j] = local_T(x_, y, t, alpha)
+                    return T
+                elif type(y) is np.ndarray:
+                    T = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        T[i] = local_T(x, y_, t, alpha)
+                    return T
+                else:
+                    return local_T(x, y, t, alpha)
+            def get_T0(x, y, alpha):
+                return get_T_exact(x, y, 0, alpha)
+            def get_T_a(y, t, alpha):
+                return get_T_exact(x_a, y, t, alpha)
+            def get_T_b(y, t, alpha):
+                return get_T_exact(x_b, y, t, alpha)
+            def get_T_c(x, t, alpha):
+                return get_T_exact(x, y_c, t, alpha)
+            def get_T_d(x, t, alpha):
+                return get_T_exact(x, y_d, t, alpha)
+            def get_q_hat(x, y, t, alpha):
+                return -2*(1/(4*np.sqrt(t + alpha + 1)) + x**2 + x + y**2 + y)
+            def get_q_hat_approx(x, y, t, alpha):
+                return np.zeros((x.shape[0], y.shape[0]))
+            def get_k(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
+            def get_k_approx(x, y):
+                return get_k(x, y)
+            def get_cV(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * cV_ref
+        elif self.system == "3":
+            exact_solution_available = True
+            t_end     = 5.0
+            x_a       = 0.0
+            x_b       = 1.0
+            y_c       = 0.0
+            y_d       = 1.0
+            A         = 1.0
+            rho       = 1.0
+            k_ref     = 1.0
+            cV_ref    = 1.0
+            q_hat_ref = 1.0
+            def get_T_exact(x, y, t, alpha):
+                def local_T(x, y, t, alpha):
+                    return 2 + alpha*np.tanh(x*y/(t + 0.1))
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    T = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            T[j, i] = local_T(x_, y_, t, alpha)
+                    return T
+                elif type(x) is np.ndarray:
+                    T = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        T[j] = local_T(x_, y, t, alpha)
+                    return T
+                elif type(y) is np.ndarray:
+                    T = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        T[i] = local_T(x, y_, t, alpha)
+                    return T
+                else:
+                    return local_T(x, y, t, alpha)
+            def get_T0(x, y, alpha):
+                return get_T_exact(x, y, 0, alpha)
+            def get_T_a(y, t, alpha):
+                return get_T_exact(x_a, y, t, alpha)
+            def get_T_b(y, t, alpha):
+                return get_T_exact(x_b, y, t, alpha)
+            def get_T_c(x, t, alpha):
+                return get_T_exact(x, y_c, t, alpha)
+            def get_T_d(x, t, alpha):
+                return get_T_exact(x, y_d, t, alpha)
+            def get_q_hat(x, y, t, alpha):
+                return alpha*(2*(x**2 + y**2)*np.tanh(x*y/(t + 0.1)) - x*y)/(((t + 0.1)*np.cosh(x*y/(t + 0.1)))**2)
+            def get_q_hat_approx(x, y, t, alpha):
+                return np.zeros((x.shape[0], y.shape[0]))
+            def get_k(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
+            def get_k_approx(x, y):
+                return get_k(x, y)
+            def get_cV(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * cV_ref
+        elif self.system == "4":
+            exact_solution_available = True
+            t_end     = 5.0
+            x_a       = 0.0
+            x_b       = 1.0
+            y_c       = 0.0
+            y_d       = 1.0
+            A         = 1.0
+            rho       = 1.0
+            k_ref     = 1.0
+            cV_ref    = 1.0
+            q_hat_ref = 1.0
+            def get_T_exact(x, y, t, alpha):
+                def local_T(x, y, t, alpha):
+                    return np.sin(2*np.pi*t + alpha)*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    T = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            T[j, i] = local_T(x_, y_, t, alpha)
+                    return T
+                elif type(x) is np.ndarray:
+                    T = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        T[j] = local_T(x_, y, t, alpha)
+                    return T
+                elif type(y) is np.ndarray:
+                    T = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        T[i] = local_T(x, y_, t, alpha)
+                    return T
+                else:
+                    return local_T(x, y, t, alpha)
+            def get_T0(x, y, alpha):
+                return get_T_exact(x, y, 0, alpha)
+            def get_T_a(y, t, alpha):
+                return get_T_exact(x_a, y, t, alpha)
+            def get_T_b(y, t, alpha):
+                return get_T_exact(x_b, y, t, alpha)
+            def get_T_c(x, t, alpha):
+                return get_T_exact(x, y_c, t, alpha)
+            def get_T_d(x, t, alpha):
+                return get_T_exact(x, y_d, t, alpha)
+            def get_q_hat(x, y, t, alpha):
+                return 2*np.pi*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)*(np.cos(2*np.pi*t + alpha) + 8*np.pi*np.sin(2*np.pi*t + alpha))
             def get_q_hat_approx(x, y, t, alpha):
                 return np.zeros((x.shape[0], y.shape[0]))
             def get_k(x, y):
