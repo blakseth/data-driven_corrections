@@ -26,9 +26,9 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-22_2D_experiment"
-run_names  = [["2D_GlobalDense_s3_HAM"]]
-systems    = ["3"]
-data_tags  = ["2D_s3"]
+run_names  = [["2D_GlobalDense_s2_HAM"]]
+systems    = ["2"]
+data_tags  = ["2D_s2"]
 model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
