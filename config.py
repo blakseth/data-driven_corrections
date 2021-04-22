@@ -26,10 +26,10 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-22_2D_experiment"
-run_names  = [["2D_GlobalDense_s5_HAM"]]
+run_names  = [["2D_GlobalDense_s5_DDM"]]
 systems    = ["5"]
 data_tags  = ["2D_s5"]
-model_type = 'hybrid'
+model_type = 'data'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
