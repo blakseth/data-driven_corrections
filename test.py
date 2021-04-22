@@ -417,7 +417,7 @@ def parametrized_simulation_test(cfg, model):
                 new_cor[-1, :] = cfg.get_T_b(cfg.y_nodes, new_time, alpha)  # predicted by the NN.
                 new_cor[:, 0] = cfg.get_T_c(cfg.x_nodes, new_time, alpha)
                 new_cor[:, -1] = cfg.get_T_d(cfg.x_nodes, new_time, alpha)
-                new_cor[1:-1] = util.z_unnormalize(model.net(old_cor_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
+                new_cor[1:-1, 1:-1] = util.z_unnormalize(model.net(old_cor_tensor.to(cfg.device)).detach().cpu().numpy(), ref_mean, ref_std)
 
             #if i == 0:
             #    print("First cor:", new_cor)

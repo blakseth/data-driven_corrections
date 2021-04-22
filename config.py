@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-04-22_2D_experiment"
-run_names  = [["2D_GlobalDense_s5_DDM"]]
+run_names  = [["2D_GlobalDense_s5_DDM2"]]
 systems    = ["5"]
 data_tags  = ["2D_s5"]
 model_type = 'data'
