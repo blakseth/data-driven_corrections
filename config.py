@@ -154,7 +154,24 @@ class Config:
             def get_q_hat(x, y, t, alpha):
                 return -(1 + alpha + 2*x + 4*y)
             def get_q_hat_approx(x, y, t, alpha):
-                return get_q_hat(x, y, t, alpha)
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    q_hat = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            q_hat[j, i] = get_q_hat(x_, y_, t, alpha)
+                    return q_hat
+                elif type(x) is np.ndarray:
+                    q_hat = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        q_hat[j] = get_q_hat(x_, y, t, alpha)
+                    return T
+                elif type(y) is np.ndarray:
+                    q_hat = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        q_hat[i] = get_q_hat(x, y_, t, alpha)
+                    return q_hat
+                else:
+                    return get_q_hat(x, y, t, alpha)
             def get_k(x, y, t, alpha):
                 return 1 + x + y
             def get_k_approx(x, y):
