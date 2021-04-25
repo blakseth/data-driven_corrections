@@ -164,7 +164,7 @@ class Config:
                     q_hat = np.zeros(x.shape[0])
                     for j, x_ in enumerate(x):
                         q_hat[j] = get_q_hat(x_, y, t, alpha)
-                    return T
+                    return q_hat
                 elif type(y) is np.ndarray:
                     q_hat = np.zeros(y.shape[0])
                     for i, y_ in enumerate(y):
@@ -224,7 +224,24 @@ class Config:
             def get_q_hat(x, y, t, alpha):
                 return -(x + y + alpha + 2)/((t + 1)**2)
             def get_q_hat_approx(x, y, t, alpha):
-                return get_q_hat(x, y, t, alpha)
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    q_hat = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            q_hat[j, i] = get_q_hat(x_, y_, t, alpha)
+                    return q_hat
+                elif type(x) is np.ndarray:
+                    q_hat = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        q_hat[j] = get_q_hat(x_, y, t, alpha)
+                    return q_hat
+                elif type(y) is np.ndarray:
+                    q_hat = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        q_hat[i] = get_q_hat(x, y_, t, alpha)
+                    return q_hat
+                else:
+                    return get_q_hat(x, y, t, alpha)
             def get_k(x, y, t, alpha):
                 return get_T_exact(x, y, t, alpha)
             def get_k_approx(x, y):
@@ -245,7 +262,10 @@ class Config:
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
                 def local_T(x, y, t, alpha):
-                    return 2 + alpha*np.tanh(x*y/(t + 0.1))
+                    if x <= 0.5:
+                        return y*np.exp(-t)*(alpha + 2*x)
+                    else:
+                        return y*np.exp(-t)*(alpha + 0.75 + 0.5*x)
                 if type(x) is np.ndarray and type(y) is np.ndarray:
                     T = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
@@ -275,13 +295,33 @@ class Config:
             def get_T_d(x, t, alpha):
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
-                return alpha*(2*(x**2 + y**2)*np.tanh(x*y/(t + 0.1)) - x*y)/(((t + 0.1)*np.cosh(x*y/(t + 0.1)))**2)
+                return -get_T_exact(x, y, t, alpha)
             def get_q_hat_approx(x, y, t, alpha):
-                return np.zeros((x.shape[0], y.shape[0]))
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    q_hat = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            q_hat[j, i] = get_q_hat(x_, y_, t, alpha)
+                    return q_hat
+                elif type(x) is np.ndarray:
+                    q_hat = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        q_hat[j] = get_q_hat(x_, y, t, alpha)
+                    return q_hat
+                elif type(y) is np.ndarray:
+                    q_hat = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        q_hat[i] = get_q_hat(x, y_, t, alpha)
+                    return q_hat
+                else:
+                    return get_q_hat(x, y, t, alpha)
             def get_k(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * k_ref
+                if x <= 0.5:
+                    return 0.5
+                else:
+                    return 2.0
             def get_k_approx(x, y):
-                return get_k(x, y)
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
         elif self.system == "4":
@@ -298,7 +338,7 @@ class Config:
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
                 def local_T(x, y, t, alpha):
-                    return 1 + np.sin(2*np.pi*t + alpha)*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
+                    return alpha + (t + 1)*np.cos(2*np.pi*x)*np.cos(4*np.pi*y)
                 if type(x) is np.ndarray and type(y) is np.ndarray:
                     T = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
@@ -328,66 +368,30 @@ class Config:
             def get_T_d(x, t, alpha):
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
-                return 2*np.pi*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)*(np.cos(2*np.pi*t + alpha) + 8*np.pi*np.sin(2*np.pi*t + alpha))
+                return -np.cos(2*np.pi*x)*np.cos(4*np.pi*y) + 10*(np.pi**2)*(t + 1)*np.sin(4*np.pi*x)*np.sin(8*np.pi*y)
             def get_q_hat_approx(x, y, t, alpha):
-                return np.zeros((x.shape[0], y.shape[0]))
-            def get_k(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * k_ref
-            def get_k_approx(x, y):
-                return get_k(x, y)
-            def get_cV(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * cV_ref
-        elif self.system == "5":
-            exact_solution_available = True
-            t_end     = 5.0
-            x_a       = 0.0
-            x_b       = 1.0
-            y_c       = 0.0
-            y_d       = 1.0
-            A         = 1.0
-            rho       = 1.0
-            k_ref     = 1.0
-            cV_ref    = 1.0
-            q_hat_ref = 1.0
-            def get_T_exact(x, y, t, alpha):
-                def local_T(x, y, t, alpha):
-                    return np.exp(-100*alpha*((x-0.5)**2)) * np.exp(-10*((y-0.5)**2)) * np.exp(-0.1*t)
                 if type(x) is np.ndarray and type(y) is np.ndarray:
-                    T = np.zeros((x.shape[0], y.shape[0]))
+                    q_hat = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
                         for j, x_ in enumerate(x):
-                            T[j, i] = local_T(x_, y_, t, alpha)
-                    return T
+                            q_hat[j, i] = get_q_hat(x_, y_, t, alpha)
+                    return q_hat
                 elif type(x) is np.ndarray:
-                    T = np.zeros(x.shape[0])
+                    q_hat = np.zeros(x.shape[0])
                     for j, x_ in enumerate(x):
-                        T[j] = local_T(x_, y, t, alpha)
-                    return T
+                        q_hat[j] = get_q_hat(x_, y, t, alpha)
+                    return q_hat
                 elif type(y) is np.ndarray:
-                    T = np.zeros(y.shape[0])
+                    q_hat = np.zeros(y.shape[0])
                     for i, y_ in enumerate(y):
-                        T[i] = local_T(x, y_, t, alpha)
-                    return T
+                        q_hat[i] = get_q_hat(x, y_, t, alpha)
+                    return q_hat
                 else:
-                    return local_T(x, y, t, alpha)
-            def get_T0(x, y, alpha):
-                return get_T_exact(x, y, 0, alpha)
-            def get_T_a(y, t, alpha):
-                return get_T_exact(x_a, y, t, alpha)
-            def get_T_b(y, t, alpha):
-                return get_T_exact(x_b, y, t, alpha)
-            def get_T_c(x, t, alpha):
-                return get_T_exact(x, y_c, t, alpha)
-            def get_T_d(x, t, alpha):
-                return get_T_exact(x, y_d, t, alpha)
-            def get_q_hat(x, y, t, alpha):
-                return (-0.1 - (200*alpha*(x-0.5))**2 + 200*alpha - (20*(y-0.5))**2 + 20) * get_T_exact(x, y, t, alpha)
-            def get_q_hat_approx(x, y, t, alpha):
-                return np.zeros((x.shape[0], y.shape[0]))
+                    return get_q_hat(x, y, t, alpha)
             def get_k(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * k_ref
+                return np.sin(2*np.pi*x)*np.sin(4*np.pi*y)
             def get_k_approx(x, y):
-                return get_k(x, y)
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
         else:
