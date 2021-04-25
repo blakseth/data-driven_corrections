@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-25_2D_experiment"
-run_names  = [["2D_GlobalDense_s4_HAM"]]
-systems    = ["4"]
-data_tags  = ["2D_s4"]
+group_name = "2021-04-25_2D_missing conductivity"
+run_names  = [["2D_GlobalDense_k1_HAM"]]
+systems    = ["k1"]
+data_tags  = ["2D_k1"]
 model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -108,7 +108,7 @@ class Config:
         else:
             self.alphas = np.asarray([1.0])
 
-        if self.system == "1":
+        if self.system == "k1":
             exact_solution_available = True
             t_end     = 5.0
             x_a       = 0.0
@@ -122,7 +122,7 @@ class Config:
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
                 def local_T(x, y, t, alpha):
-                    return t + 0.5 * alpha * ((x ** 2) + (y ** 2)) + 1.0*x
+                    return t + alpha*x + y**2
                 if type(x) is np.ndarray and type(y) is np.ndarray:
                     T = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
@@ -152,16 +152,16 @@ class Config:
             def get_T_d(x, t, alpha):
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
-                return (1 - 2*alpha) * np.ones((x.shape[0], y.shape[0]))
+                return -(1 + alpha + 2*x + 4*y)
             def get_q_hat_approx(x, y, t, alpha):
-                return np.zeros((x.shape[0], y.shape[0]))
-            def get_k(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * k_ref
+                return get_q_hat(x, y, t, alpha)
+            def get_k(x, y, t, alpha):
+                return 1 + x + y
             def get_k_approx(x, y):
-                return get_k(x, y)
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
-        elif self.system == "2":
+        elif self.system == "k2":
             exact_solution_available = True
             t_end     = 5.0
             x_a       = 0.0
@@ -175,7 +175,7 @@ class Config:
             q_hat_ref = 1.0
             def get_T_exact(x, y, t, alpha):
                 def local_T(x, y, t, alpha):
-                    return np.sqrt(t + alpha + 1) + x*(x - 1)*y*(y -1)
+                    return (x + y + alpha)/(t + 1)
                 if type(x) is np.ndarray and type(y) is np.ndarray:
                     T = np.zeros((x.shape[0], y.shape[0]))
                     for i, y_ in enumerate(y):
@@ -205,13 +205,13 @@ class Config:
             def get_T_d(x, t, alpha):
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
-                return -2*(1/(4*np.sqrt(t + alpha + 1)) + x**2 + x + y**2 + y)
+                return -(x + y + alpha + 2)/((t + 1)**2)
             def get_q_hat_approx(x, y, t, alpha):
-                return np.zeros((x.shape[0], y.shape[0]))
-            def get_k(x, y):
-                return np.ones((x.shape[0], y.shape[0])) * k_ref
+                return get_q_hat(x, y, t, alpha)
+            def get_k(x, y, t, alpha):
+                return get_T_exact(x, y, t, alpha)
             def get_k_approx(x, y):
-                return get_k(x, y)
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
         elif self.system == "3":
