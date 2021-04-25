@@ -248,7 +248,7 @@ class Config:
                 return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
-        elif self.system == "3":
+        elif self.system == "k3":
             exact_solution_available = True
             t_end     = 5.0
             x_a       = 0.0
@@ -324,7 +324,7 @@ class Config:
                 return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
-        elif self.system == "4":
+        elif self.system == "k4":
             exact_solution_available = True
             t_end     = 5.0
             x_a       = 0.0
