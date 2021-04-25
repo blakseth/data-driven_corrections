@@ -18,9 +18,10 @@ import os
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib.colors as cs
 
 plt.rcParams.update({
-    "font.family": "serif",
+    "font.family": "DejaVu Serif",
     "font.serif": ["Computer Modern Roman"],
 })
 
@@ -29,48 +30,45 @@ plt.rcParams.update({
 
 def get_exact_solution(system_number, alpha, t):
     if system_number == 1:
-        return lambda x: t + 0.5 * alpha * (x ** 2)
+        def local_T(x, y, tt, alphaa):
+            return tt + 0.5 * alphaa * ((x ** 2) + (y ** 2)) + 1.0 * x
+    elif system_number == 2:
+        def local_T(x, y, tt, alphaa):
+            return np.sqrt(tt + alphaa + 1) + x*(x - 1)*y*(y -1)
+    elif system_number == 3:
+        def local_T(x, y, tt, alphaa):
+            return 2 + alphaa*np.tanh(x*y/(tt + 0.1))
+    elif system_number == 4:
+        def local_T(x, y, tt, alphaa):
+            return np.sin(2*np.pi*tt + alphaa)*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
+    elif system_number == 5:
+        def local_T(x, y, tt, alphaa):
+            return np.exp(-100*alphaa*((x-0.5)**2)) * np.exp(-10*((y-0.5)**2)) * np.exp(-0.1*tt)
+    else:
+        print("No exact solution was chosen for system_number =", system_number)
+        raise Exception
 
-    if system_number == 2:
-        return lambda x: np.sqrt(t + alpha + 1) + 10 * (x ** 2) * (x - 1) * (x + 2)
+    def get_T_exact(x, y, tt, alphaa):
+        if type(x) is np.ndarray and type(y) is np.ndarray:
+            T = np.zeros((x.shape[0], y.shape[0]))
+            for i, y_ in enumerate(y):
+                for j, x_ in enumerate(x):
+                    T[j, i] = local_T(x_, y_, tt, alphaa)
+            return T
+        elif type(x) is np.ndarray:
+            T = np.zeros(x.shape[0])
+            for j, x_ in enumerate(x):
+                T[j] = local_T(x_, y, tt, alphaa)
+            return T
+        elif type(y) is np.ndarray:
+            T = np.zeros(y.shape[0])
+            for i, y_ in enumerate(y):
+                T[i] = local_T(x, y_, tt, alphaa)
+            return T
+        else:
+            return local_T(x, y, tt, alphaa)
 
-    if system_number == 3:
-        return lambda x: 2 * (x ** (alpha + 4)) - (t ** 2) * x * (x - 1)
-
-    if system_number == 4:
-        return lambda x: np.sin(2 * np.pi * x) * np.exp(-alpha * (t+0.1))
-
-    if system_number == 5:
-        return lambda x: -2 * (x ** 3) * (x - alpha) / (t + 0.5)
-
-    if system_number == 6:
-        return lambda x: 2 + alpha * (x - 1) * np.tanh(x / (t + 0.1))
-
-    if system_number == 7:
-        return lambda x: np.sin(2 * np.pi * t) + alpha * np.sin(2 * np.pi * x)
-
-    if system_number == 8:
-        return lambda x: 1 + np.sin(2 * np.pi * t + alpha) * np.cos(2 * np.pi * x)
-
-    if system_number == 9:
-        return lambda x: 1 + alpha * np.cos(2 * np.pi * x * (t ** 2))
-
-    if system_number == 10:
-        return lambda x: 5 + x * (x - 1) / (t + 0.1) + 0.1 * t * np.sin(2 * np.pi * x + alpha)
-
-    if system_number == 11:
-        return lambda x: 1 + np.sin(5 * x * t) * np.exp(-0.2 * x * t) + alpha * (x ** 3)
-
-    if system_number == 12:
-        return lambda x: 5 * t * (x ** 2) * np.sin(10 * np.pi * t) + np.sin(2 * np.pi * alpha * x) / (t + 0.2)
-
-    if system_number == 13:
-        return lambda x: 1 + t / (1 + ((x - 0.5 * alpha) ** 2))
-
-    if system_number == 14:
-        return lambda x: 1 + t * np.exp(-1000 * (alpha + 1) * (x - 0.5) ** 2)
-
-    print("No exact solution was chosen for system_number =", system_number)
+    return lambda x,y: get_T_exact(x, y, t, alpha)
 
 ########################################################################################################################
 # Visualizing data.
@@ -137,7 +135,75 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
-def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, output_dir, filename):
+def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_callable, output_dir, filename):
+    x_a = x[0]
+    x_b = x[-1]
+    y_c = y[0]
+    y_d = y[-1]
+    dx  = x[2] - x[1]
+    dy  = y[2] - y[1]
+
+    exact_field = exact_callable(x, y)
+    x_dense = np.linspace(x_a, x_b, num=200, endpoint=True)
+    y_dense = np.linspace(y_c, y_d, num=200, endpoint=True)
+    exact_field_dense = exact_callable(x_dense, y_dense)
+
+    PBM_diff_field = PBM_field - exact_field
+    DDM_diff_field = DDM_field - exact_field
+    HAM_diff_field = HAM_field - exact_field
+
+    maxmax = np.amax(np.asarray([np.amax(np.abs(PBM_diff_field)), np.amax(np.abs(DDM_diff_field)), np.amax(np.abs(HAM_diff_field))]))
+    minmin = -maxmax
+
+    threshold = 1e-4
+
+    fig, axs = plt.subplots(2, 2, adjustable='box-forced')
+
+    surf_map = plt.get_cmap('plasma')
+
+    surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 0), levels=100, cmap=surf_map)
+    for c in surf.collections:
+        c.set_edgecolor("face")
+    axs[0, 0].set_title('Exact')
+
+    # sample the colormaps that you want to use. Use 128 from each so we get 256
+    # colors in total
+    colors1 = plt.cm.hot(np.linspace(0, 1, 128))
+    colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.4, 103))
+
+    # combine them and build a new colormap
+    colors = np.vstack((colors1, colorsmid, colors2))
+    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors)
+
+    diff_map = plt.get_cmap('seismic')
+
+    im2 = axs[0, 1].imshow(np.flip(np.swapaxes(PBM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
+                          extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                  y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
+    axs[0, 1].set_title('PBM')
+
+    im3 = axs[1, 0].imshow(np.flip(np.swapaxes(DDM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
+                     extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                             y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
+    axs[1, 0].set_title('DDM')
+    im4 = axs[1, 1].imshow(np.flip(np.swapaxes(HAM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
+                     extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                             y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
+    axs[1, 1].set_title('HAM')
+    for ax in fig.get_axes():
+        ax.set_xlim((x_a, x_b))
+        ax.set_ylim((y_c, y_d))
+        ax.set_xlabel(r'$x$ (m)')
+        ax.set_ylabel(r'$y$ (m)')
+        ax.label_outer()
+    fig.colorbar(surf, ax=axs[0, 0])
+    fig.colorbar(im2,  ax=axs[0, 1])
+    fig.colorbar(im3,  ax=axs[1, 0])
+    fig.colorbar(im4,  ax=axs[1, 1])
+    plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
+    plt.close()
+    """
     plt.figure()
     plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="PBM")
     if dat_profile_FCNN is not None:
@@ -167,19 +233,20 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
     #plt.legend(prop={'size': 17})
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
+    """
 
 ########################################################################################################################
 
 def main():
-    hybrid_CNN_dir  = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalCNN_rerun/GlobalCNN_s"
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_hybrid/GlobalDense_s"
-    end_CNN_dir     = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalCNN_rerun/GlobalCNN_s"
-    end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalDense_rerun/GlobalDense_s"
+    hybrid_CNN_dir  = ""
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-23_2D_hybrid/2D_GlobalDense_s"
+    end_CNN_dir     = ""
+    end_FCNN_dir    = ""
     res_CNN_dir     = ""
-    res_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-29_residual_GlobalDense/GlobalDense_s"
+    res_FCNN_dir    = ""
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/paper_figures/plots_2021-03-31_no_legends2"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-23_2D_DDM/2D_GlobalDense_s"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2D_V7"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -191,10 +258,10 @@ def main():
     os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [1, 2, 6, 8]
+    systems_to_include = [1, 2, 3, 4, 5]
 
-    y_lims_interp = [[1e-6, 1e-1], [1e-6, 3e0], None, None, None, [5e-5, 4e-1], None, [3e-5, 1e0]]
-    y_lims_extrap = [[7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-4, 7e-1], None, [4e-5, 1e0]]
+    y_lims_interp = [[1e-6, 1e-1], [1e-7, 1e-1], [5e-6, 1e-1], [7e-5, 1e2], [3e-4, 1e0]]
+    y_lims_extrap = [[1e-5, 1e0],  [1e-7, 1e-1], [5e-5, 3e-1], [7e-5, 1e3], [1e-2, 1e1]]
 
     for s in range(num_systems_studied):
         system_number = s + 1
@@ -205,7 +272,7 @@ def main():
         # Plotting profiles.
 
         if use_FCNN_results and use_hyb_results:
-            with open(os.path.join(hybrid_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
+            with open(os.path.join(hybrid_FCNN_dir + str(system_number) + "_HAM", "plot_data_stats.pkl"), "rb") as f:
                 hybrid_FCNN_plot_dict = pickle.load(f)
         if use_FCNN_results and use_end_results:
             with open(os.path.join(end_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
@@ -214,7 +281,7 @@ def main():
             with open(os.path.join(res_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
                 res_FCNN_plot_dict = pickle.load(f)
         if use_FCNN_results and use_dat_results:
-            with open(os.path.join(dat_FCNN_dir + str(system_number), "plot_data_stats.pkl"), "rb") as f:
+            with open(os.path.join(dat_FCNN_dir + str(system_number) + "_DDM", "plot_data_stats.pkl"), "rb") as f:
                 dat_FCNN_plot_dict = pickle.load(f)
         print("Successfully loaded FCNN plot dicts.")
 
@@ -235,6 +302,7 @@ def main():
         alphas     = hybrid_FCNN_plot_dict['alphas']
         plot_times = hybrid_FCNN_plot_dict['time']
         x          = hybrid_FCNN_plot_dict['x']
+        y          = hybrid_FCNN_plot_dict['x'] # Only works since I have used a square grid in all experiments.
 
         print("Plot times:", plot_times)
 
@@ -298,14 +366,14 @@ def main():
                 #                           atol=1e-10)
 
                 filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
-                visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, plot_dir, filename)
+                visualize_profile_combined(x, y, PBM_field=unc_profile, DDM_field=dat_profile_FCNN, HAM_field=hyb_profile_FCNN, exact_callable=exact_callable, output_dir=plot_dir, filename=filename)
                 print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
 
 
         # Plotting l2 errors.
 
         if use_FCNN_results and use_hyb_results:
-            with open(os.path.join(hybrid_FCNN_dir  + str(system_number), "error_data_stats.pkl"), "rb") as f:
+            with open(os.path.join(hybrid_FCNN_dir  + str(system_number) + "_HAM", "error_data_stats.pkl"), "rb") as f:
                 hybrid_FCNN_error_dict = pickle.load(f)
         if use_FCNN_results and use_end_results:
             with open(os.path.join(end_FCNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
@@ -314,7 +382,7 @@ def main():
             with open(os.path.join(res_FCNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
                 res_FCNN_error_dict = pickle.load(f)
         if use_FCNN_results and use_dat_results:
-            with open(os.path.join(dat_FCNN_dir + str(system_number), "error_data_stats.pkl"), "rb") as f:
+            with open(os.path.join(dat_FCNN_dir + str(system_number) + "_DDM", "error_data_stats.pkl"), "rb") as f:
                 dat_FCNN_error_dict = pickle.load(f)
         print("Successfully loaded FCNN error dicts.")
 
