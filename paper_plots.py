@@ -31,19 +31,19 @@ plt.rcParams.update({
 def get_exact_solution(system_number, alpha, t):
     if system_number == 1:
         def local_T(x, y, tt, alphaa):
-            return tt + 0.5 * alphaa * ((x ** 2) + (y ** 2)) + 1.0 * x
+            return tt + alphaa*x + y**2
     elif system_number == 2:
         def local_T(x, y, tt, alphaa):
-            return np.sqrt(tt + alphaa + 1) + x*(x - 1)*y*(y -1)
+            return (x + y + alphaa)/(tt + 1)
     elif system_number == 3:
         def local_T(x, y, tt, alphaa):
-            return 2 + alphaa*np.tanh(x*y/(tt + 0.1))
+            if x <= 0.5:
+                return y * np.exp(-tt) * (alphaa + 2 * x)
+            else:
+                return y * np.exp(-tt) * (alphaa + 0.75 + 0.5 * x)
     elif system_number == 4:
         def local_T(x, y, tt, alphaa):
-            return np.sin(2*np.pi*tt + alphaa)*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
-    elif system_number == 5:
-        def local_T(x, y, tt, alphaa):
-            return np.exp(-100*alphaa*((x-0.5)**2)) * np.exp(-10*((y-0.5)**2)) * np.exp(-0.1*tt)
+            return alphaa + (tt + 1)*np.cos(2*np.pi*x)*np.cos(4*np.pi*y)
     else:
         print("No exact solution was chosen for system_number =", system_number)
         raise Exception
@@ -157,11 +157,11 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
 
     threshold = 1e-4
 
-    fig, axs = plt.subplots(2, 2, adjustable='box-forced')
+    fig, axs = plt.subplots(2, 2)
 
     surf_map = plt.get_cmap('plasma')
 
-    surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 0), levels=100, cmap=surf_map)
+    surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 1), levels=100, cmap=surf_map)
     for c in surf.collections:
         c.set_edgecolor("face")
     axs[0, 0].set_title('Exact')
@@ -170,7 +170,7 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     # colors in total
     colors1 = plt.cm.hot(np.linspace(0, 1, 128))
     colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
-    colors2 = plt.cm.twilight(np.linspace(0, 0.4, 103))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.5, 103))
 
     # combine them and build a new colormap
     colors = np.vstack((colors1, colorsmid, colors2))
@@ -201,7 +201,110 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     fig.colorbar(im2,  ax=axs[0, 1])
     fig.colorbar(im3,  ax=axs[1, 0])
     fig.colorbar(im4,  ax=axs[1, 1])
-    plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, filename + "_1.pdf"), bbox_inches='tight')
+    plt.close()
+
+
+    ########################################
+
+    fig, axs = plt.subplots(1, 3)
+
+    # sample the colormaps that you want to use. Use 128 from each so we get 256
+    # colors in total
+    colors1 = plt.cm.hot(np.linspace(0, 1, 128))
+    colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.5, 103))
+
+    # combine them and build a new colormap
+    colors = np.vstack((colors1, colorsmid, colors2))
+    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors)
+
+    diff_map = plt.get_cmap('seismic')
+
+    im1 = axs[0].imshow(np.flip(np.swapaxes(PBM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=mymap)
+    axs[0].set_title('PBM')
+
+    im2 = axs[1].imshow(np.flip(np.swapaxes(DDM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=mymap)
+    axs[1].set_title('DDM')
+
+    im3 = axs[2].imshow(np.flip(np.swapaxes(HAM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=mymap)
+    axs[2].set_title('HAM')
+    for ax in fig.get_axes():
+        ax.set_xlim((x_a, x_b))
+        ax.set_ylim((y_c, y_d))
+        ax.set_xlabel(r'$x$ (m)')
+        ax.set_ylabel(r'$y$ (m)')
+        ax.label_outer()
+    fig.colorbar(im3, ax=axs.ravel().tolist(), shrink=.4)
+    plt.savefig(os.path.join(output_dir, filename + "_2.pdf"), bbox_inches='tight')
+    plt.close()
+
+    ################################
+
+    maxmax = np.amax(
+        np.asarray([np.amax(PBM_field), np.amax(DDM_field), np.amax(HAM_field), np.amax(exact_field)]))
+    minmin = np.amin(
+        np.asarray([np.amin(PBM_field), np.amin(DDM_field), np.amin(HAM_field), np.amin(exact_field)]))
+
+    threshold = 1e-4
+
+    fig, axs = plt.subplots(2, 2)
+
+    surf_map = plt.get_cmap('plasma')
+
+    surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100, cmap=surf_map)
+    for c in surf.collections:
+        c.set_edgecolor("face")
+    axs[0, 0].set_title('Exact')
+
+    # sample the colormaps that you want to use. Use 128 from each so we get 256
+    # colors in total
+    colors1 = plt.cm.hot(np.linspace(0, 1, 128))
+    colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.5, 103))
+
+    # combine them and build a new colormap
+    colors = np.vstack((colors1, colorsmid, colors2))
+    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors)
+
+    diff_map = plt.get_cmap('seismic')
+
+    print("Exact:", exact_field)
+    print("HAM:", HAM_field)
+
+    im2 = axs[0, 1].imshow(np.flip(np.swapaxes(PBM_field, 0, 1), 0), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=surf_map)
+    axs[0, 1].set_title('PBM')
+
+    im3 = axs[1, 0].imshow(np.flip(np.swapaxes(DDM_field, 0, 1), 0), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=surf_map)
+    axs[1, 0].set_title('DDM')
+    im4 = axs[1, 1].imshow(np.flip(np.swapaxes(HAM_field, 0, 1), 0), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=surf_map)
+    axs[1, 1].set_title('HAM')
+    for ax in fig.get_axes():
+        ax.set_xlim((x_a, x_b))
+        ax.set_ylim((y_c, y_d))
+        ax.set_xlabel(r'$x$ (m)')
+        ax.set_ylabel(r'$y$ (m)')
+        ax.label_outer()
+    fig.colorbar(im3, ax=axs.ravel().tolist())
+    plt.savefig(os.path.join(output_dir, filename + "_3.pdf"), bbox_inches='tight')
     plt.close()
     """
     plt.figure()
@@ -239,14 +342,14 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
 
 def main():
     hybrid_CNN_dir  = ""
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-23_2D_hybrid/2D_GlobalDense_s"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-26_2Dk_HAM/2D_GlobalDense_k"
     end_CNN_dir     = ""
     end_FCNN_dir    = ""
     res_CNN_dir     = ""
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-23_2D_DDM/2D_GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2D_V7"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-26_2Dk_DDM/2D_GlobalDense_k"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2Dk_V4"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -258,10 +361,10 @@ def main():
     os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [1, 2, 3, 4, 5]
+    systems_to_include = [1, 2, 3, 4]
 
-    y_lims_interp = [[1e-6, 1e-1], [1e-7, 1e-1], [5e-6, 1e-1], [7e-5, 1e2], [3e-4, 1e0]]
-    y_lims_extrap = [[1e-5, 1e0],  [1e-7, 1e-1], [5e-5, 3e-1], [7e-5, 1e3], [1e-2, 1e1]]
+    y_lims_interp = [[1e-9, 1e-2], [1e-9, 1e2], [5e-9, 1e2], [7e-9, 1e2]]
+    y_lims_extrap = [[1e-9, 1e2],  [1e-9, 1e2], [5e-9, 3e2], [7e-9, 1e2]]
 
     for s in range(num_systems_studied):
         system_number = s + 1
@@ -301,6 +404,7 @@ def main():
 
         alphas     = hybrid_FCNN_plot_dict['alphas']
         plot_times = hybrid_FCNN_plot_dict['time']
+        plot_times = [plot_times[2], plot_times[-1]]
         x          = hybrid_FCNN_plot_dict['x']
         y          = hybrid_FCNN_plot_dict['x'] # Only works since I have used a square grid in all experiments.
 
