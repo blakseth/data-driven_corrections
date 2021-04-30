@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-20_DDM_missing_conductivity"
-run_names  = [["GlobalDense_DDM_k1"]]
-systems    = ["k1"]
-data_tags  = ["k1_50cells"]
+group_name = "2021-04-30_HAM_missing_conductivity_errors_fixed"
+run_names  = [["GlobalDense_HAM_k2", "GlobalDense_HAM_k5", "GlobalDense_HAM_k6"]]
+systems    = ["k2", "k5", "k6"]
+data_tags  = ["k2_50cells", "k5_50cells", "k6_50cells"]
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -152,7 +152,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return alpha*(x - 1)/((1 + t)**2)
+                return alpha*(x - alpha)/((1 + t)**2)
             def get_k(x, t, alpha):
                 return get_T_exact(x, t, alpha)
             def get_k_approx(x):
@@ -248,7 +248,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return alpha*(x - alpha*t)
+                return alpha*(x - alpha*(t**2))
             def get_k(x, t, alpha):
                 return get_T_exact(x, t, alpha)
             def get_k_approx(x):
@@ -274,7 +274,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return -(x + alpha)/((t + 1)**2) - 1/(t + 1)
+                return -(x + alpha + 1)/((t + 1)**2)
             def get_k(x, t, alpha):
                 return get_T_exact(x, t, alpha)
             def get_k_approx(x):
