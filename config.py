@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-25_2D_experiment"
+group_name = "2021-04-25_2D_experiment_redo_s4"
 run_names  = [["2D_GlobalDense_s4_HAM"]]
 systems    = ["4"]
 data_tags  = ["2D_s4"]
