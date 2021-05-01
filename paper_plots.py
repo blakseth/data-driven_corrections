@@ -40,7 +40,7 @@ def get_exact_solution(system_number, alpha, t):
             return 2 + alphaa*np.tanh(x*y/(tt + 0.1))
     elif system_number == 4:
         def local_T(x, y, tt, alphaa):
-            return np.sin(2*np.pi*tt + alphaa)*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
+            return 1 + np.sin(2*np.pi*tt + alphaa)*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
     elif system_number == 5:
         def local_T(x, y, tt, alphaa):
             return np.exp(-100*alphaa*((x-0.5)**2)) * np.exp(-10*((y-0.5)**2)) * np.exp(-0.1*tt)
@@ -148,23 +148,23 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     y_dense = np.linspace(y_c, y_d, num=200, endpoint=True)
     exact_field_dense = exact_callable(x_dense, y_dense)
 
-    PBM_diff_field = PBM_field - exact_field
-    DDM_diff_field = DDM_field - exact_field
-    HAM_diff_field = HAM_field - exact_field
+    PBM_diff_field = (PBM_field - exact_field) / exact_field
+    DDM_diff_field = (DDM_field - exact_field) / exact_field
+    HAM_diff_field = (HAM_field - exact_field) / exact_field
 
     maxmax = np.amax(np.asarray([np.amax(np.abs(PBM_diff_field)), np.amax(np.abs(DDM_diff_field)), np.amax(np.abs(HAM_diff_field))]))
     minmin = -maxmax
 
     threshold = 1e-4
 
-    fig, axs = plt.subplots(2, 2, adjustable='box-forced')
+    fig, axs = plt.subplots(2, 2)
 
     surf_map = plt.get_cmap('plasma')
 
     surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 1), levels=100, cmap=surf_map)
     for c in surf.collections:
         c.set_edgecolor("face")
-    axs[0, 0].set_title('Exact')
+    axs[0, 0].set_title('Reference Field')
 
     # sample the colormaps that you want to use. Use 128 from each so we get 256
     # colors in total
@@ -174,33 +174,56 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
 
     # combine them and build a new colormap
     colors = np.vstack((colors1, colorsmid, colors2))
-    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors)
+    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors).reversed()
 
     diff_map = plt.get_cmap('seismic')
 
     im2 = axs[0, 1].imshow(np.flip(np.swapaxes(PBM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
-    axs[0, 1].set_title('PBM')
+    axs[0, 1].set_title('PBM Error')
 
     im3 = axs[1, 0].imshow(np.flip(np.swapaxes(DDM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
                      extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
                              y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
-    axs[1, 0].set_title('DDM')
+    axs[1, 0].set_title('DDM Error')
     im4 = axs[1, 1].imshow(np.flip(np.swapaxes(HAM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
                      extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
                              y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
-    axs[1, 1].set_title('HAM')
+    axs[1, 1].set_title('HAM Error')
+
+    #print("filename:", filename)
+    #print("DDM(x=0, y=0):", DDM_diff_field[1,1])
+    #print("DDM(x=1, y=0):", DDM_diff_field[-2,1])
+    #print("DDM(x=0, y=1):", DDM_diff_field[1,-2])
+    #print("DDM(x=1, y=1):", DDM_diff_field[-2,-2])
+
+    """
+    im5 = axs[2, 0].imshow(np.flip(np.swapaxes(DDM_field, 0, 1), 0),
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy])
+    axs[2, 0].set_title('DDM field')
+    im6 = axs[2, 1].imshow(np.flip(np.swapaxes(HAM_field, 0, 1), 0),
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy])
+    axs[2, 1].set_title('HAM field')
+    """
+
     for ax in fig.get_axes():
         ax.set_xlim((x_a, x_b))
         ax.set_ylim((y_c, y_d))
         ax.set_xlabel(r'$x$ (m)')
         ax.set_ylabel(r'$y$ (m)')
         ax.label_outer()
+        ax.set(adjustable='box', aspect='equal')
     fig.colorbar(surf, ax=axs[0, 0])
     fig.colorbar(im2,  ax=axs[0, 1])
     fig.colorbar(im3,  ax=axs[1, 0])
     fig.colorbar(im4,  ax=axs[1, 1])
+    #fig.colorbar(im5,  ax=axs[2, 0])
+    #fig.colorbar(im6,  ax=axs[2, 1])
+
+    plt.tight_layout()
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
     """
@@ -239,14 +262,14 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
 
 def main():
     hybrid_CNN_dir  = ""
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-23_2D_hybrid/2D_GlobalDense_s"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-05-01_2D_new_HAM/2D_GlobalDense_s"
     end_CNN_dir     = ""
     end_FCNN_dir    = ""
     res_CNN_dir     = ""
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-23_2D_DDM/2D_GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2D_V7"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-05-01-2D_new_DDM/2D_GlobalDense_s"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2D_V8"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -255,13 +278,16 @@ def main():
     use_res_results   = False
     use_dat_results   = True
 
-    os.makedirs(output_dir, exist_ok=False)
+    plot_profiles = True
+    plot_errors   = False
+
+    os.makedirs(output_dir, exist_ok=True)
 
     num_systems_studied = 14
-    systems_to_include = [1, 2, 3, 4, 5]
+    systems_to_include = [1, 4]
 
-    y_lims_interp = [[1e-6, 1e-1], [1e-7, 1e-1], [5e-6, 1e-1], [7e-5, 1e2], [3e-4, 1e0]]
-    y_lims_extrap = [[1e-5, 1e0],  [1e-7, 1e-1], [5e-5, 3e-1], [7e-5, 1e3], [1e-2, 1e1]]
+    y_lims_interp = [[1e-6, 1e-1], [1e-7, 1e-1], [5e-6, 1e-1], [5e-6, 1e0], [3e-4, 1e0]]
+    y_lims_extrap = [[1e-5, 1e0],  [1e-7, 1e-1], [5e-5, 3e-1], [5e-6, 1e0], [1e-2, 1e1]]
 
     for s in range(num_systems_studied):
         system_number = s + 1
@@ -313,61 +339,62 @@ def main():
         #np.testing.assert_allclose(plot_times, end_CNN_plot_dict['time'], rtol=1e-10, atol=1e-10)
         #np.testing.assert_allclose(plot_times, hybrid_CNN_plot_dict['time'], rtol=1e-10, atol=1e-10)
 
-        plot_dir = os.path.join(output_dir, "plots")
-        if not os.path.exists(plot_dir):
-            os.makedirs(plot_dir, exist_ok=True)
+        if plot_profiles:
+            plot_dir = os.path.join(output_dir, "plots")
+            if not os.path.exists(plot_dir):
+                os.makedirs(plot_dir, exist_ok=True)
 
-        for a, alpha in enumerate(alphas):
-            for plot_num, t in enumerate(plot_times):
-                unc_profile = hybrid_FCNN_plot_dict['unc'][a][plot_num]
-                #np.testing.assert_allclose(unc_profile, end_FCNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
-                #np.testing.assert_allclose(unc_profile, end_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
-                #np.testing.assert_allclose(unc_profile, hybrid_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
+            for a, alpha in enumerate(alphas):
+                for plot_num, t in enumerate(plot_times):
+                    unc_profile = hybrid_FCNN_plot_dict['unc'][a][plot_num]
+                    #np.testing.assert_allclose(unc_profile, end_FCNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
+                    #np.testing.assert_allclose(unc_profile, end_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
+                    #np.testing.assert_allclose(unc_profile, hybrid_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
 
-                if use_FCNN_results and use_end_results:
-                    end_profile_FCNN = end_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    end_profile_FCNN = None
-                if use_FCNN_results and use_hyb_results:
-                    hyb_profile_FCNN = hybrid_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    hyb_profile_FCNN = None
-                if use_FCNN_results and use_res_results:
-                    res_profile_FCNN = res_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    res_profile_FCNN = None
-                if use_FCNN_results and use_dat_results:
-                    dat_profile_FCNN = dat_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    dat_profile_FCNN = None
-                if use_CNN_results and use_end_results:
-                    end_profile_CNN = end_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    end_profile_CNN = None
-                if use_CNN_results and use_hyb_results:
-                    hyb_profile_CNN = hybrid_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    hyb_profile_CNN = None
-                if use_CNN_results and use_res_results:
-                    res_profile_CNN = res_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    res_profile_CNN = None
-                if use_CNN_results and use_dat_results:
-                    dat_profile_CNN = dat_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    dat_profile_CNN = None
+                    if use_FCNN_results and use_end_results:
+                        end_profile_FCNN = end_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        end_profile_FCNN = None
+                    if use_FCNN_results and use_hyb_results:
+                        hyb_profile_FCNN = hybrid_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        hyb_profile_FCNN = None
+                    if use_FCNN_results and use_res_results:
+                        res_profile_FCNN = res_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        res_profile_FCNN = None
+                    if use_FCNN_results and use_dat_results:
+                        dat_profile_FCNN = dat_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        dat_profile_FCNN = None
+                    if use_CNN_results and use_end_results:
+                        end_profile_CNN = end_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        end_profile_CNN = None
+                    if use_CNN_results and use_hyb_results:
+                        hyb_profile_CNN = hybrid_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        hyb_profile_CNN = None
+                    if use_CNN_results and use_res_results:
+                        res_profile_CNN = res_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        res_profile_CNN = None
+                    if use_CNN_results and use_dat_results:
+                        dat_profile_CNN = dat_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        dat_profile_CNN = None
 
-                exact_callable = get_exact_solution(system_number, alpha, t)
+                    exact_callable = get_exact_solution(system_number, alpha, t)
 
-                #np.testing.assert_allclose(hybrid_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10, atol=1e-10)
-                #np.testing.assert_allclose(end_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
-                #                           atol=1e-10)
-                #np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
-                #                           atol=1e-10)
+                    #np.testing.assert_allclose(hybrid_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10, atol=1e-10)
+                    #np.testing.assert_allclose(end_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
+                    #                           atol=1e-10)
+                    #np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
+                    #                           atol=1e-10)
 
-                filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
-                visualize_profile_combined(x, y, PBM_field=unc_profile, DDM_field=dat_profile_FCNN, HAM_field=hyb_profile_FCNN, exact_callable=exact_callable, output_dir=plot_dir, filename=filename)
-                print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
+                    filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                    visualize_profile_combined(x, y, PBM_field=unc_profile, DDM_field=dat_profile_FCNN, HAM_field=hyb_profile_FCNN, exact_callable=exact_callable, output_dir=plot_dir, filename=filename)
+                    print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
 
 
         # Plotting l2 errors.
@@ -407,59 +434,60 @@ def main():
         #assert alphas.shape[0] == end_FCNN_error_dict['unc_L2'].shape[0]
         #assert hybrid_CNN_error_dict['unc_L2'].shape[1] == end_CNN_error_dict['unc_L2'].shape[1]
 
-        error_dir = os.path.join(output_dir, "errors")
-        if not os.path.exists(error_dir):
-            os.makedirs(error_dir, exist_ok=False)
+        if plot_errors:
+            error_dir = os.path.join(output_dir, "errors")
+            if not os.path.exists(error_dir):
+                os.makedirs(error_dir, exist_ok=False)
 
 
-        iterations = np.arange(1, hybrid_FCNN_error_dict['unc_L2'].shape[1] + 1, 1)
-        for a, alpha in enumerate(alphas):
-            unc_errors = hybrid_FCNN_error_dict['unc_L2'][a]
-            #np.testing.assert_allclose(unc_errors, end_FCNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
-            #np.testing.assert_allclose(unc_errors, hybrid_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
-            #np.testing.assert_allclose(unc_errors, end_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
+            iterations = np.arange(1, hybrid_FCNN_error_dict['unc_L2'].shape[1] + 1, 1)
+            for a, alpha in enumerate(alphas):
+                unc_errors = hybrid_FCNN_error_dict['unc_L2'][a]
+                #np.testing.assert_allclose(unc_errors, end_FCNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
+                #np.testing.assert_allclose(unc_errors, hybrid_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
+                #np.testing.assert_allclose(unc_errors, end_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
 
-            if use_FCNN_results and use_end_results:
-                end_errors_FCNN = end_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                end_errors_FCNN = None
-            if use_FCNN_results and use_hyb_results:
-                hyb_errors_FCNN = hybrid_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                hyb_errors_FCNN = None
-            if use_FCNN_results and use_res_results:
-                res_errors_FCNN = res_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                res_errors_FCNN = None
-            if use_FCNN_results and use_dat_results:
-                dat_errors_FCNN = dat_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                dat_errors_FCNN = None
-            if use_CNN_results and use_end_results:
-                end_errors_CNN = end_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                end_errors_CNN = None
-            if use_CNN_results and use_hyb_results:
-                hyb_errors_CNN = hybrid_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                hyb_errors_CNN = None
-            if use_CNN_results and use_res_results:
-                res_errors_CNN = res_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                res_errors_CNN = None
-            if use_CNN_results and use_dat_results:
-                dat_errors_CNN = dat_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                dat_errors_CNN = None
+                if use_FCNN_results and use_end_results:
+                    end_errors_FCNN = end_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    end_errors_FCNN = None
+                if use_FCNN_results and use_hyb_results:
+                    hyb_errors_FCNN = hybrid_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    hyb_errors_FCNN = None
+                if use_FCNN_results and use_res_results:
+                    res_errors_FCNN = res_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    res_errors_FCNN = None
+                if use_FCNN_results and use_dat_results:
+                    dat_errors_FCNN = dat_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    dat_errors_FCNN = None
+                if use_CNN_results and use_end_results:
+                    end_errors_CNN = end_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    end_errors_CNN = None
+                if use_CNN_results and use_hyb_results:
+                    hyb_errors_CNN = hybrid_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    hyb_errors_CNN = None
+                if use_CNN_results and use_res_results:
+                    res_errors_CNN = res_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    res_errors_CNN = None
+                if use_CNN_results and use_dat_results:
+                    dat_errors_CNN = dat_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    dat_errors_CNN = None
 
-            if 0.0 < alpha < 2.2:
-                y_lims = y_lims_interp
-            else:
-                y_lims = y_lims_extrap
+                if 0.0 < alpha < 2.2:
+                    y_lims = y_lims_interp
+                else:
+                    y_lims = y_lims_extrap
 
-            filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
-            visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[s])
-            print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
+                filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
+                visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[s])
+                print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
 
         """
         print("alpha:", alphas[1])
