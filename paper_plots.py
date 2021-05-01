@@ -161,7 +161,7 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
 
     surf_map = plt.get_cmap('plasma')
 
-    surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 0), levels=100, cmap=surf_map)
+    surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 1), levels=100, cmap=surf_map)
     for c in surf.collections:
         c.set_edgecolor("face")
     axs[0, 0].set_title('Exact')
