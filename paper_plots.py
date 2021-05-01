@@ -223,35 +223,60 @@ def visualize_src_terms(x, src, alpha, output_dir, filename):
     plt.close()
 
 def visualize_conductivity(nodes, src, T, k_callable, output_dir, filename):
+    poly_deg = 3
     # Assumes equidistant grid.
-    src_extended = np.zeros_like(nodes)
-    src_extended[0] = src[0] - 0.5*(src[1] - src[0])
-    print("src_extended[0]", src_extended[0])
-    src_extended[1:-1] = src
-    src_extended[-1] = src[-1] + 0.5*(src[-1] - src[-2])
-    src_lin = lambda x: util.linearize_between_nodes(x, nodes, src_extended)
+    src_coeffs = np.polyfit(nodes[1:-1], src, poly_deg)
+    T_coeffs   = np.polyfit(nodes,       T,   poly_deg)
+    def get_poly(x, coeffs):
+        poly = np.zeros_like(x)
+        for i in range(coeffs.shape[0]):
+            poly += (x**i)*coeffs[-1 - i]
+        return poly
 
+    eps_k    = np.zeros_like(nodes)
+    T_poly   = np.poly1d(T_coeffs)
+    src_poly = np.poly1d(src_coeffs)
+    T_sample = T_poly(nodes)
+
+    #src_extended = np.zeros_like(nodes)
+    #src_extended[0] = src[0] - 0.5*(src[1] - src[0])
+    #print("src_extended[0]", src_extended[0])
+    #src_extended[1:-1] = src
+    #src_extended[-1] = src[-1] + 0.5*(src[-1] - src[-2])
+    #src_lin = lambda x: util.linearize_between_nodes(x, nodes, src_extended)
+
+    x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
     plt.figure()
-    plt.plot(nodes, src_lin(nodes))
-    plt.plot(nodes, src_extended, 'ko')
+    plt.plot(x_dense, src_poly(x_dense))
+    plt.plot(nodes[1:-1], src, 'ko')
     plt.savefig(os.path.join(output_dir, "src_" + filename + ".pdf"))
     plt.close()
 
-    eps_k = np.zeros_like(nodes)
+    x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
+    plt.figure()
+    plt.plot(x_dense, T_poly(x_dense))
+    plt.plot(nodes, T_sample, 'bo')
+    plt.plot(nodes, T, 'k.')
+    plt.savefig(os.path.join(output_dir, "T_" + filename + ".pdf"))
+    plt.close()
+
+    dT = np.gradient(T_sample, nodes)
+
     for i in range(eps_k.shape[0]):
-        if i == 0:
-            dT = (T[1] - T[0])/(nodes[1] - nodes[0])
-        elif i == eps_k.shape[0] - 1:
-            dT = (T[-1] - T[-2])/(nodes[-1] - nodes[-2])
-        else:
-            dT = (T[i+1] - 2*T[i] + T[i-1])/((nodes[i] - nodes[i-1])**2)
-        integral = fixed_quad(func = src_lin, a = nodes[0], b = nodes[i], n = 5)[0]
+        #if i == 0:
+        #    dT = (T_sample[1] - T_sample[0])/(nodes[1] - nodes[0])
+        #elif i == eps_k.shape[0] - 1:
+        #    dT = (T_sample[-1] - T_sample[-2])/(nodes[-1] - nodes[-2])
+        #else:
+        #    dT = (T_sample[i+1] - 2*T_sample[i] + T_sample[i-1])/((nodes[i] - nodes[i-1])**2)
+        integral = fixed_quad(func = src_poly, a = nodes[0], b = nodes[i], n = 5)[0]
         print("integral:", integral)
-        print("dT:", dT)
-        eps_k[i] = integral/dT
+        print("dT:", dT[i])
+        eps_k[i] = integral/dT[i]
 
     k_PBM = 1.0
     k_corrected = k_PBM + eps_k
+    k_corrected = k_corrected - k_corrected[0] + k_callable(nodes[0])
 
     x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
 
@@ -278,7 +303,7 @@ def main():
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-30_DDM_missing_conductivity_errors_fixed/GlobalDense_DDM_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/missing_conductivity_1D_trail1"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/missing_conductivity_1D_trail2"
 
     visualize_profiles = False
     visualize_errors   = False
