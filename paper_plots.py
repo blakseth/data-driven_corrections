@@ -238,29 +238,29 @@ def visualize_conductivity(nodes, src, T, k_callable, output_dir, filename):
     src_poly = np.poly1d(src_coeffs)
     T_sample = T_poly(nodes)
 
-    #src_extended = np.zeros_like(nodes)
-    #src_extended[0] = src[0] - 0.5*(src[1] - src[0])
+    src_extended = np.zeros_like(nodes)
+    src_extended[0] = src[0] - 0.5*(src[1] - src[0])
     #print("src_extended[0]", src_extended[0])
-    #src_extended[1:-1] = src
-    #src_extended[-1] = src[-1] + 0.5*(src[-1] - src[-2])
-    #src_lin = lambda x: util.linearize_between_nodes(x, nodes, src_extended)
+    src_extended[1:-1] = src
+    src_extended[-1] = src[-1] + 0.5*(src[-1] - src[-2])
+    src_lin = lambda x: util.linearize_between_nodes(x, nodes, src_extended)
 
-    x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
-    plt.figure()
-    plt.plot(x_dense, src_poly(x_dense))
-    plt.plot(nodes[1:-1], src, 'ko')
-    plt.savefig(os.path.join(output_dir, "src_" + filename + ".pdf"))
-    plt.close()
+    #x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
+    #plt.figure()
+    #plt.plot(x_dense, src_poly(x_dense))
+    #plt.plot(nodes[1:-1], src, 'ko')
+    #plt.savefig(os.path.join(output_dir, "src_" + filename + ".pdf"))
+    #plt.close()
 
-    x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
-    plt.figure()
-    plt.plot(x_dense, T_poly(x_dense))
-    plt.plot(nodes, T_sample, 'bo')
-    plt.plot(nodes, T, 'k.')
-    plt.savefig(os.path.join(output_dir, "T_" + filename + ".pdf"))
-    plt.close()
+    #x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
+    #plt.figure()
+    #plt.plot(x_dense, T_poly(x_dense))
+    #plt.plot(nodes, T_sample, 'bo')
+    #plt.plot(nodes, T, 'k.')
+    #plt.savefig(os.path.join(output_dir, "T_" + filename + ".pdf"))
+    #plt.close()
 
-    dT = np.gradient(T_sample, nodes)
+    dT = np.gradient(T, nodes)
 
     for i in range(eps_k.shape[0]):
         #if i == 0:
@@ -269,7 +269,7 @@ def visualize_conductivity(nodes, src, T, k_callable, output_dir, filename):
         #    dT = (T_sample[-1] - T_sample[-2])/(nodes[-1] - nodes[-2])
         #else:
         #    dT = (T_sample[i+1] - 2*T_sample[i] + T_sample[i-1])/((nodes[i] - nodes[i-1])**2)
-        integral = fixed_quad(func = src_poly, a = nodes[0], b = nodes[i], n = 5)[0]
+        integral = fixed_quad(func = src_lin, a = nodes[0], b = nodes[i], n = 5)[0]
         print("integral:", integral)
         print("dT:", dT[i])
         eps_k[i] = integral/dT[i]
@@ -303,12 +303,12 @@ def main():
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-30_DDM_missing_conductivity_errors_fixed/GlobalDense_DDM_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/missing_conductivity_1D_trail2"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/1D_missing_conductivity_final"
 
     visualize_profiles = False
-    visualize_errors   = False
-    visualize_src      = True
-    visualize_k        = True
+    visualize_errors   = True
+    visualize_src      = False
+    visualize_k        = False
 
 
     use_CNN_results   = False
@@ -323,10 +323,10 @@ def main():
         os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [2, 5, 6]
+    systems_to_include = [2]
 
-    y_lims_interp = [None, [1e-7, 2e-1], [1e-9, 1e2], [1e-6, 3e-1], [1e-9, 1e2], [1e-9, 1e2], [4e-7, 2e0], [1e-6, 5e-1]]
-    y_lims_extrap = [None, [1e-5, 2e0],  [1e-9, 1e2], [1e-5, 1e0],  [1e-9, 1e2], [1e-9, 1e2], [1e-5, 1e0], [1e-6, 4e-1]]
+    y_lims_interp = [None, [1e-7, 2e-1], [1e-7, 1e-1], [1e-6, 3e-1], [1e-9, 1e2], [1e-9, 1e2], [4e-7, 2e0], [1e-6, 5e-1]]
+    y_lims_extrap = [None, [1e-5, 2e0],  [1e-7, 1e-1], [1e-5, 1e0],  [1e-9, 1e2], [1e-9, 1e2], [1e-5, 1e0], [1e-6, 4e-1]]
 
     for s in range(-1, num_systems_studied):
         system_number = s + 1
