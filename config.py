@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-30_HAM_missing_conductivity_errors_fixed"
+group_name = "2021-04-30_DDM_missing_conductivity_errors_fixed"
 run_names  = [["GlobalDense_HAM_k2", "GlobalDense_HAM_k5", "GlobalDense_HAM_k6"]]
 systems    = ["k2", "k5", "k6"]
 data_tags  = ["k2_50cells", "k5_50cells", "k6_50cells"]
@@ -49,7 +49,7 @@ class Config:
         self.system     = system
         self.data_tag   = data_tag
         self.model_key  = model_key
-        self.model_type = 'data' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.model_type = 'hybrid' # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
 
         self.synthesize_mod_error = synthesize_modelling_error
 

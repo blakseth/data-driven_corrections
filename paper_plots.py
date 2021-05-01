@@ -19,6 +19,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from scipy.integrate import fixed_quad
 
 plt.rcParams.update({
     "font.family": "DeJavu Serif",
@@ -64,6 +65,44 @@ def get_exact_solution(system_number, alpha, t):
 
     if system_number == 7:
         return lambda x: 4*(x**3) - 4*(x**2) + alpha*(t + 1)
+
+    print("No exact solution was chosen for system_number =", system_number)
+
+def get_exact_conductivity(system_number, alpha, t):
+    if system_number == 1:
+        return lambda x: 1 + x
+
+    if system_number == 2:
+        return get_exact_solution(system_number, alpha, t)
+
+    if system_number == 3:
+        def get_k_exact(x, tt, alphaa):
+            if type(x) == np.ndarray:
+                k = np.ones_like(x)
+                for i in range(k.shape[0]):
+                    if x[i] <= 0.5:
+                        k[i] /= 2.0
+                    else:
+                        k[i] *= 2.0
+            else:
+                if x <= 0.5:
+                    k = 0.5
+                else:
+                    k = 2.0
+            return k
+        return lambda x: get_k_exact(x, t, alpha)
+
+    if system_number == 4:
+        return lambda x: np.sin(2*np.pi*x)
+
+    if system_number == 5:
+        return get_exact_solution(system_number, alpha, t)
+
+    if system_number == 6:
+        return get_exact_solution(system_number, alpha, t)
+
+    if system_number == 7:
+        return lambda x: 1 + x
 
     print("No exact solution was chosen for system_number =", system_number)
 
@@ -183,18 +222,69 @@ def visualize_src_terms(x, src, alpha, output_dir, filename):
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
+def visualize_conductivity(nodes, src, T, k_callable, output_dir, filename):
+    # Assumes equidistant grid.
+    src_extended = np.zeros_like(nodes)
+    src_extended[0] = src[0] - 0.5*(src[1] - src[0])
+    print("src_extended[0]", src_extended[0])
+    src_extended[1:-1] = src
+    src_extended[-1] = src[-1] + 0.5*(src[-1] - src[-2])
+    src_lin = lambda x: util.linearize_between_nodes(x, nodes, src_extended)
+
+    plt.figure()
+    plt.plot(nodes, src_lin(nodes))
+    plt.plot(nodes, src_extended, 'ko')
+    plt.savefig(os.path.join(output_dir, "src_" + filename + ".pdf"))
+    plt.close()
+
+    eps_k = np.zeros_like(nodes)
+    for i in range(eps_k.shape[0]):
+        if i == 0:
+            dT = (T[1] - T[0])/(nodes[1] - nodes[0])
+        elif i == eps_k.shape[0] - 1:
+            dT = (T[-1] - T[-2])/(nodes[-1] - nodes[-2])
+        else:
+            dT = (T[i+1] - 2*T[i] + T[i-1])/((nodes[i] - nodes[i-1])**2)
+        integral = fixed_quad(func = src_lin, a = nodes[0], b = nodes[i], n = 5)[0]
+        print("integral:", integral)
+        print("dT:", dT)
+        eps_k[i] = integral/dT
+
+    k_PBM = 1.0
+    k_corrected = k_PBM + eps_k
+
+    x_dense = np.linspace(nodes[0], nodes[-1], 1001, endpoint=True)
+
+    plt.figure()
+    plt.scatter(nodes, k_corrected, s=40, marker='D', facecolor='none', edgecolors='g', label=r"$\hat{\sigma}$")
+    plt.plot(x_dense, k_callable(x_dense), 'k-', linewidth=2.0, label=r"$k$")
+    plt.xlabel(r"$x$ (m)", fontsize=20)
+    plt.ylabel(r"$k\ \left(\mathrm{W/Km}\right)$", fontsize=20)
+    plt.xticks(fontsize=17)
+    plt.yticks(fontsize=17)
+    plt.grid()
+    # plt.legend(prop={'size': 17})
+    plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
+    plt.close()
+
 ########################################################################################################################
 
 def main():
     hybrid_CNN_dir  = ""
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-19_HAM_missing_conductivity/GlobalDense_hybrid_k"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-30_HAM_missing_conductivity_errors_fixed/GlobalDense_HAM_k"
     end_CNN_dir     = ""
     end_FCNN_dir    = ""
     res_CNN_dir     = ""
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-20_DDM_missing_conductivity/GlobalDense_DDM_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/missing_conductivity"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-30_DDM_missing_conductivity_errors_fixed/GlobalDense_DDM_k"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/missing_conductivity_1D_trail1"
+
+    visualize_profiles = False
+    visualize_errors   = False
+    visualize_src      = True
+    visualize_k        = True
+
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -208,10 +298,10 @@ def main():
         os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [1, 3, 6, 7]
+    systems_to_include = [2, 5, 6]
 
-    y_lims_interp = [None, [1e-7, 2e-1], None, [1e-6, 3e-1], None, None, [4e-7, 2e0], [1e-6, 5e-1]]
-    y_lims_extrap = [None, [1e-5, 2e0],  None, [1e-5, 1e0],  None, None, [1e-5, 1e0], [1e-6, 4e-1]]
+    y_lims_interp = [None, [1e-7, 2e-1], [1e-9, 1e2], [1e-6, 3e-1], [1e-9, 1e2], [1e-9, 1e2], [4e-7, 2e0], [1e-6, 5e-1]]
+    y_lims_extrap = [None, [1e-5, 2e0],  [1e-9, 1e2], [1e-5, 1e0],  [1e-9, 1e2], [1e-9, 1e2], [1e-5, 1e0], [1e-6, 4e-1]]
 
     for s in range(-1, num_systems_studied):
         system_number = s + 1
@@ -262,74 +352,90 @@ def main():
         #np.testing.assert_allclose(plot_times, end_CNN_plot_dict['time'], rtol=1e-10, atol=1e-10)
         #np.testing.assert_allclose(plot_times, hybrid_CNN_plot_dict['time'], rtol=1e-10, atol=1e-10)
 
-        plot_dir = os.path.join(output_dir, "plots")
-        if not os.path.exists(plot_dir):
-            os.makedirs(plot_dir, exist_ok=True)
+        if visualize_profiles:
+            plot_dir = os.path.join(output_dir, "plots")
+            if not os.path.exists(plot_dir):
+                os.makedirs(plot_dir, exist_ok=True)
 
-        for a, alpha in enumerate(alphas):
-            for plot_num, t in enumerate(plot_times):
-                unc_profile = hybrid_FCNN_plot_dict['unc'][a][plot_num]
-                #np.testing.assert_allclose(unc_profile, end_FCNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
-                #np.testing.assert_allclose(unc_profile, end_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
-                #np.testing.assert_allclose(unc_profile, hybrid_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
-
-                if use_FCNN_results and use_end_results:
-                    end_profile_FCNN = end_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    end_profile_FCNN = None
-                if use_FCNN_results and use_hyb_results:
-                    hyb_profile_FCNN = hybrid_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    hyb_profile_FCNN = None
-                if use_FCNN_results and use_res_results:
-                    res_profile_FCNN = res_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    res_profile_FCNN = None
-                if use_FCNN_results and use_dat_results:
-                    dat_profile_FCNN = dat_FCNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    dat_profile_FCNN = None
-                if use_CNN_results and use_end_results:
-                    end_profile_CNN = end_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    end_profile_CNN = None
-                if use_CNN_results and use_hyb_results:
-                    hyb_profile_CNN = hybrid_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    hyb_profile_CNN = None
-                if use_CNN_results and use_res_results:
-                    res_profile_CNN = res_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    res_profile_CNN = None
-                if use_CNN_results and use_dat_results:
-                    dat_profile_CNN = dat_CNN_plot_dict['cor_mean'][a][plot_num]
-                else:
-                    dat_profile_CNN = None
-
-                exact_callable = get_exact_solution(system_number, alpha, t)
-
-                #np.testing.assert_allclose(hybrid_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10, atol=1e-10)
-                #np.testing.assert_allclose(end_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
-                #                           atol=1e-10)
-                #np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
-                #                           atol=1e-10)
-
-                filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
-                visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, plot_dir, filename)
-                print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
-
-        src_dir = os.path.join(output_dir, "src")
-        if not os.path.exists(src_dir):
-            os.makedirs(src_dir, exist_ok=False)
-
-        # Plotting corrective source terms, if applicable.
-        if use_hyb_results and use_FCNN_results:
             for a, alpha in enumerate(alphas):
                 for plot_num, t in enumerate(plot_times):
-                    src = hybrid_FCNN_plot_dict['src_mean'][a][plot_num]
-                    filename = "src_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
-                    visualize_src_terms(x[1:-1], src, None, src_dir, filename)
+                    unc_profile = hybrid_FCNN_plot_dict['unc'][a][plot_num]
+                    #np.testing.assert_allclose(unc_profile, end_FCNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
+                    #np.testing.assert_allclose(unc_profile, end_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
+                    #np.testing.assert_allclose(unc_profile, hybrid_CNN_plot_dict['unc'][a][plot_num], rtol=1e-10, atol=1e-10)
 
+                    if use_FCNN_results and use_end_results:
+                        end_profile_FCNN = end_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        end_profile_FCNN = None
+                    if use_FCNN_results and use_hyb_results:
+                        hyb_profile_FCNN = hybrid_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        hyb_profile_FCNN = None
+                    if use_FCNN_results and use_res_results:
+                        res_profile_FCNN = res_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        res_profile_FCNN = None
+                    if use_FCNN_results and use_dat_results:
+                        dat_profile_FCNN = dat_FCNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        dat_profile_FCNN = None
+                    if use_CNN_results and use_end_results:
+                        end_profile_CNN = end_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        end_profile_CNN = None
+                    if use_CNN_results and use_hyb_results:
+                        hyb_profile_CNN = hybrid_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        hyb_profile_CNN = None
+                    if use_CNN_results and use_res_results:
+                        res_profile_CNN = res_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        res_profile_CNN = None
+                    if use_CNN_results and use_dat_results:
+                        dat_profile_CNN = dat_CNN_plot_dict['cor_mean'][a][plot_num]
+                    else:
+                        dat_profile_CNN = None
+
+                    exact_callable = get_exact_solution(system_number, alpha, t)
+
+                    #np.testing.assert_allclose(hybrid_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10, atol=1e-10)
+                    #np.testing.assert_allclose(end_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
+                    #                           atol=1e-10)
+                    #np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
+                    #                           atol=1e-10)
+
+                    filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                    visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, plot_dir, filename)
+                    print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
+
+        if visualize_src:
+            src_dir = os.path.join(output_dir, "src")
+            if not os.path.exists(src_dir):
+                os.makedirs(src_dir, exist_ok=False)
+
+            print("keys:", hybrid_FCNN_plot_dict.keys())
+            # Plotting corrective source terms, if applicable.
+            if use_hyb_results and use_FCNN_results:
+                for a, alpha in enumerate(alphas):
+                    for plot_num, t in enumerate(plot_times):
+                        src = hybrid_FCNN_plot_dict['src_mean'][a][plot_num]
+                        filename = "src_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                        visualize_src_terms(x[1:-1], src, None, src_dir, filename)
+
+        if visualize_k:
+            k_dir = os.path.join(output_dir, "k")
+            if not os.path.exists(k_dir):
+                os.makedirs(k_dir, exist_ok=False)
+
+            if use_hyb_results and use_FCNN_results:
+                for a, alpha in enumerate(alphas):
+                    for plot_num, t in enumerate(plot_times):
+                        src = hybrid_FCNN_plot_dict['src_mean'][a][plot_num]
+                        T   = hybrid_FCNN_plot_dict['cor_mean'][a][plot_num]
+                        k_callable = get_exact_conductivity(system_number, alpha, t)
+                        filename = "k_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                        visualize_conductivity(x, src, T, k_callable, k_dir, filename)
 
         # Plotting l2 errors.
 
@@ -368,59 +474,61 @@ def main():
         #assert alphas.shape[0] == end_FCNN_error_dict['unc_L2'].shape[0]
         #assert hybrid_CNN_error_dict['unc_L2'].shape[1] == end_CNN_error_dict['unc_L2'].shape[1]
 
-        error_dir = os.path.join(output_dir, "errors")
-        if not os.path.exists(error_dir):
-            os.makedirs(error_dir, exist_ok=False)
+        if visualize_errors:
+            error_dir = os.path.join(output_dir, "errors")
+            if not os.path.exists(error_dir):
+                os.makedirs(error_dir, exist_ok=False)
 
 
-        iterations = np.arange(1, hybrid_FCNN_error_dict['unc_L2'].shape[1] + 1, 1)
-        for a, alpha in enumerate(alphas):
-            unc_errors = hybrid_FCNN_error_dict['unc_L2'][a]
-            #np.testing.assert_allclose(unc_errors, end_FCNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
-            #np.testing.assert_allclose(unc_errors, hybrid_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
-            #np.testing.assert_allclose(unc_errors, end_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
+            iterations = np.arange(1, hybrid_FCNN_error_dict['unc_L2'].shape[1] + 1, 1)
 
-            if use_FCNN_results and use_end_results:
-                end_errors_FCNN = end_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                end_errors_FCNN = None
-            if use_FCNN_results and use_hyb_results:
-                hyb_errors_FCNN = hybrid_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                hyb_errors_FCNN = None
-            if use_FCNN_results and use_res_results:
-                res_errors_FCNN = res_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                res_errors_FCNN = None
-            if use_FCNN_results and use_dat_results:
-                dat_errors_FCNN = dat_FCNN_error_dict['cor_mean_L2'][a]
-            else:
-                dat_errors_FCNN = None
-            if use_CNN_results and use_end_results:
-                end_errors_CNN = end_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                end_errors_CNN = None
-            if use_CNN_results and use_hyb_results:
-                hyb_errors_CNN = hybrid_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                hyb_errors_CNN = None
-            if use_CNN_results and use_res_results:
-                res_errors_CNN = res_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                res_errors_CNN = None
-            if use_CNN_results and use_dat_results:
-                dat_errors_CNN = dat_CNN_error_dict['cor_mean_L2'][a]
-            else:
-                dat_errors_CNN = None
+            for a, alpha in enumerate(alphas):
+                unc_errors = hybrid_FCNN_error_dict['unc_L2'][a]
+                #np.testing.assert_allclose(unc_errors, end_FCNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
+                #np.testing.assert_allclose(unc_errors, hybrid_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
+                #np.testing.assert_allclose(unc_errors, end_CNN_error_dict['unc_L2'][a], rtol=1e-10, atol=1e-10)
 
-            if 0.0 < alpha < 2.2:
-                y_lims = y_lims_interp
-            else:
-                y_lims = y_lims_extrap
+                if use_FCNN_results and use_end_results:
+                    end_errors_FCNN = end_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    end_errors_FCNN = None
+                if use_FCNN_results and use_hyb_results:
+                    hyb_errors_FCNN = hybrid_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    hyb_errors_FCNN = None
+                if use_FCNN_results and use_res_results:
+                    res_errors_FCNN = res_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    res_errors_FCNN = None
+                if use_FCNN_results and use_dat_results:
+                    dat_errors_FCNN = dat_FCNN_error_dict['cor_mean_L2'][a]
+                else:
+                    dat_errors_FCNN = None
+                if use_CNN_results and use_end_results:
+                    end_errors_CNN = end_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    end_errors_CNN = None
+                if use_CNN_results and use_hyb_results:
+                    hyb_errors_CNN = hybrid_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    hyb_errors_CNN = None
+                if use_CNN_results and use_res_results:
+                    res_errors_CNN = res_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    res_errors_CNN = None
+                if use_CNN_results and use_dat_results:
+                    dat_errors_CNN = dat_CNN_error_dict['cor_mean_L2'][a]
+                else:
+                    dat_errors_CNN = None
 
-            filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
-            visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[system_number])
-            print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
+                if 0.0 < alpha < 2.2:
+                    y_lims = y_lims_interp
+                else:
+                    y_lims = y_lims_extrap
+
+                filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
+                visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[system_number])
+                print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
     """
     src_dir = os.path.join(output_dir, "srcs")
     if not os.path.exists(src_dir):
