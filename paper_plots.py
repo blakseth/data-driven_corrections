@@ -148,11 +148,12 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     y_dense = np.linspace(y_c, y_d, num=200, endpoint=True)
     exact_field_dense = exact_callable(x_dense, y_dense)
 
-    PBM_diff_field = PBM_field - exact_field
-    DDM_diff_field = DDM_field - exact_field
-    HAM_diff_field = HAM_field - exact_field
+    PBM_diff_field = (PBM_field - exact_field) / exact_field
+    DDM_diff_field = (DDM_field - exact_field) / exact_field
+    HAM_diff_field = (HAM_field - exact_field) / exact_field
 
-    maxmax = np.amax(np.asarray([np.amax(np.abs(PBM_diff_field)), np.amax(np.abs(DDM_diff_field)), np.amax(np.abs(HAM_diff_field))]))
+    maxmax = np.amax(
+        np.asarray([np.amax(np.abs(PBM_diff_field)), np.amax(np.abs(DDM_diff_field)), np.amax(np.abs(HAM_diff_field))]))
     minmin = -maxmax
 
     threshold = 1e-4
@@ -164,33 +165,36 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(exact_field_dense, 0, 1), levels=100, cmap=surf_map)
     for c in surf.collections:
         c.set_edgecolor("face")
-    axs[0, 0].set_title('Exact')
+    axs[0, 0].set_title('Reference Field')
 
     # sample the colormaps that you want to use. Use 128 from each so we get 256
     # colors in total
     colors1 = plt.cm.hot(np.linspace(0, 1, 128))
     colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
-    colors2 = plt.cm.twilight(np.linspace(0, 0.5, 103))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.4, 103))
 
     # combine them and build a new colormap
     colors = np.vstack((colors1, colorsmid, colors2))
-    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors)
+    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors).reversed()
 
     diff_map = plt.get_cmap('seismic')
 
-    im2 = axs[0, 1].imshow(np.flip(np.swapaxes(PBM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
-                          extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
-                                  y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
-    axs[0, 1].set_title('PBM')
+    im2 = axs[0, 1].imshow(np.flip(np.swapaxes(PBM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=mymap)
+    axs[0, 1].set_title('PBM Error')
 
-    im3 = axs[1, 0].imshow(np.flip(np.swapaxes(DDM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
-                     extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
-                             y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
-    axs[1, 0].set_title('DDM')
-    im4 = axs[1, 1].imshow(np.flip(np.swapaxes(HAM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin, vmax=maxmax,
-                     extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
-                             y_c - 0.5 * dy, y_d + 0.5 * dy], cmap= mymap)
-    axs[1, 1].set_title('HAM')
+    im3 = axs[1, 0].imshow(np.flip(np.swapaxes(DDM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=mymap)
+    axs[1, 0].set_title('DDM Error')
+    im4 = axs[1, 1].imshow(np.flip(np.swapaxes(HAM_diff_field, 0, 1), 0), norm=cs.SymLogNorm(threshold), vmin=minmin,
+                           vmax=maxmax,
+                           extent=[x_a - 0.5 * dx, x_b + 0.5 * dx,
+                                   y_c - 0.5 * dy, y_d + 0.5 * dy], cmap=mymap)
+    axs[1, 1].set_title('HAM Error')
     for ax in fig.get_axes():
         ax.set_xlim((x_a, x_b))
         ax.set_ylim((y_c, y_d))
@@ -349,7 +353,7 @@ def main():
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-26_2Dk_DDM/2D_GlobalDense_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2Dk_V4"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2Dk_V5"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -363,8 +367,8 @@ def main():
     num_systems_studied = 14
     systems_to_include = [1, 2, 3, 4]
 
-    y_lims_interp = [[1e-9, 1e-2], [1e-9, 1e2], [5e-9, 1e2], [7e-9, 1e2]]
-    y_lims_extrap = [[1e-9, 1e2],  [1e-9, 1e2], [5e-9, 3e2], [7e-9, 1e2]]
+    y_lims_interp = [[3e-7, 1e-1], [1e-5, 1e-1], [5e-9, 1e2], [7e-9, 1e2]]
+    y_lims_extrap = [[1e-4, 2e-1],  [5e-6, 2e-1], [5e-9, 3e2], [7e-9, 1e2]]
 
     for s in range(num_systems_studied):
         system_number = s + 1
