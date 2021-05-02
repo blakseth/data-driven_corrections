@@ -26,10 +26,10 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-05-02_2D_missing conductivity"
-run_names  = [["2D_GlobalDense_k5_HAM"]]
+run_names  = [["2D_GlobalDense_k5_DDM"]]
 systems    = ["k5"]
 data_tags  = ["2D_k5"]
-model_type = 'hybrid'
+model_type = 'data'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
