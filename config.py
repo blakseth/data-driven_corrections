@@ -25,11 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-25_2D_missing conductivity"
-run_names  = [["2D_GlobalDense_k1_DDM"]]
-systems    = ["k1"]
-data_tags  = ["2D_k1"]
-model_type = 'data'
+group_name = "2021-05-02_2D_missing conductivity"
+run_names  = [["2D_GlobalDense_k5_HAM"]]
+systems    = ["k5"]
+data_tags  = ["2D_k5"]
+model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -390,6 +390,76 @@ class Config:
                     return get_q_hat(x, y, t, alpha)
             def get_k(x, y):
                 return np.sin(2*np.pi*x)*np.sin(4*np.pi*y)
+            def get_k_approx(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * k_ref
+            def get_cV(x, y):
+                return np.ones((x.shape[0], y.shape[0])) * cV_ref
+        elif self.system == "k5":
+            exact_solution_available = True
+            t_end     = 5.0
+            x_a       = 0.0
+            x_b       = 1.0
+            y_c       = 0.0
+            y_d       = 1.0
+            A         = 1.0
+            rho       = 1.0
+            k_ref     = 1.0
+            cV_ref    = 1.0
+            q_hat_ref = 1.0
+            def get_T_exact(x, y, t, alpha):
+                def local_T(x, y, t, alpha):
+                    return alpha + (t + 1)*np.cos(2*np.pi*x)*np.cos(4*np.pi*y)
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    T = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            T[j, i] = local_T(x_, y_, t, alpha)
+                    return T
+                elif type(x) is np.ndarray:
+                    T = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        T[j] = local_T(x_, y, t, alpha)
+                    return T
+                elif type(y) is np.ndarray:
+                    T = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        T[i] = local_T(x, y_, t, alpha)
+                    return T
+                else:
+                    return local_T(x, y, t, alpha)
+            def get_T0(x, y, alpha):
+                return get_T_exact(x, y, 0, alpha)
+            def get_T_a(y, t, alpha):
+                return get_T_exact(x_a, y, t, alpha)
+            def get_T_b(y, t, alpha):
+                return get_T_exact(x_b, y, t, alpha)
+            def get_T_c(x, t, alpha):
+                return get_T_exact(x, y_c, t, alpha)
+            def get_T_d(x, t, alpha):
+                return get_T_exact(x, y_d, t, alpha)
+            def get_q_hat(x, y, t, alpha):
+                return np.cos(2*np.pi*x)*np.cos(4*np.pi*y)*(1 + 40*(np.pi**2)*(t + 1)*(1 + np.sin(2*np.pi*x)*np.sin(4*np.pi*y)))
+            def get_q_hat_approx(x, y, t, alpha):
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    q_hat = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            q_hat[j, i] = get_q_hat(x_, y_, t, alpha)
+                    return q_hat
+                elif type(x) is np.ndarray:
+                    q_hat = np.zeros(x.shape[0])
+                    for j, x_ in enumerate(x):
+                        q_hat[j] = get_q_hat(x_, y, t, alpha)
+                    return q_hat
+                elif type(y) is np.ndarray:
+                    q_hat = np.zeros(y.shape[0])
+                    for i, y_ in enumerate(y):
+                        q_hat[i] = get_q_hat(x, y_, t, alpha)
+                    return q_hat
+                else:
+                    return get_q_hat(x, y, t, alpha)
+            def get_k(x, y):
+                return 2 + np.sin(2*np.pi*x)*np.sin(4*np.pi*y)
             def get_k_approx(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
