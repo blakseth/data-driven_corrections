@@ -418,7 +418,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return 2*np.pi*(np.cos(2*np.pi*t + alpha) - 2*np.pi*np.sin(2*np.pi*t + alpha))*np.cos(2*np.pi*x)
+                return 2*np.pi*(np.cos(2*np.pi*t + alpha) + 2*np.pi*np.sin(2*np.pi*t + alpha))*np.cos(2*np.pi*x)
             def get_q_hat_approx(x, t, alpha):
                 if synthesize_modelling_error:
                     return np.zeros_like(x)

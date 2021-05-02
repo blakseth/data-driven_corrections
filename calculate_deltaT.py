@@ -108,7 +108,7 @@ def get_delta_norms():
 
 def get_modelling_and_discretization_error():
     print("EXECUTION INITIATED\n")
-    systems = ["1", "2A", "6", "8A"]
+    systems = ["8A"]
     data_dict = {
         'system_labels': systems,
         'avg_mod_errors': np.zeros(4),
