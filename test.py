@@ -451,13 +451,22 @@ def single_step_test(cfg, model, num):
                 new_src = np.zeros(new_unc.shape[0] - 2)
                 for m in range(len(model.nets)):
                     new_src[m] = util.z_unnormalize(torch.squeeze(model.nets[m].net(new_unc_tensor[:,m:m+3].to(cfg.device)),0).detach().cpu().numpy(), src_mean, src_std)
-                new_cor = physics.simulate(
-                    cfg.nodes_coarse, cfg.faces_coarse,
-                    IC, cfg.get_T_a, cfg.get_T_b,
-                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                    cfg.get_q_hat_approx, new_src,
-                    cfg.dt_coarse, old_time, new_time, False
-                )
+                if cfg.inc_mod_error:
+                    new_cor = physics.simulate(
+                        cfg.nodes_coarse, cfg.faces_coarse,
+                        IC, cfg.get_T_a, cfg.get_T_b,
+                        cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                        cfg.get_q_hat_approx, new_src,
+                        cfg.dt_coarse, old_time, new_time, False
+                    )
+                else:
+                    new_cor = physics.simulate(
+                        cfg.nodes_coarse, cfg.faces_coarse,
+                        IC, cfg.get_T_a, cfg.get_T_b,
+                        cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                        cfg.get_q_hat, new_src,
+                        cfg.dt_coarse, old_time, new_time, False
+                    )
             else:
                 new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
                 new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
@@ -466,13 +475,22 @@ def single_step_test(cfg, model, num):
         else:
             if cfg.model_is_hybrid:
                 new_src = util.z_unnormalize(torch.squeeze(model.net(new_unc_tensor.to(cfg.device)),0).detach().cpu().numpy(), src_mean, src_std)
-                new_cor = physics.simulate(
-                    cfg.nodes_coarse, cfg.faces_coarse,
-                    IC, cfg.get_T_a, cfg.get_T_b,
-                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                    cfg.get_q_hat_approx, new_src,
-                    cfg.dt_coarse, old_time, new_time, False
-                )
+                if cfg.inc_mod_error:
+                    new_cor = physics.simulate(
+                        cfg.nodes_coarse, cfg.faces_coarse,
+                        IC, cfg.get_T_a, cfg.get_T_b,
+                        cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                        cfg.get_q_hat_approx, new_src,
+                        cfg.dt_coarse, old_time, new_time, False
+                    )
+                else:
+                    new_cor = physics.simulate(
+                        cfg.nodes_coarse, cfg.faces_coarse,
+                        IC, cfg.get_T_a, cfg.get_T_b,
+                        cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                        cfg.get_q_hat, new_src,
+                        cfg.dt_coarse, old_time, new_time, False
+                    )
             else:
                 new_cor[0] = cfg.get_T_a(new_time)  # Since BCs are not ...
                 new_cor[-1] = cfg.get_T_b(new_time)  # predicted by the NN.
@@ -579,22 +597,40 @@ def parametrized_simulation_test(cfg, model):
             old_time = np.around(times[index] - cfg.dt_coarse, decimals=10)
             new_time = np.around(times[index], decimals=10)
 
-            new_unc = physics.simulate(
-                cfg.nodes_coarse, cfg.faces_coarse,
-                old_unc, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x,t,alpha), np.zeros(cfg.N_coarse),
-                cfg.dt_coarse, old_time, new_time, False
-            )
+            if cfg.inc_mod_error:
+                new_unc = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    old_unc, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x,t: cfg.get_q_hat_approx(x,t,alpha), np.zeros(cfg.N_coarse),
+                    cfg.dt_coarse, old_time, new_time, False
+                )
+            else:
+                new_unc = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    old_unc, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x, t: cfg.get_q_hat(x, t, alpha), np.zeros(cfg.N_coarse),
+                    cfg.dt_coarse, old_time, new_time, False
+                )
             #if i == 0:
             #    print("First unc:", new_unc)
-            new_unc_ = physics.simulate(
-                cfg.nodes_coarse, cfg.faces_coarse,
-                old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x, t: cfg.get_q_hat_approx(x, t, alpha), np.zeros(cfg.N_coarse),
-                cfg.dt_coarse, old_time, new_time, False
-            )
+            if cfg.inc_mod_error:
+                new_unc_ = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x, t: cfg.get_q_hat_approx(x, t, alpha), np.zeros(cfg.N_coarse),
+                    cfg.dt_coarse, old_time, new_time, False
+                )
+            else:
+                new_unc_ = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x, t: cfg.get_q_hat(x, t, alpha), np.zeros(cfg.N_coarse),
+                    cfg.dt_coarse, old_time, new_time, False
+                )
             new_unc_tensor_ = torch.unsqueeze(torch.from_numpy(util.z_normalize(new_unc_, unc_mean, unc_std)), dim=0)
             old_cor_tensor  = torch.unsqueeze(torch.from_numpy(util.z_normalize(old_cor,  ref_mean, ref_std)), dim=0)
 
@@ -613,13 +649,22 @@ def parametrized_simulation_test(cfg, model):
                             torch.squeeze(model.nets[m].net(new_unc_tensor_[:, m:m + 3].to(cfg.device)), 0).detach().cpu().numpy(),
                             src_mean, src_std
                         )
-                    new_cor = physics.simulate(
-                        cfg.nodes_coarse, cfg.faces_coarse,
-                        old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                        cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                        lambda x,t: cfg.get_q_hat_approx(x, t, alpha), new_src,
-                        cfg.dt_coarse, old_time, new_time, False
-                    )
+                    if cfg.inc_mod_error:
+                        new_cor = physics.simulate(
+                            cfg.nodes_coarse, cfg.faces_coarse,
+                            old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                            cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                            lambda x,t: cfg.get_q_hat_approx(x, t, alpha), new_src,
+                            cfg.dt_coarse, old_time, new_time, False
+                        )
+                    else:
+                        new_cor = physics.simulate(
+                            cfg.nodes_coarse, cfg.faces_coarse,
+                            old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                            cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                            lambda x, t: cfg.get_q_hat(x, t, alpha), new_src,
+                            cfg.dt_coarse, old_time, new_time, False
+                        )
                 elif cfg.model_type == 'residual':
                     new_res = np.zeros(new_unc.shape[0])
                     for m in range(len(model.nets)):
@@ -650,13 +695,22 @@ def parametrized_simulation_test(cfg, model):
                         torch.squeeze(model.net(new_unc_tensor_.to(cfg.device)), 0).detach().cpu().numpy(),
                         src_mean, src_std
                     )
-                    new_cor = physics.simulate(
-                        cfg.nodes_coarse, cfg.faces_coarse,
-                        old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                        cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                        lambda x, t: cfg.get_q_hat_approx(x, t, alpha), new_src,
-                        cfg.dt_coarse, old_time, new_time, False
-                    )
+                    if cfg.inc_mod_error:
+                        new_cor = physics.simulate(
+                            cfg.nodes_coarse, cfg.faces_coarse,
+                            old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                            cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                            lambda x, t: cfg.get_q_hat_approx(x, t, alpha), new_src,
+                            cfg.dt_coarse, old_time, new_time, False
+                        )
+                    else:
+                        new_cor = physics.simulate(
+                            cfg.nodes_coarse, cfg.faces_coarse,
+                            old_cor, lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                            cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                            lambda x, t: cfg.get_q_hat(x, t, alpha), new_src,
+                            cfg.dt_coarse, old_time, new_time, False
+                        )
                 elif cfg.model_type == 'residual':
                     new_res = np.zeros(new_unc.shape[0])
                     unnomralized_res = model.net(new_unc_tensor_.to(cfg.device)).detach().cpu().numpy()

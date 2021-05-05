@@ -40,7 +40,7 @@ N_j = 5
 # Create config object.
 
 class Config:
-    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test, N_j, model_type):
+    def __init__(self, use_GPU, group_name, run_name, system, data_tag, model_key, do_train, do_test, N_j, model_type, inc_mod_error):
         # ---------------------------------------------------------------------------------------------------------------
         # Run configuration.
         self.use_GPU    = use_GPU
@@ -51,6 +51,7 @@ class Config:
         self.data_tag   = data_tag
         self.model_key  = model_key
         self.model_type = model_type # Can be 'hybrid', 'residual', 'end-to-end' or 'data'
+        self.inc_mod_error = inc_mod_error
 
         model_names = [
             'GlobalDense',

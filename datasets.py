@@ -49,14 +49,24 @@ def create_parametrized_datasets(cfg):
             new_time = np.around(cfg.dt_coarse * i, decimals=10)
             unc_IC = ref_Ts[a][i-1]
             IC_Ts[a][i] = unc_IC
-            unc_Ts[a][i] = physics.simulate(
-                cfg.nodes_coarse, cfg.faces_coarse, unc_IC,
-                lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x,t,alpha),
-                np.zeros_like(cfg.nodes_coarse[1:-1]),
-                cfg.dt_coarse, old_time, new_time, False
-            )
+            if cfg.inc_mod_error:
+                unc_Ts[a][i] = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse, unc_IC,
+                    lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x,t: cfg.get_q_hat_approx(x,t,alpha),
+                    np.zeros_like(cfg.nodes_coarse[1:-1]),
+                    cfg.dt_coarse, old_time, new_time, False
+                )
+            else:
+                unc_Ts[a][i] = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse, unc_IC,
+                    lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x, t: cfg.get_q_hat(x, t, alpha),
+                    np.zeros_like(cfg.nodes_coarse[1:-1]),
+                    cfg.dt_coarse, old_time, new_time, False
+                )
             if cfg.exact_solution_available:
                 ref_Ts[a][i] = cfg.get_T_exact(cfg.nodes_coarse, new_time, alpha)
             else:
@@ -66,22 +76,40 @@ def create_parametrized_datasets(cfg):
         for i in range(1, cfg.Nt_coarse): # Intentionally leaves the first entry all-zeros.
             old_time = np.around(cfg.dt_coarse * (i - 1), decimals=10)
             new_time = np.around(cfg.dt_coarse * i, decimals=10)
-            sources[a][i] = physics.get_corrective_src_term(
-                cfg.nodes_coarse, cfg.faces_coarse,
-                ref_Ts[a][i], ref_Ts[a][i-1],
-                lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x, t, alpha),
-                cfg.dt_coarse, old_time, False
-            )
-            corrected = physics.simulate(
-                cfg.nodes_coarse, cfg.faces_coarse,
-                ref_Ts[a][i-1],
-                lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
-                cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
-                lambda x,t: cfg.get_q_hat_approx(x, t, alpha), sources[a][i],
-                cfg.dt_coarse, old_time, new_time, False
-            )
+            if cfg.inc_mod_error:
+                sources[a][i] = physics.get_corrective_src_term(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    ref_Ts[a][i], ref_Ts[a][i-1],
+                    lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x,t: cfg.get_q_hat_approx(x, t, alpha),
+                    cfg.dt_coarse, old_time, False
+                )
+                corrected = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    ref_Ts[a][i-1],
+                    lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k_approx, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x,t: cfg.get_q_hat_approx(x, t, alpha), sources[a][i],
+                    cfg.dt_coarse, old_time, new_time, False
+                )
+            else:
+                sources[a][i] = physics.get_corrective_src_term(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    ref_Ts[a][i], ref_Ts[a][i - 1],
+                    lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x, t: cfg.get_q_hat(x, t, alpha),
+                    cfg.dt_coarse, old_time, False
+                )
+                corrected = physics.simulate(
+                    cfg.nodes_coarse, cfg.faces_coarse,
+                    ref_Ts[a][i - 1],
+                    lambda t: cfg.get_T_a(t, alpha), lambda t: cfg.get_T_b(t, alpha),
+                    cfg.get_k, cfg.get_cV, cfg.rho, cfg.A,
+                    lambda x, t: cfg.get_q_hat(x, t, alpha), sources[a][i],
+                    cfg.dt_coarse, old_time, new_time, False
+                )
             np.testing.assert_allclose(corrected, ref_Ts[a][i], rtol=1e-10, atol=1e-10)
 
     # Store data
