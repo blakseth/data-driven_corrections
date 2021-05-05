@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-08_stability"
-run_names  = [["stability"]]
+group_name = "2021-05-05_grs"
+run_names  = [["s1"]]
 systems    = ["1"]
-data_tags  = ["s1_param_src_zero"]
+data_tags  = ["s1"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -126,7 +126,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return -(1 + alpha) * np.ones_like(x)
+                return (1 - alpha) * np.ones_like(x)
             def get_q_hat_approx(x, t, alpha):
                 return get_q_hat(x, t, alpha)
             def get_k(x):

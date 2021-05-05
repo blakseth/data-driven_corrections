@@ -27,7 +27,7 @@ import train
 ########################################################################################################################
 # Grid refinement study.
 
-def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, verbose, data_tag_postfix):
+def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, verbose, data_tag_postfix, inc_mod_error):
     PBM_results = np.zeros((NJs.shape[0], 4))
     HAM_results = np.zeros((NJs.shape[0], 4))
     DDM_results = np.zeros((NJs.shape[0], 4))
@@ -51,7 +51,8 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, ve
                 do_train   = True,
                 do_test    = True,
                 N_j        = N_j,
-                model_type = 'data' # Datasets are the same for all model types, so this is just a placeholder value.
+                model_type = 'data', # Datasets are the same for all model types, so this is just a placeholder value.
+                inc_mod_error = inc_mod_error
             )
             datasets.main(dataset_cfg)
             print("Created datasets\n")
@@ -68,7 +69,8 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, ve
             do_train    = True,
             do_test     = True,
             N_j         = N_j,
-            model_type  = 'hybrid'
+            model_type  = 'hybrid',
+            inc_mod_error = inc_mod_error
         )
         HAM_model = models.create_new_model(HAM_cfg, HAM_cfg.model_specific_params)
         if verbose:
@@ -94,16 +96,17 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, ve
         # Train DDM.
         print("DDM init")
         DDM_cfg = config.Config(
-            use_GPU=config.use_GPU,
-            group_name=config.group_name,
-            run_name=run_name,
-            system=config.systems[sys_num],
-            data_tag=data_tag,
-            model_key=model_key,
-            do_train=True,
-            do_test=True,
-            N_j=N_j,
-            model_type='data'  # Datasets are the same for all model types, so this is just a placeholder value.
+            use_GPU    = config.use_GPU,
+            group_name = config.group_name,
+            run_name   = run_name,
+            system     = config.systems[sys_num],
+            data_tag   = data_tag,
+            model_key  = model_key,
+            do_train   = True,
+            do_test    = True,
+            N_j        = N_j,
+            model_type = 'data',
+            inc_mod_error = inc_mod_error
         )
         DDM_model = models.create_new_model(DDM_cfg, DDM_cfg.model_specific_params)
         if verbose:
@@ -167,21 +170,21 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([5, 15, 45, 135, 135*3])
+    spatial_resolutions = np.asarray([5, 15, 45])
     if args.dataset:
         create_datasets = True
     else:
         create_datasets = False
     model_keys = [0]
     #base_dir     = '/home/sindre/msc_thesis/data-driven_corrections'
-    base_dir     = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections'
+    base_dir     = '/content/gdrive/My Drive/msc_thesis/data-driven_corrections/'
     results_dir  = os.path.join(base_dir, 'results')
     main_run_dir = os.path.join(results_dir, config.group_name)
     for model_key in model_keys:
         for sys_num in range(len(config.systems)):
             run_name = "grid_arch" + str(model_key) + "_sys" + str(sys_num)
             os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=False)
-            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "convergent")
+            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "with_mod_error", True)
     print("\nEXECUTION COMPLETED\n")
 
 ########################################################################################################################
