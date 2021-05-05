@@ -41,7 +41,7 @@ def get_exact_solution(system_number, alpha, t):
                 return y * np.exp(-tt) * (alphaa + 2 * x)
             else:
                 return y * np.exp(-tt) * (alphaa + 0.75 + 0.5 * x)
-    elif system_number == 4:
+    elif system_number == 4 or system_number == 5:
         def local_T(x, y, tt, alphaa):
             return alphaa + (tt + 1)*np.cos(2*np.pi*x)*np.cos(4*np.pi*y)
     else:
@@ -148,6 +148,11 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     y_dense = np.linspace(y_c, y_d, num=200, endpoint=True)
     exact_field_dense = exact_callable(x_dense, y_dense)
 
+    print("exact:", exact_field[-1,-1])
+    print("PBM:", PBM_field[-1,-1])
+    print("HAM:", HAM_field[-1,-1])
+    print("DDM:", DDM_field[-1,-1])
+
     PBM_diff_field = (PBM_field - exact_field) / exact_field
     DDM_diff_field = (DDM_field - exact_field) / exact_field
     HAM_diff_field = (HAM_field - exact_field) / exact_field
@@ -205,10 +210,10 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     fig.colorbar(im2,  ax=axs[0, 1])
     fig.colorbar(im3,  ax=axs[1, 0])
     fig.colorbar(im4,  ax=axs[1, 1])
-    plt.savefig(os.path.join(output_dir, filename + "_1.pdf"), bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
-
+    """
     ########################################
 
     fig, axs = plt.subplots(1, 3)
@@ -311,6 +316,9 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
     plt.savefig(os.path.join(output_dir, filename + "_3.pdf"), bbox_inches='tight')
     plt.close()
     """
+
+
+    """
     plt.figure()
     plt.scatter(x, unc_profile, s=40, facecolors='none', edgecolors='r', label="PBM")
     if dat_profile_FCNN is not None:
@@ -353,7 +361,7 @@ def main():
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-26_2Dk_DDM/2D_GlobalDense_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2Dk_V5"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2Dk_V6"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -365,10 +373,10 @@ def main():
     os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [1, 2, 3, 4]
+    systems_to_include = [1, 5]
 
-    y_lims_interp = [[3e-7, 1e-1], [1e-5, 1e-1], [5e-9, 1e2], [7e-9, 1e2]]
-    y_lims_extrap = [[1e-4, 2e-1],  [5e-6, 2e-1], [5e-9, 3e2], [7e-9, 1e2]]
+    y_lims_interp = [[3e-7, 1e0], [1e-5, 1e-1], [5e-9, 1e2], [7e-9, 1e2], [1e-5, 1e0]]
+    y_lims_extrap = [[1e-4, 1e0],  [5e-6, 2e-1], [5e-9, 3e2], [7e-9, 1e2], [1e-5, 1e0]]
 
     for s in range(num_systems_studied):
         system_number = s + 1
@@ -408,7 +416,6 @@ def main():
 
         alphas     = hybrid_FCNN_plot_dict['alphas']
         plot_times = hybrid_FCNN_plot_dict['time']
-        plot_times = [plot_times[2], plot_times[-1]]
         x          = hybrid_FCNN_plot_dict['x']
         y          = hybrid_FCNN_plot_dict['x'] # Only works since I have used a square grid in all experiments.
 
