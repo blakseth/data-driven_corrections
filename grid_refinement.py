@@ -183,8 +183,8 @@ def main():
     for model_key in model_keys:
         for sys_num in range(len(config.systems)):
             run_name = "grid_arch" + str(model_key) + "_sys" + str(sys_num)
-            os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=False)
-            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "with_mod_error", True)
+            os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=True)
+            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "without_mod_error", False)
     print("\nEXECUTION COMPLETED\n")
 
 ########################################################################################################################
