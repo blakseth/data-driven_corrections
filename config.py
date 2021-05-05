@@ -28,7 +28,7 @@ use_GPU    = True
 group_name = "2021-05-05_grs"
 run_names  = [["s1"]]
 systems    = ["1"]
-data_tags  = ["s1"]
+data_tags  = ["s1_mod_error"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
