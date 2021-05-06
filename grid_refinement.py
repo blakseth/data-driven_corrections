@@ -149,7 +149,12 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, ve
         plt.yticks(fontsize=17)
         plt.legend()
         plt.grid()
-        plt.savefig(os.path.join(HAM_cfg.run_dir, "grid_refine_alpha" + str(np.around(alpha, decimals=5)) + ".pdf"), bbox_inches='tight')
+        filename = "grid_refine_alpha" + str(np.around(alpha, decimals=5))
+        if inc_mod_error:
+            filename += "with_mod_error"
+        else:
+            filename += "without_mod_error"
+        plt.savefig(os.path.join(HAM_cfg.run_dir, filename + ".pdf"), bbox_inches='tight')
 
     print("Save")
     data_dict = {
@@ -170,7 +175,7 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([5, 15, 45])
+    spatial_resolutions = np.asarray([5, 15, 45])#, 135, 135*3, 135*9])
     if args.dataset:
         create_datasets = True
     else:
@@ -184,7 +189,7 @@ def main():
         for sys_num in range(len(config.systems)):
             run_name = "grid_arch" + str(model_key) + "_sys" + str(sys_num)
             os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=True)
-            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "with_mod_error", True)
+            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "without_mod_error", False)
     print("\nEXECUTION COMPLETED\n")
 
 ########################################################################################################################

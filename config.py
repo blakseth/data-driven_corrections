@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-05_grs"
-run_names  = [["s1"]]
-systems    = ["1"]
-data_tags  = ["s1_mod_error"]
+group_name = "2021-05-06_grs_trial"
+run_names  = [["s6"]]
+systems    = ["6"]
+data_tags  = ["s6"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -322,8 +322,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return alpha * (x * (x - 1) - 2 * ((x - 1) * np.tanh(x / (t + 0.1)) + t + 0.1)) / (
-                            ((t + 0.1) * np.cosh(x / (t + 0.1))) ** 2)
+                return (2*alpha*((x - 1)*np.tanh(x/(t + 0.1)) - t - 0.1) - x)/(((t + 0.1)*np.cosh(x/(t + 0.1)))**2)
             def get_q_hat_approx(x, t, alpha):
                 return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
             def get_k(x):
