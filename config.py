@@ -305,7 +305,7 @@ class Config:
                 return np.ones_like(x) * cV_ref
         elif self.system == "6":
             exact_solution_available = True
-            t_end = 5.0
+            t_end = 0.05
             x_a = 0.0
             x_b = 1.0
             A = 1.0
