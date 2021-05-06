@@ -322,7 +322,7 @@ class Config:
             def get_T_b(t, alpha):
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
-                return (2*alpha*((x - 1)*np.tanh(x/(t + 0.1)) - t - 0.1) - x)/(((t + 0.1)*np.cosh(x/(t + 0.1)))**2)
+                return alpha*(x*(1 - x) + 2*((x - 1)*np.tanh(x/(t + 0.1)) - t - 0.1))/(((t + 0.1)*np.cosh(x/(t + 0.1)))**2)
             def get_q_hat_approx(x, t, alpha):
                 return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
             def get_k(x):
