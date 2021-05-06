@@ -26,9 +26,9 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-05-06_grs"
-run_names  = [["s6"]]
+run_names  = [["s1","s6"]]
 systems    = ["1", "6"]
-data_tags  = ["s6"]
+data_tags  = ["s1","s6"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
