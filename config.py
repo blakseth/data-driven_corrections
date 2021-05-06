@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-06_grs_with_mod_error_v3"
+group_name = "2021-05-06_grs_with_mod_error_v4"
 run_names  = [["s15"]]
 systems    = ["15"]
 data_tags  = ["s15"]
@@ -592,7 +592,7 @@ class Config:
                 return np.ones_like(x) * cV_ref
         elif self.system == "15":
             exact_solution_available = True
-            t_end = 0.05
+            t_end = 0.005
             x_a = 0.0
             x_b = 1.0
             A = 1.0
@@ -707,7 +707,7 @@ class Config:
         self.nodes_fine[-1] = self.x_b
 
         # Temporal discretization.
-        self.dt_fine = 0.001
+        self.dt_fine = 0.0001
         self.dt_coarse = 0.001
         self.Nt_fine = int(self.t_end / self.dt_fine) + 1
         self.Nt_coarse = int(self.t_end / self.dt_coarse) + 1
