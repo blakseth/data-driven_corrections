@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-06_grs_with_mod_error_v2"
-run_names  = [["s1"]]
-systems    = ["1"]
-data_tags  = ["s1"]
+group_name = "2021-05-06_grs_with_mod_error_v3"
+run_names  = [["s15"]]
+systems    = ["15"]
+data_tags  = ["s15"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -582,6 +582,34 @@ class Config:
                 return get_T_exact(x_b, t, alpha)
             def get_q_hat(x, t, alpha):
                 return -np.exp(-1000*(alpha+1)*(x-0.5)**2)*(2*(alpha+1)*1000*t*(2*(alpha+1)*1000*(x-0.5)**2 + 1) + 1)
+            def get_q_hat_approx(x, t, alpha):
+                return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
+            def get_k(x):
+                return np.ones_like(x) * k_ref
+            def get_k_approx(x):
+                return get_k(x)
+            def get_cV(x):
+                return np.ones_like(x) * cV_ref
+        elif self.system == "15":
+            exact_solution_available = True
+            t_end = 0.05
+            x_a = 0.0
+            x_b = 1.0
+            A = 1.0
+            rho = 1.0
+            k_ref = 1.0
+            cV_ref = 1.0
+            q_hat_ref = 1.0
+            def get_T_exact(x, t, alpha):
+                return 1 + np.sin(2*np.pi*x)*np.exp(-4*(np.pi**2)*t)
+            def get_T0(x, alpha):
+                return get_T_exact(x, 0, alpha)
+            def get_T_a(t, alpha):
+                return get_T_exact(x_a, t, alpha)
+            def get_T_b(t, alpha):
+                return get_T_exact(x_b, t, alpha)
+            def get_q_hat(x, t, alpha):
+                return np.zeros_like(x)
             def get_q_hat_approx(x, t, alpha):
                 return np.zeros_like(x) #0.8 * get_q_hat(x, t, alpha)
             def get_k(x):
