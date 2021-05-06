@@ -25,9 +25,9 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-06_grs_trial"
+group_name = "2021-05-06_grs"
 run_names  = [["s6"]]
-systems    = ["6"]
+systems    = ["1", "6"]
 data_tags  = ["s6"]
 model_type = 'hybrid'
 model_keys = [0]
