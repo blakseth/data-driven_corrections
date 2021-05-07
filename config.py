@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-07_grs"
+group_name = "2021-05-07_grs_with_mod_error"
 run_names  = [["s1", "s6"]]
 systems    = ["1","6"]
 data_tags  = ["s1", "s6"]
