@@ -86,9 +86,9 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, ve
         _ = train.train(HAM_cfg, HAM_model, 0)
         HAM_error_dict, _ = test.parametrized_simulation_test(HAM_cfg, HAM_model)
         alphas = HAM_error_dict['alphas']
-        HAM_final_errors = HAM_error_dict['cor_L2'][:, -1] * np.sqrt(HAM_cfg.dx_coarse)
+        HAM_final_errors = HAM_error_dict['cor_L2'][:, -1]# * np.sqrt(HAM_cfg.dx_coarse)
         print("HAM errors:", HAM_final_errors)
-        PBM_final_errors = HAM_error_dict['unc_L2'][:, -1] * np.sqrt(HAM_cfg.dx_coarse)
+        PBM_final_errors = HAM_error_dict['unc_L2'][:, -1]# * np.sqrt(HAM_cfg.dx_coarse)
         print("PBM errors:", PBM_final_errors)
         assert HAM_final_errors.shape == alphas.shape
         print("HAM complete\n")
@@ -121,7 +121,7 @@ def grid_refinement_study(model_key, sys_num, NJs, create_datasets, run_name, ve
                 print(DDM_model.net)
         _ = train.train(DDM_cfg, DDM_model, 0)
         DDM_error_dict, _ = test.parametrized_simulation_test(DDM_cfg, DDM_model)
-        DDM_final_errors = DDM_error_dict['cor_L2'][:, -1] * np.sqrt(DDM_cfg.dx_coarse)
+        DDM_final_errors = DDM_error_dict['cor_L2'][:, -1]# * np.sqrt(DDM_cfg.dx_coarse)
         print("DDM errors:", DDM_final_errors)
         print("DDM complete")
 
@@ -176,7 +176,7 @@ def main():
     parser.add_argument("--dataset", default=False, action="store_true", help="Create new datasets from raw data.")
     parser.add_argument("--verbose", default=False, action="store_true", help="Toggle verbose output.")
     args = parser.parse_args()
-    spatial_resolutions = np.asarray([5, 15, 45, 135, 135*3])
+    spatial_resolutions = np.asarray([5, 15, 45, 135, 135*3, 135*9])
     if args.dataset:
         create_datasets = True
     else:
@@ -190,7 +190,7 @@ def main():
         for sys_num in range(len(config.systems)):
             run_name = "grid_arch" + str(model_key) + "_sys" + str(sys_num)
             os.makedirs(os.path.join(main_run_dir, run_name), exist_ok=True)
-            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "with_mod_error", True)
+            grid_refinement_study(model_key, sys_num, spatial_resolutions, create_datasets, run_name, args.verbose, "without_mod_error", False)
     print("\nEXECUTION COMPLETED\n")
 
 ########################################################################################################################

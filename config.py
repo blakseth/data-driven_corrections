@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-06_grs_with_mod_error_v4"
-run_names  = [["s15"]]
-systems    = ["15"]
-data_tags  = ["s15"]
+group_name = "2021-05-07_grs"
+run_names  = [["s1", "s6"]]
+systems    = ["1","6"]
+data_tags  = ["s1", "s6"]
 model_type = 'hybrid'
 model_keys = [0]
 assert len(systems) == len(data_tags) == len(run_names[0])
@@ -707,8 +707,8 @@ class Config:
         self.nodes_fine[-1] = self.x_b
 
         # Temporal discretization.
-        self.dt_fine = 0.0001
-        self.dt_coarse = 0.0001
+        self.dt_fine = 0.001
+        self.dt_coarse = 0.001
         self.Nt_fine = int(self.t_end / self.dt_fine) + 1
         self.Nt_coarse = int(self.t_end / self.dt_coarse) + 1
 
