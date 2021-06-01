@@ -21,7 +21,7 @@ def visualize_grid_refinement(NJs, PBM_errors, DDM_errors, HAM_errors, output_di
     plt.scatter(NJs, DDM_errors, s=40, marker='s', facecolors='none', edgecolors='b')
     plt.scatter(NJs, HAM_errors, s=40, marker='D', facecolors='none', edgecolors='g')
     plt.plot(np.asarray([NJs[0], NJs[-1]]), PBM_errors[0]*(NJs[0]**2)*np.asarray([NJs[0], NJs[-1]])**(-2.), 'k--', linewidth=2.0)
-    plt.plot(np.asarray([NJs[0], NJs[-1]]), PBM_errors[0]*(NJs[0]**2.5)*np.asarray([NJs[0], NJs[-1]])**(-2.5), 'y--', linewidth=2.0)
+    #plt.plot(np.asarray([NJs[0], NJs[-1]]), PBM_errors[0]*(NJs[0]**2.5)*np.asarray([NJs[0], NJs[-1]])**(-2.5), 'y--', linewidth=2.0)
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(NJs[0]/1.5, NJs[-1]*1.5)
@@ -36,15 +36,15 @@ def visualize_grid_refinement(NJs, PBM_errors, DDM_errors, HAM_errors, output_di
 ########################################################################################################################
 
 def main():
-    main_dir   = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-05-06_grs_without_mod_error"
-    output_dir = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/grs_without_mod_error"
+    main_dir   = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-05-07_grs"
+    output_dir = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/final_grs"
 
     os.makedirs(output_dir, exist_ok=True)
 
     system_names = ["1", "6"]
 
     for system_number, system_name in enumerate(system_names):
-        data_dir = os.path.join(main_dir, "arch0_sys" + str(system_number))
+        data_dir = os.path.join(main_dir, "grid_arch0_sys" + str(system_number))
 
         with open(os.path.join(data_dir, "grid_refinement_study" + ".pkl"), "rb") as f:
             data_dict = pickle.load(f)
