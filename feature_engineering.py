@@ -456,7 +456,9 @@ def main():
         N_x         = 100,
         model_type  = config.model_type,
     )
-    os.makedirs(cfg.run_dir, exist_ok=False)
+    #os.makedirs(cfg.run_dir, exist_ok=False)
+
+    """
 
     print("--------------------------------------")
     print("Dataset creation initiated.")
@@ -502,6 +504,16 @@ def main():
         pickle.dump(train_data, f)
     print("Data saving completed.")
     print("--------------------------------------")
+    
+    """
+
+    with open(os.path.join("/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-17_Euler_contact_disc/Euler_Dense_feature_engineered/plot_data_raw.pkl"), "rb") as f:
+        profiles = pickle.load(f)
+    with open(os.path.join("/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-17_Euler_contact_disc/Euler_Dense_feature_engineered/error_data_raw.pkl"), "rb") as f:
+        errors = pickle.load(f)
+
+    my_path = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_euler"
+    os.makedirs(my_path, exist_ok=True)
 
     print("--------------------------------------")
     print("Data visualization initiated.")
@@ -510,20 +522,20 @@ def main():
         unc = np.append(profiles['unc'][a], np.reshape(profiles['unc'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['unc'][a][2]), (1, cfg.x_nodes.shape[0])), axis=0)
         cor = np.append(profiles['cor'][a], np.reshape(profiles['cor'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['cor'][a][2]), (1, cfg.x_nodes.shape[0])), axis=0)
         ref = np.append(profiles['ref'][a], np.reshape(profiles['ref'][a][0] / (cfg.c_V * (cfg.gamma - 1) * profiles['ref'][a][2]), (1, cfg.x_nodes.shape[0])), axis=0)
-        fig, axs = plt.subplots(2, 2, sharex=True)
-        ylabels = [r"$p$", r"$u$", r"$T$", r"$\rho$"]
+        fig, axs = plt.subplots(2, 2)
+        ylabels = [r"$p$ (Pa)", r"$v$ (m/s)", r"$T$ (°C)", r"$\rho$ (kg/m$^3$)"]
         for j in range(4):
             axs[j // 2][j % 2].scatter(cfg.x_nodes, unc[j], s=10, marker='o', facecolors='none', edgecolors='r', linewidths = 0.5, label='LxF')
             axs[j // 2][j % 2].scatter(cfg.x_nodes, cor[j], s=10, marker='D', facecolors='none', edgecolors='g', linewidths = 0.5, label='HAM')
             axs[j // 2][j % 2].plot(cfg.x_nodes, ref[j], 'k-', label='Exact')
             #axs[j].legend()
-            axs[j // 2][j % 2].set_xlabel(r'$x$')
+            axs[j // 2][j % 2].set_xlabel(r'$x$ (m)')
             axs[j // 2][j % 2].set_ylabel(ylabels[j])
             axs[j // 2][j % 2].set_axisbelow(True)
             axs[j // 2][j % 2].grid()
             #axs[j // 2][j % 2].label_outer()
-        plt.subplots_adjust(top=0.92, bottom=0.08, left=0.10, right=0.95, hspace=0.25, wspace=0.4)
-        plt.savefig(os.path.join(cfg.run_dir, "profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
+        plt.subplots_adjust(top=0.92, bottom=0.08, left=0.10, right=0.95, hspace=0.35, wspace=0.4)
+        plt.savefig(os.path.join(my_path, "profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
             np.around(cfg.t_end, decimals=5)) + ".pdf"), bbox_inches='tight')
         plt.close()
 
@@ -535,16 +547,16 @@ def main():
         plt.semilogy(iterations, errors['unc'][a], 'r-', linewidth=2.0, label="LxF")
         plt.semilogy(iterations, errors['cor'][a], 'g-', linewidth=2.0, label="HAM")
         plt.xlim([0, len(errors['unc'][a])])
-        plt.xlabel("Test Iterations", fontsize=20)
-        plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+        plt.xlabel("Time level", fontsize=20)
+        plt.ylabel(r"Relative $\ell_2$-error", fontsize=20)
         plt.xticks(fontsize=17)
         plt.yticks(fontsize=17)
         plt.grid()
         #plt.legend(prop={'size': 17})
-        plt.savefig(os.path.join(cfg.run_dir, "errors_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
+        plt.savefig(os.path.join(my_path, "errors_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
             np.around(cfg.t_end, decimals=5)) + ".pdf"), bbox_inches='tight')
         plt.close()
-
+    """
     # Losses
     plt.figure()
     plt.semilogy(train_data['Training loss'][0], train_data['Training loss'][1], label='train')
@@ -554,7 +566,7 @@ def main():
     plt.legend()
     plt.savefig(os.path.join(cfg.run_dir, "losses.pdf"), bbox_inches='tight')
     plt.close()
-
+    """
     print("Data visualization completed.")
     print("--------------------------------------\n")
 
