@@ -13,10 +13,13 @@ import numpy as np
 import os
 import pickle
 
+plt.rcParams['axes.axisbelow'] = True
+
 ########################################################################################################################
 
 def visualize_grid_refinement(NJs, PBM_errors, DDM_errors, HAM_errors, output_dir, filename):
     plt.figure()
+    plt.grid()
     plt.scatter(NJs, PBM_errors, s=35, marker='o', facecolors='none', edgecolors='r')
     plt.scatter(NJs, DDM_errors, s=40, marker='s', facecolors='none', edgecolors='b')
     plt.scatter(NJs, HAM_errors, s=40, marker='D', facecolors='none', edgecolors='g')
@@ -26,10 +29,9 @@ def visualize_grid_refinement(NJs, PBM_errors, DDM_errors, HAM_errors, output_di
     plt.yscale('log')
     plt.xlim(NJs[0]/1.5, NJs[-1]*1.5)
     plt.xlabel(r"$N_j$", fontsize=20)
-    plt.ylabel(r"Relative $\ell_2$ Error", fontsize=20)
+    plt.ylabel(r"Relative $\ell_2$-error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
-    plt.grid()
     plt.savefig(os.path.join(output_dir, filename + ".pdf"), bbox_inches='tight')
     plt.close()
 
@@ -37,7 +39,7 @@ def visualize_grid_refinement(NJs, PBM_errors, DDM_errors, HAM_errors, output_di
 
 def main():
     main_dir   = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-05-07_grs"
-    output_dir = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/final_grs"
+    output_dir = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_grs"
 
     os.makedirs(output_dir, exist_ok=True)
 
