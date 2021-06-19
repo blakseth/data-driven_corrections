@@ -133,8 +133,8 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
         plt.semilogy(iterations, res_errors_CNN,  'y--', linewidth=2.0, label="Residual CNN")
     plt.xlim([0, len(unc_errors)])
     plt.ylim(y_lim)
-    plt.xlabel("Test Iterations", fontsize=20)
-    plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+    plt.xlabel("Time level", fontsize=20)
+    plt.ylabel(r"Relative $\ell_2$-error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -171,7 +171,7 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
     plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
     plt.xlim(x[0], x[-1])
     plt.xlabel(r"$x$ (m)", fontsize=20)
-    plt.ylabel(r"$T$ (K)", fontsize=20)
+    plt.ylabel(r"$T$ (°C)", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -195,21 +195,21 @@ def visualize_src_terms(x, src, alpha, output_dir, filename):
 def visualize_uncertainties_combined(x, hyb_mean, hyb_std, dat_mean, dat_std, scale, exact_callable, output_dir, filename):
     x_dense = np.linspace(x[0], x[-1], 1001, endpoint=True)
     plt.figure()
-    plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=1.0)
+    plt.plot(x_dense, exact_callable(x_dense), 'k--', linewidth=1.0)
     plt.fill_between(x,
                      hyb_mean + scale*hyb_std,
                      hyb_mean - scale*hyb_std,
-                     facecolor='green', alpha=0.7)
+                     facecolor='green', alpha=0.9)
     plt.fill_between(x,
                      dat_mean + scale*dat_std,
                      dat_mean - scale*dat_std,
-                     facecolor='blue', alpha=0.4)
+                     facecolor='blue', alpha=0.3)
     #plt.plot(x, hyb_mean + hyb_std, 'g--', linewidth=2.0)
     #plt.plot(x, hyb_mean - hyb_std, 'g--', linewidth=2.0)
     #plt.plot(x, dat_mean + dat_std, 'b--', linewidth=2.0)
     #plt.plot(x, dat_mean - dat_std, 'b--', linewidth=2.0)
     plt.xlabel(r"$x$ (m)", fontsize=20)
-    plt.ylabel(r"$T$ (K)", fontsize=20)
+    plt.ylabel(r"$T$ (°C)", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -228,7 +228,7 @@ def main():
     res_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-29_residual_GlobalDense/GlobalDense_s"
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"#2021-04-13_data/GlobalDense_s
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-04-26_1D_with_uncertainty_V3"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_1D_q"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -243,9 +243,9 @@ def main():
     num_systems_studied = 14
     systems_to_include = [1, 2, 6, 8]
 
-    y_lims_interp = [[5e-8, 5e-2], [1e-6, 1e-1], [1e-6, 3e0], None, None, None, [1e-7, 1e-1], None, [3e-5, 1e0]]
-    y_lims_extrap = [[5e-6, 5e0], [7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-7, 2e-1], None, [4e-5, 1e0]]
-    scales        = [None, 10, 20, None, None, None, 3, None, 30]
+    y_lims_interp = [[5e-8, 5e-2], [1e-6, 1e-1], [1e-6, 3e0], None, None, None, [5e-5, 4e-1], None, [3e-5, 1e0]]
+    y_lims_extrap = [[5e-6, 5e0], [7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-4, 7e-1], None, [4e-5, 1e0]]
+    scales        = [None, 5, 5, None, None, None, 5, None, 5]
 
     for s in range(-1, num_systems_studied):
         system_number = s + 1
