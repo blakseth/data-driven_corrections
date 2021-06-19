@@ -144,7 +144,7 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
 
 def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, output_dir, filename):
     plt.figure()
-
+    """
     plt.scatter(x, unc_profile, s=35, facecolors='none', edgecolors='r', label="PBM")
     if dat_profile_FCNN is not None:
         plt.scatter(x, dat_profile_FCNN, s=40, marker='s', facecolors='none', edgecolors='b', label="DDM")
@@ -166,7 +166,7 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
     plt.plot(x, unc_profile, 'r-', linewidth=6.0, label="PBM")
     plt.plot(x, hyb_profile_FCNN, 'g-', linewidth=3.7, label="HAM")
     plt.plot(x, dat_profile_FCNN, 'b-', linewidth=2.0, label="DDM")
-    """
+
     x_dense = np.linspace(x[0], x[-1], 1001, endpoint=True)
     plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
     plt.xlim(x[0], x[-1])
@@ -221,14 +221,14 @@ def visualize_uncertainties_combined(x, hyb_mean, hyb_std, dat_mean, dat_std, sc
 
 def main():
     hybrid_CNN_dir  = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_hybrid_GlobalCNN_rerun/GlobalCNN_s"
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_hybrid/GlobalDense_s"#2021-04-13_hybrid/GlobalDense_s
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-13_hybrid/GlobalDense_finer_s"#2021-03-30_hybrid/GlobalDense_s"#
     end_CNN_dir     = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalCNN_rerun/GlobalCNN_s"
     end_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-25_end_GlobalDense_rerun/GlobalDense_s"
     res_CNN_dir     = ""
     res_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-29_residual_GlobalDense/GlobalDense_s"
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"#2021-04-13_data/GlobalDense_s
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_1D_q"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-13_data/GlobalDense_finer_s"#2021-03-30_pure_data_driven_selected_systems/GlobalDense_s"#
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_1D_no_mod_error"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -237,14 +237,16 @@ def main():
     use_res_results   = False
     use_dat_results   = True
 
+    plot_uncertainty = False
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [1, 2, 6, 8]
+    systems_to_include = [6]
 
-    y_lims_interp = [[5e-8, 5e-2], [1e-6, 1e-1], [1e-6, 3e0], None, None, None, [5e-5, 4e-1], None, [3e-5, 1e0]]
-    y_lims_extrap = [[5e-6, 5e0], [7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-4, 7e-1], None, [4e-5, 1e0]]
+    y_lims_interp = [[5e-8, 5e-2], [1e-6, 1e-1], [1e-6, 3e0], None, None, None, [1e-7, 1e-1], None, [3e-5, 1e0]]
+    y_lims_extrap = [[5e-6, 5e0], [7e-5, 7e0], [2e-6, 3e0], None, None, None, [1e-7, 2e-1], None, [4e-5, 1e0]]
     scales        = [None, 5, 5, None, None, None, 5, None, 5]
 
     for s in range(-1, num_systems_studied):
@@ -348,7 +350,7 @@ def main():
                 #np.testing.assert_allclose(res_FCNN_plot_dict['ref'][a][plot_num], exact_callable(x), rtol=1e-10,
                 #                           atol=1e-10)
 
-                filename = "profiles_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                filename = "profiles_finer_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
                 visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN, hyb_profile_FCNN, hyb_profile_CNN, res_profile_FCNN, res_profile_CNN, dat_profile_FCNN, dat_profile_CNN, exact_callable, plot_dir, filename)
                 print("Successfully plotted profiles for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
 
@@ -440,40 +442,41 @@ def main():
             else:
                 y_lims = y_lims_extrap
 
-            filename = "errors_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
+            filename = "errors_finer_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5))
             visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_errors_CNN, hyb_errors_FCNN, hyb_errors_CNN, res_errors_FCNN, res_errors_CNN, dat_errors_FCNN, dat_errors_CNN, error_dir, filename, y_lims[system_number])
             print("Successfully plotted FCNN errors for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)))
 
         # Plotting uncertainty.
 
-        with open(os.path.join(hybrid_FCNN_dir  + str(system_number), "plot_data_raw.pkl"), "rb") as f:
-            hyb_FCNN_raw_dicts = pickle.load(f)
-        with open(os.path.join(dat_FCNN_dir + str(system_number), "plot_data_raw.pkl"), "rb") as f:
-            dat_FCNN_raw_dicts = pickle.load(f)
+        if plot_uncertainty:
+            with open(os.path.join(hybrid_FCNN_dir  + str(system_number), "plot_data_raw.pkl"), "rb") as f:
+                hyb_FCNN_raw_dicts = pickle.load(f)
+            with open(os.path.join(dat_FCNN_dir + str(system_number), "plot_data_raw.pkl"), "rb") as f:
+                dat_FCNN_raw_dicts = pickle.load(f)
 
-        uncertainty_dir = os.path.join(output_dir, "uncertainty")
-        if not os.path.exists(uncertainty_dir):
-            os.makedirs(uncertainty_dir, exist_ok=False)
+            uncertainty_dir = os.path.join(output_dir, "uncertainty")
+            if not os.path.exists(uncertainty_dir):
+                os.makedirs(uncertainty_dir, exist_ok=False)
 
-        for a, alpha in enumerate(alphas):
-            for plot_num, t in enumerate(plot_times):
-                hyb_profiles = []
-                for hyb_FCNN_raw_dict in hyb_FCNN_raw_dicts:
-                    hyb_profiles.append(hyb_FCNN_raw_dict['cor'][a][plot_num])
-                hyb_std = np.std(np.asarray(hyb_profiles), axis=0)
-                hyb_mean = np.mean(np.asarray(hyb_profiles), axis=0)
+            for a, alpha in enumerate(alphas):
+                for plot_num, t in enumerate(plot_times):
+                    hyb_profiles = []
+                    for hyb_FCNN_raw_dict in hyb_FCNN_raw_dicts:
+                        hyb_profiles.append(hyb_FCNN_raw_dict['cor'][a][plot_num])
+                    hyb_std = np.std(np.asarray(hyb_profiles), axis=0)
+                    hyb_mean = np.mean(np.asarray(hyb_profiles), axis=0)
 
-                dat_profiles = []
-                for dat_FCNN_raw_dict in dat_FCNN_raw_dicts:
-                    dat_profiles.append(dat_FCNN_raw_dict['cor'][a][plot_num])
-                dat_std = np.std(np.asarray(dat_profiles), axis=0)
-                dat_mean = np.mean(np.asarray(dat_profiles), axis=0)
+                    dat_profiles = []
+                    for dat_FCNN_raw_dict in dat_FCNN_raw_dicts:
+                        dat_profiles.append(dat_FCNN_raw_dict['cor'][a][plot_num])
+                    dat_std = np.std(np.asarray(dat_profiles), axis=0)
+                    dat_mean = np.mean(np.asarray(dat_profiles), axis=0)
 
-                exact_callable = get_exact_solution(system_number, alpha, t)
+                    exact_callable = get_exact_solution(system_number, alpha, t)
 
-                filename = "uncertainty_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
-                visualize_uncertainties_combined(x, hyb_mean, hyb_std, dat_mean, dat_std, scales[system_number], exact_callable, uncertainty_dir, filename)
-                print("Successfully plotted profiles with uncertainty for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
+                    filename = "uncertainty_s" + str(system_number) + "_alpha" + str(np.around(alpha, decimals=5)) + "_time" + str(np.around(t, decimals=5))
+                    visualize_uncertainties_combined(x, hyb_mean, hyb_std, dat_mean, dat_std, scales[system_number], exact_callable, uncertainty_dir, filename)
+                    print("Successfully plotted profiles with uncertainty for system " + str(system_number) + ", alpha" + str(np.around(alpha, decimals=5)) + ", time" + str(np.around(t, decimals=5)))
 
     """
     src_dir = os.path.join(output_dir, "srcs")
