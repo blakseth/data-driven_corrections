@@ -162,8 +162,8 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
         plt.semilogy(iterations, res_errors_CNN,  'y--', linewidth=2.0, label="Residual CNN")
     plt.xlim([0, len(unc_errors)])
     plt.ylim(y_lim)
-    plt.xlabel("Test Iterations", fontsize=20)
-    plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+    plt.xlabel("Time level", fontsize=20)
+    plt.ylabel(r"Relative $\ell_2$-error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -200,7 +200,7 @@ def visualize_profile_combined(x, unc_profile, end_profile_FCNN, end_profile_CNN
     plt.plot(x_dense, exact_callable(x_dense), 'k-', linewidth=2.0, label="Exact")
     plt.xlim(x[0], x[-1])
     plt.xlabel(r"$x$ (m)", fontsize=20)
-    plt.ylabel(r"$T$ (K)", fontsize=20)
+    plt.ylabel(r"$T$ (°C)", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -296,16 +296,16 @@ def visualize_conductivity(nodes, src, T, k_callable, output_dir, filename):
 
 def main():
     hybrid_CNN_dir  = ""
-    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-30_HAM_missing_conductivity_errors_fixed/GlobalDense_HAM_k"
+    hybrid_FCNN_dir = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-19_HAM_missing_conductivity/GlobalDense_hybrid_k"#2021-04-30_HAM_missing_conductivity_errors_fixed/GlobalDense_HAM_k"#
     end_CNN_dir     = ""
     end_FCNN_dir    = ""
     res_CNN_dir     = ""
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
-    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-30_DDM_missing_conductivity_errors_fixed/GlobalDense_DDM_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/1D_missing_conductivity_final"
+    dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-20_DDM_missing_conductivity/GlobalDense_DDM_k"#2021-04-30_DDM_missing_conductivity_errors_fixed/GlobalDense_DDM_k"#
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_1D_k"
 
-    visualize_profiles = False
+    visualize_profiles = True
     visualize_errors   = True
     visualize_src      = False
     visualize_k        = False
@@ -323,10 +323,10 @@ def main():
         os.makedirs(output_dir, exist_ok=False)
 
     num_systems_studied = 14
-    systems_to_include = [2]
+    systems_to_include = [1, 3, 7] #2
 
     y_lims_interp = [None, [1e-7, 2e-1], [1e-7, 1e-1], [1e-6, 3e-1], [1e-9, 1e2], [1e-9, 1e2], [4e-7, 2e0], [1e-6, 5e-1]]
-    y_lims_extrap = [None, [1e-5, 2e0],  [1e-7, 1e-1], [1e-5, 1e0],  [1e-9, 1e2], [1e-9, 1e2], [1e-5, 1e0], [1e-6, 4e-1]]
+    y_lims_extrap = [None, [1e-5, 2e0],  [1e-7, 2e-1], [1e-5, 1e0],  [1e-9, 1e2], [1e-9, 1e2], [1e-5, 1e0], [1e-6, 4e-1]]
 
     for s in range(-1, num_systems_studied):
         system_number = s + 1
