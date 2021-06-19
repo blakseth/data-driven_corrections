@@ -159,8 +159,8 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
         plt.semilogy(iterations, res_errors_CNN,  'y--', linewidth=2.0, label="Residual CNN")
     plt.xlim([0, len(unc_errors)])
     plt.ylim(y_lim)
-    plt.xlabel("Test Iterations", fontsize=20)
-    plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+    plt.xlabel("Time level", fontsize=20)
+    plt.ylabel(r"Relative $\ell_2$-error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -239,6 +239,7 @@ def visualize_profile_combined(x, y, PBM_field, DDM_field, HAM_field, exact_call
         ax.set_xlabel(r'$x$ (m)')
         ax.set_ylabel(r'$y$ (m)')
         ax.label_outer()
+        ax.set(adjustable='box', aspect='equal')
     fig.colorbar(surf, ax=axs[0, 0])
     fig.colorbar(im2,  ax=axs[0, 1])
     fig.colorbar(im3,  ax=axs[1, 0])
@@ -463,7 +464,7 @@ def main():
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-04-26_2Dk_DDM/2D_GlobalDense_k"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2Dk_estimate_k_v2"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_2D_k"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -472,14 +473,14 @@ def main():
     use_res_results   = False
     use_dat_results   = True
 
-    plot_profiles = False
-    plot_errors   = False
-    plot_k        = True
+    plot_profiles = True
+    plot_errors   = True
+    plot_k        = False
 
     os.makedirs(output_dir, exist_ok=True)
 
     num_systems_studied = 14
-    systems_to_include = [5]
+    systems_to_include = [1, 5]
 
     y_lims_interp = [[3e-7, 1e0], [1e-5, 1e-1], [5e-9, 1e2], [7e-9, 1e2], [1e-5, 1e0]]
     y_lims_extrap = [[1e-4, 1e0],  [5e-6, 2e-1], [5e-9, 3e2], [7e-9, 1e2], [1e-5, 1e0]]
