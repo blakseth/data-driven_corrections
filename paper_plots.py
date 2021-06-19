@@ -126,8 +126,8 @@ def visualize_error_data_combined(iterations, unc_errors, end_errors_FCNN, end_e
         plt.semilogy(iterations, res_errors_CNN,  'y--', linewidth=2.0, label="Residual CNN")
     plt.xlim([0, len(unc_errors)])
     plt.ylim(y_lim)
-    plt.xlabel("Test Iterations", fontsize=20)
-    plt.ylabel(r"Relative $l_2$ Error", fontsize=20)
+    plt.xlabel("Time level", fontsize=20)
+    plt.ylabel(r"Relative $\ell_2$-error", fontsize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.grid()
@@ -269,7 +269,7 @@ def main():
     res_FCNN_dir    = ""
     dat_CNN_dir     = ""
     dat_FCNN_dir    = "/home/sindre/msc_thesis/data-driven_corrections/results/2021-05-01-2D_new_DDM/2D_GlobalDense_s"
-    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2D_V8"
+    output_dir      = "/home/sindre/msc_thesis/data-driven_corrections/thesis_figures/2021-06-19_2D_q"
 
     use_CNN_results   = False
     use_FCNN_results  = True
@@ -278,8 +278,8 @@ def main():
     use_res_results   = False
     use_dat_results   = True
 
-    plot_profiles = True
-    plot_errors   = False
+    plot_profiles = False
+    plot_errors   = True
 
     os.makedirs(output_dir, exist_ok=True)
 
