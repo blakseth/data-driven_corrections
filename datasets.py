@@ -75,58 +75,40 @@ def create_parametrized_datasets(cfg):
             def get_q_error(x, y, t, alpha):
                 return cfg.get_q_hat(x, y, t, alpha) - cfg.get_q_hat_approx(x, y, t, alpha)
             src_field = sources[a][-1] / cfg.dt
-            #src_field = plot_stats_dict['src_mean'][a][i] #/ cfg.dt
             print(src_field)
             ref_dense = get_q_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             print(ref_dense)
+            
             eps = 0.001
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)]) - eps
             maxmax = np.min([np.amax(src_field), np.amax(ref_dense)]) + eps
+            
             fig, axs = plt.subplots(1, 2)
+            
             surf = axs[0].contourf(cfg.x_nodes, cfg.y_nodes, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
             for c in surf.collections:
                 c.set_edgecolor("face")
-            #im = axs[0, 0].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
-            #                 extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
-            #                         cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
-            #axs[0, 0].set_title('')
-            #surf = axs[0, 1].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
-            #for c in surf.collections:
-            #    c.set_edgecolor("face")
-            #axs[0, 1].set_title('')
+                
             im2 = axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
-            #fig.colorbar(im, ax=axs.ravel().tolist())
-            #plt.figure()
-            #plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][a][i], 'b-', linewidth=2.0,
-            #         label="Corrected, mean")
-            #plt.plot(x_dense,
-            #         cfg.get_q_hat(x_dense, plot_times[i], alpha) - cfg.get_q_hat_approx(x_dense, plot_times[i], alpha),
-            #         'k-', linewidth=2.0, label="Reference")
-            #plt.fill_between(plot_stats_dict['x'][1:-1],
-            #                 plot_stats_dict['src_mean'][a][i] + plot_stats_dict['src_std'][a][i],
-            #                 plot_stats_dict['src_mean'][a][i] - plot_stats_dict['src_std'][a][i],
-            #                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
-            #plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
-            #plt.xlabel(r"$x$ (m)", fontsize=20)
-            #plt.ylabel(r"$T$ (K)", fontsize=20)
-            fig.colorbar(surf, ax=axs[0])
-            fig.colorbar(im2,  ax=axs[1])
             for ax in fig.get_axes():
-                ax.set_xlim((cfg.x_a, cfg.x_b))
-                ax.set_ylim((cfg.y_c, cfg.y_d))
+                ax.set_xlim((x_a, x_b))
+                ax.set_ylim((y_c, y_d))
                 ax.set_xlabel(r'$x$ (m)')
                 ax.set_ylabel(r'$y$ (m)')
-            #ax.label_outer()
-            plt.xticks(fontsize=17)
-            plt.yticks(fontsize=17)
-            plt.grid()
-            #plt.legend(prop={'size': 17})
+                ax.label_outer()
+                ax.set(adjustable='box', aspect='equal')
+            fig.colorbar(surf, ax=axs[0, 0])
+            fig.colorbar(im2,  ax=axs[0, 1])
+            fig.colorbar(im3,  ax=axs[1, 0])
+            fig.colorbar(im4,  ax=axs[1, 1])
+
             plt.tight_layout()
             plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
                         bbox_inches='tight')
             plt.close()
+            
 
     # Store data
     simulation_data = {
