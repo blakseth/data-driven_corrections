@@ -101,8 +101,9 @@ def create_parametrized_datasets(cfg):
                 ax.set_ylabel(r'$y$ (m)')
                 ax.label_outer()
                 ax.set(adjustable='box', aspect='equal')
-            #fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04)
-            fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04)
+            ticks = np.linspace(np.round(minmin), np.round(maxmax), 5, endpoint=True)
+            fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
+            fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
 
             plt.tight_layout()
             plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
