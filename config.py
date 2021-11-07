@@ -29,7 +29,7 @@ group_name = "2021-11-07_debug_2D_src_visualization"
 run_names  = [["debug1"]]
 systems    = ["1"]
 data_tags  = ["2D_s1_debug"]
-model_type = 'hyb'
+model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
