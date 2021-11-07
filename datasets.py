@@ -71,7 +71,7 @@ def create_parametrized_datasets(cfg):
             )
             np.testing.assert_allclose(corrected, ref_Ts[a][i], rtol=1e-10, atol=1e-10)
             
-        if alpha in [-0.5, 0.7, 1.5, 2.5]
+        if alpha in [-0.5, 0.7, 1.5, 2.5]:
             def get_q_error(x, y, t, alpha):
                 return cfg.get_q_hat(x, y, t, alpha) - cfg.get_q_hat_approx(x, y, t, alpha)
             src_field = sources[a][-1]
