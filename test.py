@@ -150,7 +150,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 return cfg.get_q(x, y, t, alpha) - cfg.get_q_approx(x, y, t, alpha)
             for i in range(plot_stats_dict['src_mean'][a].shape[0]):
                 src_field = plot_stats_dict['src_mean'][a][i] / cfg.dt
-                ref_dense = cfg.get_q_error(x_dense, y_dense, plot_times[i], alpha)
+                ref_dense = get_q_error(x_dense, y_dense, plot_times[i], alpha)
                 minmin = np.min([np.amin(unc_field), np.amin(cor_field), np.amin(ref_field), np.amin(ref_dense)])
                 maxmax = np.min([np.amax(unc_field), np.amax(cor_field), np.amax(ref_field), np.amax(ref_dense)])
                 fig, axs = plt.subplots(1, 2)
