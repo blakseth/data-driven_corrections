@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-11-07_debug_2D_src_visualization"
-run_names  = [["debug1"]]
+run_names  = [["debug2"]]
 systems    = ["1"]
 data_tags  = ["2D_s1_debug"]
 model_type = 'hybrid'
@@ -559,8 +559,8 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Training configuration.
 
-        self.max_train_it = int(1e4) # Change to 1e6 when done debugging.
-        self.min_train_it = int(1e4)
+        self.max_train_it = int(1e3) # Change to 1e6 when done debugging.
+        self.min_train_it = int(1e3)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
         self.print_train_loss_period = int(4e2) # Number of training iterations per save of training losses.
