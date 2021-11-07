@@ -99,7 +99,7 @@ def create_parametrized_datasets(cfg):
                 ax.set_ylabel(r'$y$ (m)')
                 ax.label_outer()
                 ax.set(adjustable='box', aspect='equal')
-            fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04)
+            #fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04)
             fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04)
 
             plt.tight_layout()
