@@ -154,7 +154,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 minmin = np.min([np.amin(unc_field), np.amin(cor_field), np.amin(ref_field), np.amin(ref_dense)])
                 maxmax = np.min([np.amax(unc_field), np.amax(cor_field), np.amax(ref_field), np.amax(ref_dense)])
                 fig, axs = plt.subplots(1, 2)
-                surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+                surf = axs[0].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
                 for c in surf.collections:
                     c.set_edgecolor("face")
                 #im = axs[0, 0].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
@@ -165,7 +165,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 #for c in surf.collections:
                 #    c.set_edgecolor("face")
                 #axs[0, 1].set_title('')
-                axs[0, 1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
+                axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                                  extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                          cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
                 #fig.colorbar(im, ax=axs.ravel().tolist())
