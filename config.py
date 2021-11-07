@@ -25,11 +25,11 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-04-25_2D_experiment_redo_s4"
-run_names  = [["2D_GlobalDense_s4_DDM"]]
-systems    = ["4"]
-data_tags  = ["2D_s4"]
-model_type = 'data'
+group_name = "2021-11-07_debug_2D_src_visualization"
+run_names  = [["debug1"]]
+systems    = ["1"]
+data_tags  = ["2D_s1_debug"]
+model_type = 'hyb'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
 assert len(run_names) == len(model_keys)
@@ -110,7 +110,7 @@ class Config:
 
         if self.system == "1":
             exact_solution_available = True
-            t_end     = 5.0
+            t_end     = 0.1 # Change when done debugging.
             x_a       = 0.0
             x_b       = 1.0
             y_c       = 0.0
@@ -559,7 +559,7 @@ class Config:
         #---------------------------------------------------------------------------------------------------------------
         # Training configuration.
 
-        self.max_train_it = int(1e6)
+        self.max_train_it = int(1e4) # Change to 1e6 when done debugging.
         self.min_train_it = int(1e4)
 
         self.save_train_loss_period = int(1e2)  # Number of training iterations per save of training losses.
