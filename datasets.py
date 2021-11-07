@@ -74,13 +74,13 @@ def create_parametrized_datasets(cfg):
         if alpha in [-0.5, 0.7, 1.5, 2.5]:
             def get_q_error(x, y, t, alpha):
                 return cfg.get_q_hat(x, y, t, alpha) - cfg.get_q_hat_approx(x, y, t, alpha)
-            src_field = sources[a][-1]
+            src_field = sources[a][-1] / cfg.dt
             #src_field = plot_stats_dict['src_mean'][a][i] #/ cfg.dt
             print(src_field)
             ref_dense = get_q_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             print(ref_dense)
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)])
-            maxmax = np.min([np.amax(src_field), np.amax(ref_field)])
+            maxmax = np.min([np.amax(src_field), np.amax(ref_dense)])
             fig, axs = plt.subplots(1, 2)
             surf = axs[0].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
             for c in surf.collections:
