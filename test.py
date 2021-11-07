@@ -147,7 +147,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
     if 'src_mean' in plot_stats_dict.keys():
         for a, alpha in enumerate(plot_stats_dict['alphas']):
             def get_q_error(x, y, t, alpha):
-                return cfg.get_q(x, y, t, alpha) - cfg.get_q_approx(x, y, t, alpha)
+                return cfg.get_q_hat(x, y, t, alpha) - cfg.get_q_hat_approx(x, y, t, alpha)
             for i in range(plot_stats_dict['src_mean'][a].shape[0]):
                 src_field = plot_stats_dict['src_mean'][a][i] / cfg.dt
                 ref_dense = get_q_error(x_dense, y_dense, plot_times[i], alpha)
