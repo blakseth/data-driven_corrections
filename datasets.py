@@ -101,7 +101,8 @@ def create_parametrized_datasets(cfg):
                 ax.set_ylabel(r'$y$ (m)')
                 ax.label_outer()
                 ax.set(adjustable='box', aspect='equal')
-            ticks = np.linspace(np.round(minmin), np.round(maxmax), 5, endpoint=True)
+            maxabs = max(abs(minmin), abs(maxmax))
+            ticks = np.linspace(-np.round(0.9*maxabs), np.round(0.9*maxabs), 5, endpoint=True)
             fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
             fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
 
