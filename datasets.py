@@ -82,7 +82,7 @@ def create_parametrized_datasets(cfg):
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)])
             maxmax = np.min([np.amax(src_field), np.amax(ref_dense)])
             fig, axs = plt.subplots(1, 2)
-            surf = axs[0].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+            surf = axs[0].contourf(cfg.x_nodes, cfg.y_nodes, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
             for c in surf.collections:
                 c.set_edgecolor("face")
             #im = axs[0, 0].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
