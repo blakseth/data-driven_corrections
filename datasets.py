@@ -118,7 +118,7 @@ def create_parametrized_datasets(cfg):
                 ax.set_ylim((cfg.y_c, cfg.y_d))
                 ax.set_xlabel(r'$x$ (m)')
                 ax.set_ylabel(r'$y$ (m)')
-            ax.label_outer()
+            #ax.label_outer()
             plt.xticks(fontsize=17)
             plt.yticks(fontsize=17)
             plt.grid()
