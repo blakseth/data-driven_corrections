@@ -151,8 +151,8 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             for i in range(plot_stats_dict['src_mean'][a].shape[0]):
                 src_field = plot_stats_dict['src_mean'][a][i] / cfg.dt
                 ref_dense = get_q_error(x_dense, y_dense, plot_times[i], alpha)
-                minmin = np.min([np.amin(unc_field), np.amin(cor_field), np.amin(ref_field), np.amin(ref_dense)])
-                maxmax = np.min([np.amax(unc_field), np.amax(cor_field), np.amax(ref_field), np.amax(ref_dense)])
+                minmin = np.min([np.amin(src_field), np.amin(ref_dense)])
+                maxmax = np.min([np.amax(src_field), np.amax(ref_field)])
                 fig, axs = plt.subplots(1, 2)
                 surf = axs[0].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
                 for c in surf.collections:
@@ -191,7 +191,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 plt.xticks(fontsize=17)
                 plt.yticks(fontsize=17)
                 plt.grid()
-                plt.legend(prop={'size': 17})
+                #plt.legend(prop={'size': 17})
                 plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"),
                             bbox_inches='tight')
                 plt.close()
