@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-11-07_debug_2D_src_visualization"
-run_names  = [["debug3"]]
+run_names  = [["datasetP1"]]
 systems    = ["1"]
 data_tags  = ["2D_s1_debug"]
 model_type = 'hybrid'
