@@ -79,8 +79,9 @@ def create_parametrized_datasets(cfg):
             print(src_field)
             ref_dense = get_q_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             print(ref_dense)
-            minmin = np.min([np.amin(src_field), np.amin(ref_dense)])
-            maxmax = np.min([np.amax(src_field), np.amax(ref_dense)])
+            eps = 0.001
+            minmin = np.min([np.amin(src_field), np.amin(ref_dense)]) - eps
+            maxmax = np.min([np.amax(src_field), np.amax(ref_dense)]) + eps
             fig, axs = plt.subplots(1, 2)
             surf = axs[0].contourf(cfg.x_nodes, cfg.y_nodes, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
             for c in surf.collections:
@@ -93,7 +94,7 @@ def create_parametrized_datasets(cfg):
             #for c in surf.collections:
             #    c.set_edgecolor("face")
             #axs[0, 1].set_title('')
-            axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
+            im2 = axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
             #fig.colorbar(im, ax=axs.ravel().tolist())
@@ -110,6 +111,8 @@ def create_parametrized_datasets(cfg):
             #plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
             #plt.xlabel(r"$x$ (m)", fontsize=20)
             #plt.ylabel(r"$T$ (K)", fontsize=20)
+            fig.colorbar(surf, ax=axs[0])
+            fig.colorbar(im2,  ax=axs[1])
             for ax in fig.get_axes():
                 ax.set_xlim((cfg.x_a, cfg.x_b))
                 ax.set_ylim((cfg.y_c, cfg.y_d))
