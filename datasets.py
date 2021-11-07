@@ -93,8 +93,8 @@ def create_parametrized_datasets(cfg):
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
             for ax in fig.get_axes():
-                ax.set_xlim((x_a, x_b))
-                ax.set_ylim((y_c, y_d))
+                ax.set_xlim((cfg.x_a, cfg.x_b))
+                ax.set_ylim((cfg.y_c, cfg.y_d))
                 ax.set_xlabel(r'$x$ (m)')
                 ax.set_ylabel(r'$y$ (m)')
                 ax.label_outer()
