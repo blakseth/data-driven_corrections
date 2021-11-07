@@ -92,6 +92,8 @@ def create_parametrized_datasets(cfg):
             im2 = axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                      cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+            asp = np.diff(axs[1].get_xlim())[0] / np.diff(axs[1].get_ylim())[0]
+            axs[1].set_aspect(asp)
             for ax in fig.get_axes():
                 ax.set_xlim((cfg.x_a, cfg.x_b))
                 ax.set_ylim((cfg.y_c, cfg.y_d))
