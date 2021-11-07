@@ -269,7 +269,7 @@ class Config:
                 return np.ones((x.shape[0], y.shape[0])) * cV_ref
         elif self.system == "4":
             exact_solution_available = True
-            t_end     = 5.0
+            t_end     = 0.1
             x_a       = 0.0
             x_b       = 1.0
             y_c       = 0.0
