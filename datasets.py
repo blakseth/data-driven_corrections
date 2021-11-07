@@ -78,7 +78,7 @@ def create_parametrized_datasets(cfg):
             #src_field = plot_stats_dict['src_mean'][a][i] #/ cfg.dt
             print(src_field)
             ref_dense = get_q_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
-            print(ref_field)
+            print(ref_dense)
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)])
             maxmax = np.min([np.amax(src_field), np.amax(ref_field)])
             fig, axs = plt.subplots(1, 2)
