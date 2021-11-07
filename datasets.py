@@ -123,6 +123,7 @@ def create_parametrized_datasets(cfg):
             plt.yticks(fontsize=17)
             plt.grid()
             #plt.legend(prop={'size': 17})
+            plt.tight_layout()
             plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
                         bbox_inches='tight')
             plt.close()
