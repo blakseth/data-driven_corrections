@@ -311,7 +311,16 @@ class Config:
             def get_T_d(x, t, alpha):
                 return get_T_exact(x, y_d, t, alpha)
             def get_q_hat(x, y, t, alpha):
-                return 2*np.pi*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)*(np.cos(2*np.pi*t + alpha) + 4*np.pi*np.sin(2*np.pi*t + alpha))
+                def local_q(x, y, t, alpha):
+                    return 2*np.pi*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)*(np.cos(2*np.pi*t + alpha) + 4*np.pi*np.sin(2*np.pi*t + alpha))
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    q = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            q[j, i] = local_q(x_, y_, t, alpha)
+                    return q
+                else:
+                    return local_q(x, y, t, alpha)
             def get_q_hat_approx(x, y, t, alpha):
                 return np.zeros((x.shape[0], y.shape[0]))
             def get_k(x, y):
