@@ -142,24 +142,52 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
             plt.savefig(os.path.join(cfg.run_dir, "profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(
                 np.around(plot_times[i], decimals=5)) + ".pdf"), bbox_inches='tight')
             plt.close()
-    """
+    
     # Visualize correction source terms (if applicable).
     if 'src_mean' in plot_stats_dict.keys():
         for a, alpha in enumerate(plot_stats_dict['alphas']):
+            def get_q_error(x, y, t, alpha):
+                return cfg.get_q(x, y, t, alpha) - cfg.get_q_approx(x, y, t, alpha)
             for i in range(plot_stats_dict['src_mean'][a].shape[0]):
-                plt.figure()
-                plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][a][i], 'b-', linewidth=2.0,
-                         label="Corrected, mean")
-                plt.plot(x_dense,
-                         cfg.get_q_hat(x_dense, plot_times[i], alpha) - cfg.get_q_hat_approx(x_dense, plot_times[i], alpha),
-                         'k-', linewidth=2.0, label="Reference")
-                plt.fill_between(plot_stats_dict['x'][1:-1],
-                                 plot_stats_dict['src_mean'][a][i] + plot_stats_dict['src_std'][a][i],
-                                 plot_stats_dict['src_mean'][a][i] - plot_stats_dict['src_std'][a][i],
-                                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
-                plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
-                plt.xlabel(r"$x$ (m)", fontsize=20)
-                plt.ylabel(r"$T$ (K)", fontsize=20)
+                src_field = plot_stats_dict['src_mean'][a][i] / self.dt
+                ref_dense = cfg.get_q_error(x_dense, y_dense, plot_times[i], alpha)
+                minmin = np.min([np.amin(unc_field), np.amin(cor_field), np.amin(ref_field), np.amin(ref_dense)])
+                maxmax = np.min([np.amax(unc_field), np.amax(cor_field), np.amax(ref_field), np.amax(ref_dense)])
+                fig, axs = plt.subplots(1, 2)
+                surf = axs[0, 0].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+                for c in surf.collections:
+                    c.set_edgecolor("face")
+                #im = axs[0, 0].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
+                #                 extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+                #                         cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+                #axs[0, 0].set_title('')
+                #surf = axs[0, 1].contourf(x_dense, y_dense, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+                #for c in surf.collections:
+                #    c.set_edgecolor("face")
+                #axs[0, 1].set_title('')
+                axs[0, 1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
+                                 extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+                                         cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+                #fig.colorbar(im, ax=axs.ravel().tolist())
+                #plt.figure()
+                #plt.plot(plot_stats_dict['x'][1:-1], plot_stats_dict['src_mean'][a][i], 'b-', linewidth=2.0,
+                #         label="Corrected, mean")
+                #plt.plot(x_dense,
+                #         cfg.get_q_hat(x_dense, plot_times[i], alpha) - cfg.get_q_hat_approx(x_dense, plot_times[i], alpha),
+                #         'k-', linewidth=2.0, label="Reference")
+                #plt.fill_between(plot_stats_dict['x'][1:-1],
+                #                 plot_stats_dict['src_mean'][a][i] + plot_stats_dict['src_std'][a][i],
+                #                 plot_stats_dict['src_mean'][a][i] - plot_stats_dict['src_std'][a][i],
+                #                 facecolor='yellow', alpha=0.5, label="Corrected, std.dev.")
+                #plt.xlim([plot_stats_dict['x'][0], plot_stats_dict['x'][-1]])
+                #plt.xlabel(r"$x$ (m)", fontsize=20)
+                #plt.ylabel(r"$T$ (K)", fontsize=20)
+                for ax in fig.get_axes():
+                    ax.set_xlim((cfg.x_a, cfg.x_b))
+                    ax.set_ylim((cfg.y_c, cfg.y_d))
+                    ax.set_xlabel(r'$x$ (m)')
+                    ax.set_ylabel(r'$y$ (m)')
+                ax.label_outer()
                 plt.xticks(fontsize=17)
                 plt.yticks(fontsize=17)
                 plt.grid()
@@ -167,7 +195,7 @@ def visualize_test_data(cfg, error_stats_dict, plot_stats_dict):
                 plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(plot_times[i], decimals=5)) + ".pdf"),
                             bbox_inches='tight')
                 plt.close()
-    """
+    
 
 ########################################################################################################################
 # Helper function for saving test data.
