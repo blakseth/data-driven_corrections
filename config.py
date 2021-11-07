@@ -26,9 +26,9 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-11-07_debug_2D_src_visualization"
-run_names  = [["datasetP1"]]
-systems    = ["1"]
-data_tags  = ["2D_s1_debug"]
+run_names  = [["datasetP2"]]
+systems    = ["4"]
+data_tags  = ["2D_s4_src_vis"]
 model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
