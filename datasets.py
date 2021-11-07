@@ -74,9 +74,11 @@ def create_parametrized_datasets(cfg):
         if alpha in [-0.5, 0.7, 1.5, 2.5]
             def get_q_error(x, y, t, alpha):
                 return cfg.get_q_hat(x, y, t, alpha) - cfg.get_q_hat_approx(x, y, t, alpha)
-            src_field = plot_stats_dict['src_mean'][a][i] #/ cfg.dt
-            print(
-            ref_dense = get_q_error(x_dense, y_dense, plot_times[i], alpha)
+            src_field = sources[a][-1]
+            #src_field = plot_stats_dict['src_mean'][a][i] #/ cfg.dt
+            print(src_field)
+            ref_dense = get_q_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
+            print(ref_field)
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)])
             maxmax = np.min([np.amax(src_field), np.amax(ref_field)])
             fig, axs = plt.subplots(1, 2)
