@@ -111,6 +111,7 @@ def create_parametrized_datasets(cfg):
                   a[idx][idx] += (aN[i][j])
 
                 if idx + cfg.N_x < cfg.N_x*cfg.N_y:
+                    print("i:", i, " j:", j, " idx+N_x:", idx+cfg.N_x)
                   a[idx][idx + cfg.N_x] = (aN[i][j])
                 if idx - cfg.N_x >= 0:
                   a[idx][idx - cfg.N_x] = (aS[i][j])
