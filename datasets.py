@@ -87,31 +87,33 @@ def create_parametrized_datasets(cfg):
             aP = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
 
             for i_ in range(cfg.N_x):
-              for j_ in range(cfg.N_y):
-                i = i_ + 1
-                j = j_ + 1
-                aE[i_][j_] = 0.5*(T[j][j+1] - T[i][j])/(cfg.x_nodes[i+1] - cfg.x_nodes[i])
-                aW[i_][j_] = 0.5*(T[i][j] - T[i][j-1])/(cfg.x_nodes[i] - cfg.x_nodes[i-1])
-                aS[i_][j_] = 0.5*(T[i][j] - T[i-1][j])/(cfg.y_nodes[j] - cfg.y_nodes[j-1])
-                aN[i_][j_] = 0.5*(T[i+1][j] - T[i][j])/(cfg.y_nodes[j+1] - cfg.y_nodes[j])
-                aP[i_][j_] = aE[i_][j_] + aN[i_][j_] - aW[i_][j_] - aS[i_][j_]
+                for j_ in range(cfg.N_y):
+                    i = i_ + 1
+                    j = j_ + 1
+                    aE[i_][j_] = 0.5*(T[j][j+1] - T[i][j])/(cfg.x_nodes[i+1] - cfg.x_nodes[i])
+                    aW[i_][j_] = 0.5*(T[i][j] - T[i][j-1])/(cfg.x_nodes[i] - cfg.x_nodes[i-1])
+                    aS[i_][j_] = 0.5*(T[i][j] - T[i-1][j])/(cfg.y_nodes[j] - cfg.y_nodes[j-1])
+                    aN[i_][j_] = 0.5*(T[i+1][j] - T[i][j])/(cfg.y_nodes[j+1] - cfg.y_nodes[j])
+                    aP[i_][j_] = aE[i_][j_] + aN[i_][j_] - aW[i_][j_] - aS[i_][j_]
 
             a = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
             for i in range(cfg.N_x):
                 for j in range(cfg.N_y):
                     idx = i*cfg.N_x + j
                     a[idx][idx] = aP[i][j]
-                    if j == 0:
-                        a[idx][idx] += (aW[i][j])
                     if i == 0:
+                        a[idx][idx] += (aW[i][j])
+                    if j == 0:
                         a[idx][idx] += (aS[i][j])
-                    if j == 3:
+                    if i == cfg.N_x - 1:
                         a[idx][idx] += (aE[i][j])
-                    if i == 3:
+                    if j == cfg.N_y - 1:
                         a[idx][idx] += (aN[i][j])
 
                     if idx + cfg.N_x < cfg.N_x*cfg.N_y:
                         print("i:", i, " j:", j, " idx+N_x:", idx+cfg.N_x)
+                        print("a:", len(a), len(a[0]))
+                        print("aN:", len(aN), len(aN[0]))
                         a[idx][idx + cfg.N_x] = (aN[i][j])
                     if idx - cfg.N_x >= 0:
                         a[idx][idx - cfg.N_x] = (aS[i][j])
