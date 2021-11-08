@@ -26,9 +26,9 @@ torch.backends.cudnn.benchmark = False
 
 use_GPU    = True
 group_name = "2021-11-08_source_visualization"
-run_names  = [["2D_GlobalDense_k5_DDM"]]
-systems    = ["k5"]
-data_tags  = ["2D_k5"]
+run_names  = [["k1"]]
+systems    = ["k1"]
+data_tags  = ["k1_vis"]
 model_type = 'data'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
