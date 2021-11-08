@@ -73,7 +73,7 @@ def create_parametrized_datasets(cfg):
         
         if alpha in [-0.5, 0.7, 1.5, 2.5]:
             def get_k_error(x, y, t, alpha):
-                return cfg.get_k(x, y, t, alpha) - cfg.get_k_approx(x, y, t, alpha)
+                return cfg.get_k(x, y, t, alpha) - cfg.get_k_approx(x, y)
             src_field = sources[a][-1] / cfg.dt
             print(src_field)
             ref_dense = get_k_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
