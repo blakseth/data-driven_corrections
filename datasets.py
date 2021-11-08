@@ -90,10 +90,10 @@ def create_parametrized_datasets(cfg):
               for j_ in range(cfg.N_y):
                 i = i_ + 1
                 j = j_ + 1
-                aE[i_][j_] = 0.5*(T[j][j+1] - T[i][j])/(x[i+1] - x[i])
-                aW[i_][j_] = 0.5*(T[i][j] - T[i][j-1])/(x[i] - x[i-1])
-                aS[i_][j_] = 0.5*(T[i][j] - T[i-1][j])/(y[j] - y[j-1])
-                aN[i_][j_] = 0.5*(T[i+1][j] - T[i][j])/(y[j+1] - y[j])
+                aE[i_][j_] = 0.5*(T[j][j+1] - T[i][j])/(cfg.x_nodes[i+1] - cfg.x_nodes[i])
+                aW[i_][j_] = 0.5*(T[i][j] - T[i][j-1])/(cfg.x_nodes[i] - cfg.x_nodes[i-1])
+                aS[i_][j_] = 0.5*(T[i][j] - T[i-1][j])/(cfg.y_nodes[j] - cfg.y_nodes[j-1])
+                aN[i_][j_] = 0.5*(T[i+1][j] - T[i][j])/(cfg.y_nodes[j+1] - cfg.y_nodes[j])
                 aP[i_][j_] = aE[i_][j_] + aN[i_][j_] - aW[i_][j_] - aS[i_][j_]
 
             a = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
