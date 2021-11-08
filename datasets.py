@@ -125,7 +125,7 @@ def create_parametrized_datasets(cfg):
             sigma_vec = np.zeros(cfg.N_x * cfg.N_y)
             for i in range(cfg.N_x):
                 for j in range(cfg.N_y):
-                    sigma_vec[i*N_x + j] = src_field[i][j]
+                    sigma_vec[i*cfg.N_x + j] = src_field[i][j]
             print("solving")
             eps_vec = np.solve(a, sigma_vec)
             print("solved")
