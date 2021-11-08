@@ -129,6 +129,7 @@ def create_parametrized_datasets(cfg):
                     sigma_vec[i*cfg.N_x + j] = src_field[i][j]
             print("solving")
             eps_vec = scipy.linalg.solve(a, sigma_vec)
+            print(eps_vec)
             eps_matrix = eps_vec.reshape((cfg.N_x, cfg.N_y), order='F')
             print("solved")
             #eps_matrix = np.zeros((cfg.N_x, cfg.N_y))
