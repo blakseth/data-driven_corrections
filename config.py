@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-05-02_2D_missing conductivity"
+group_name = "2021-11-08_source_visualization"
 run_names  = [["2D_GlobalDense_k5_DDM"]]
 systems    = ["k5"]
 data_tags  = ["2D_k5"]
@@ -110,7 +110,7 @@ class Config:
 
         if self.system == "k1":
             exact_solution_available = True
-            t_end     = 5.0
+            t_end     = 0.1
             x_a       = 0.0
             x_b       = 1.0
             y_c       = 0.0
@@ -173,7 +173,16 @@ class Config:
                 else:
                     return get_q_hat(x, y, t, alpha)
             def get_k(x, y, t, alpha):
-                return 1 + x + y
+                def k_local(x, y, t, alpha):
+                    return 1 + x + y
+                if type(x) is np.ndarray and type(y) is np.ndarray:
+                    k = np.zeros((x.shape[0], y.shape[0]))
+                    for i, y_ in enumerate(y):
+                        for j, x_ in enumerate(x):
+                            k[j, i] = k_local(x_, y_, t, alpha)
+                    return k
+                else:
+                    return k_local(x, y, t, alpha)
             def get_k_approx(x, y):
                 return np.ones((x.shape[0], y.shape[0])) * k_ref
             def get_cV(x, y):
