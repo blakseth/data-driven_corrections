@@ -39,7 +39,7 @@ def create_parametrized_datasets(cfg):
     res_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
     IC_Ts = np.zeros((cfg.alphas.shape[0],  cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
     sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x, cfg.N_y))
-    for a, alpha in enumerate(cfg.alphas):
+    for a, alpha in [0.7, 1.5, -0.5, 2.5]:
         unc_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
         ref_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
         IC_Ts[a][0]  = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
@@ -70,6 +70,98 @@ def create_parametrized_datasets(cfg):
                 cfg, ref_Ts[a][i-1], old_time, new_time, alpha, cfg.get_q_hat_approx, sources[a][i]
             )
             np.testing.assert_allclose(corrected, ref_Ts[a][i], rtol=1e-10, atol=1e-10)
+        
+        if alpha in [-0.5, 0.7, 1.5, 2.5]:
+            def get_k_error(x, y, t, alpha):
+                return cfg.get_k(x, y, t, alpha) - cfg.get_k_approx(x, y, t, alpha)
+            src_field = sources[a][-1] / cfg.dt
+            print(src_field)
+            ref_dense = get_k_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
+            print(ref_dense)
+            
+            T = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
+            aE = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
+            aW = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
+            aS = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
+            aN = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
+            aP = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
+
+            for i_ in range(cfg.N_x):
+              for j_ in range(cfg.N_y):
+                i = i_ + 1
+                j = j_ + 1
+                aE[i_][j_] = 0.5*(T[j][j+1] - T[i][j])/(x[i+1] - x[i])
+                aW[i_][j_] = 0.5*(T[i][j] - T[i][j-1])/(x[i] - x[i-1])
+                aS[i_][j_] = 0.5*(T[i][j] - T[i-1][j])/(y[j] - y[j-1])
+                aN[i_][j_] = 0.5*(T[i+1][j] - T[i][j])/(y[j+1] - y[j])
+                aP[i_][j_] = aE[i_][j_] + aN[i_][j_] - aW[i_][j_] - aS[i_][j_]
+
+            a = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
+            for i in range(cfg.N_x):
+              for j in range(cfg.N_y):
+                idx = i*cfg.N_x + j
+                a[idx][idx] = aP[i][j]
+                if j == 0:
+                  a[idx][idx] += (aW[i][j])
+                if i == 0:
+                  a[idx][idx] += (aS[i][j])
+                if j == 3:
+                  a[idx][idx] += (aE[i][j])
+                if i == 3:
+                  a[idx][idx] += (aN[i][j])
+
+                if idx + cfg.N_x < cfg.N_x*cfg.N_y:
+                  a[idx][idx + cfg.N_x] = (aN[i][j])
+                if idx - cfg.N_x >= 0:
+                  a[idx][idx - cfg.N_x] = (aS[i][j])
+                if idx % 4 != 0:
+                  a[idx][idx - 1] = (aW[i][j])
+                if idx % cfg.N_x != cfg.N_x - 1:
+                  a[idx][idx + 1] = (aE[i][j])
+            
+            sigma_vec = np.zeros(cfg.N_x * cfg.N_y)
+            for i in range(cfg.N_x):
+                for j in range(cfg.N_y):
+                    sigma_vec[i*N_x + j] = src_field[i][j]
+            print("solving")
+            eps_vec = np.solve(a, sigma_vec)
+            print("solved")
+            eps_matrix = np.zeros((cfg.N_x, cfg.N_y))
+            for i in range(cfg.N_x):
+                for j in range(cfg.N_y):
+                    eps_matrix[i][j] = eps_vec[i*cfg.N_x + j]
+            
+            tol = 0.001
+            minmin = np.min([np.amin(src_field), np.amin(ref_dense)]) - tol
+            maxmax = np.min([np.amax(src_field), np.amax(ref_dense)]) + tol
+            
+            fig, axs = plt.subplots(1, 2)
+            
+            surf = axs[0].contourf(cfg.x_nodes, cfg.y_nodes, np.swapaxes(ref_dense, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+            for c in surf.collections:
+                c.set_edgecolor("face")
+                
+            im2 = axs[1].imshow(np.flip(np.swapaxes(eps_matrix, 0, 1), 0), vmin=minmin, vmax=maxmax,
+                             extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+            asp = np.diff(axs[1].get_xlim())[0] / np.diff(axs[1].get_ylim())[0]
+            axs[1].set_aspect(asp)
+            for ax in fig.get_axes():
+                ax.set_xlim((cfg.x_a, cfg.x_b))
+                ax.set_ylim((cfg.y_c, cfg.y_d))
+                ax.set_xlabel(r'$x$ (m)')
+                ax.set_ylabel(r'$y$ (m)')
+                ax.label_outer()
+                ax.set(adjustable='box', aspect='equal')
+            maxabs = max(abs(minmin), abs(maxmax))
+            ticks = np.linspace(-np.round(0.9*maxabs), np.round(0.9*maxabs), 5, endpoint=True)
+            fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
+            fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
+
+            plt.tight_layout()
+            plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
+                        bbox_inches='tight')
+            plt.close()
 
     # Store data
     simulation_data = {
