@@ -14,6 +14,7 @@ import numpy as np
 import numpy_indexed as npi
 import os
 import joblib
+import scipy.linalg
 import torch
 import torch.utils.data
 
