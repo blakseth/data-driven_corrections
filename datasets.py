@@ -39,7 +39,7 @@ def create_parametrized_datasets(cfg):
     res_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
     IC_Ts = np.zeros((cfg.alphas.shape[0],  cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
     sources = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x, cfg.N_y))
-    for a, alpha in [0.7, 1.5, -0.5, 2.5]:
+    for a, alpha in enumerate([0.7, 1.5, -0.5, 2.5]):
         unc_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
         ref_Ts[a][0] = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
         IC_Ts[a][0]  = cfg.get_T0(cfg.x_nodes, cfg.y_nodes, alpha)
