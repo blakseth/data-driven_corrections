@@ -78,9 +78,20 @@ def create_parametrized_datasets(cfg):
             src_field = sources[a][-1] / cfg.dt
             print(src_field)
             ref_dense = get_k_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
-            print(ref_dense)
+            #print(ref_dense)
             
+            eps_k = ref_dense
             T = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
+            x = cfg.x_nodes
+            y = cfg.y_nodes
+            sigma = 0.5*(
+                (eps_k[2:,1:-1]   + eps_k[1:-1,1:-1])*(T[2:,1:-1]   - T[1:-1,1:-1])/(x[2:]   - x[1:-1])) - 
+                (eps_k[1:-1,1:-1] + eps_k[:-2,1:-1]) *(T[1:-1,1:-1] - T[:-2,1:-1]) /(x[1:-1] - x[:-2]))  +
+                (eps_k[1:-1,2:]   + eps_k[1:-1,1:-1])*(T[1:-1,2:]   - T[1:-1,1:-1])/(y[2:]   - y[1:-1])) -
+                (eps_k[1:-1,1:-1] + eps_k[1:-1,:-2]) *(T[1:-1,1:-1] - T[1:-1,:-2]) /(y[1:-1] - y[:-2])) 
+            )
+            print(sigma)
+            
             aE = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
             aW = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
             aS = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
@@ -112,9 +123,9 @@ def create_parametrized_datasets(cfg):
                         a[idx][idx] += (aN[i][j])
 
                     if idx + cfg.N_x < cfg.N_x*cfg.N_y:
-                        print("i:", i, " j:", j, " idx+N_x:", idx+cfg.N_x)
-                        print("a:", len(a), len(a[0]))
-                        print("aN:", len(aN), len(aN[0]))
+                        #print("i:", i, " j:", j, " idx+N_x:", idx+cfg.N_x)
+                        #print("a:", len(a), len(a[0]))
+                        #print("aN:", len(aN), len(aN[0]))
                         a[idx][idx + cfg.N_x] = (aN[i][j])
                     if idx - cfg.N_x >= 0:
                         a[idx][idx - cfg.N_x] = (aS[i][j])
