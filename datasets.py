@@ -127,12 +127,13 @@ def create_parametrized_datasets(cfg):
                 for j in range(cfg.N_y):
                     sigma_vec[i*cfg.N_x + j] = src_field[i][j]
             print("solving")
-            eps_vec = np.solve(a, sigma_vec)
+            eps_vec = scipy.linalg.solve(a, sigma_vec)
+            eps_matrix = eps_vec.reshape((cfg.N_x, cfg.N_y), order='F')
             print("solved")
-            eps_matrix = np.zeros((cfg.N_x, cfg.N_y))
-            for i in range(cfg.N_x):
-                for j in range(cfg.N_y):
-                    eps_matrix[i][j] = eps_vec[i*cfg.N_x + j]
+            #eps_matrix = np.zeros((cfg.N_x, cfg.N_y))
+            #for i in range(cfg.N_x):
+            #    for j in range(cfg.N_y):
+            #        eps_matrix[i][j] = eps_vec[i*cfg.N_x + j]
             
             tol = 0.001
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)]) - tol
