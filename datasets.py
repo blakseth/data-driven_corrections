@@ -98,27 +98,27 @@ def create_parametrized_datasets(cfg):
 
             a = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
             for i in range(cfg.N_x):
-              for j in range(cfg.N_y):
-                idx = i*cfg.N_x + j
-                a[idx][idx] = aP[i][j]
-                if j == 0:
-                  a[idx][idx] += (aW[i][j])
-                if i == 0:
-                  a[idx][idx] += (aS[i][j])
-                if j == 3:
-                  a[idx][idx] += (aE[i][j])
-                if i == 3:
-                  a[idx][idx] += (aN[i][j])
+                for j in range(cfg.N_y):
+                    idx = i*cfg.N_x + j
+                    a[idx][idx] = aP[i][j]
+                    if j == 0:
+                        a[idx][idx] += (aW[i][j])
+                    if i == 0:
+                        a[idx][idx] += (aS[i][j])
+                    if j == 3:
+                        a[idx][idx] += (aE[i][j])
+                    if i == 3:
+                        a[idx][idx] += (aN[i][j])
 
-                if idx + cfg.N_x < cfg.N_x*cfg.N_y:
-                    print("i:", i, " j:", j, " idx+N_x:", idx+cfg.N_x)
-                  a[idx][idx + cfg.N_x] = (aN[i][j])
-                if idx - cfg.N_x >= 0:
-                  a[idx][idx - cfg.N_x] = (aS[i][j])
-                if idx % 4 != 0:
-                  a[idx][idx - 1] = (aW[i][j])
-                if idx % cfg.N_x != cfg.N_x - 1:
-                  a[idx][idx + 1] = (aE[i][j])
+                    if idx + cfg.N_x < cfg.N_x*cfg.N_y:
+                        print("i:", i, " j:", j, " idx+N_x:", idx+cfg.N_x)
+                        a[idx][idx + cfg.N_x] = (aN[i][j])
+                    if idx - cfg.N_x >= 0:
+                        a[idx][idx - cfg.N_x] = (aS[i][j])
+                    if idx % 4 != 0:
+                        a[idx][idx - 1] = (aW[i][j])
+                    if idx % cfg.N_x != cfg.N_x - 1:
+                        a[idx][idx + 1] = (aE[i][j])
             
             sigma_vec = np.zeros(cfg.N_x * cfg.N_y)
             for i in range(cfg.N_x):
