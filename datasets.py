@@ -38,9 +38,9 @@ def create_parametrized_datasets(cfg):
     
     # sample the colormaps that you want to use. Use 128 from each so we get 256
     # colors in total
-    colors1 = plt.cm.hot(np.linspace(0, 1, 88))
+    colors1 = plt.cm.hot(np.linspace(0, 1, 58))
     colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
-    colors2 = plt.cm.twilight(np.linspace(0, 0.4, 143))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.33, 173))
 
     # combine them and build a new colormap
     colors = np.vstack((colors1, colorsmid, colors2))
