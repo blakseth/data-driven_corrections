@@ -75,7 +75,7 @@ def create_parametrized_datasets(cfg):
         if alpha in [-0.5, 0.7, 1.5, 2.5]:
             def get_k_error(x, y, t, alpha):
                 return cfg.get_k(x, y, t, alpha) - cfg.get_k_approx(x, y)
-            src_field = sources[a][-1] #/ cfg.dt
+            src_field = sources[a][-1] * cfg.dx / cfg.dt # Okay multiply by dx everywhere since all grid cells are square and same size.
             print(src_field)
             ref_dense = get_k_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             #print(ref_dense)
@@ -84,7 +84,7 @@ def create_parametrized_datasets(cfg):
             T = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             x = cfg.x_nodes
             y = cfg.y_nodes
-            sigma = 0.5*cfg.dx*( # Okay to not use indexing since all grid cells are square and same size.
+            sigma = 0.5*( 
                 ((eps_k[2:,1:-1]   + eps_k[1:-1,1:-1])*(T[2:,1:-1]   - T[1:-1,1:-1])/(x[2:]   - x[1:-1])) \
                 - ((eps_k[1:-1,1:-1] + eps_k[:-2,1:-1]) *(T[1:-1,1:-1] - T[:-2,1:-1]) /(x[1:-1] - x[:-2])) \
                 + ((eps_k[1:-1,2:]   + eps_k[1:-1,1:-1])*(T[1:-1,2:]   - T[1:-1,1:-1])/(y[2:]   - y[1:-1])) \
