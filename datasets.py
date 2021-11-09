@@ -98,7 +98,7 @@ def create_parametrized_datasets(cfg):
             
             fig, axs = plt.subplots(1, 2)
             
-            surf = axs[0].contourf(cfg.x_nodes, cfg.y_nodes, np.swapaxes(sigma, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+            surf = axs[0].contourf(cfg.x_nodes[1:-1], cfg.y_nodes[1:-1], np.swapaxes(sigma, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
             for c in surf.collections:
                 c.set_edgecolor("face")
                 
