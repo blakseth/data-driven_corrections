@@ -75,7 +75,7 @@ def create_parametrized_datasets(cfg):
         if alpha in [-0.5, 0.7, 1.5, 2.5]:
             def get_k_error(x, y, t, alpha):
                 return cfg.get_k(x, y, t, alpha) - cfg.get_k_approx(x, y)
-            src_field = sources[a][-1] / cfg.dt
+            src_field = sources[a][-1] #/ cfg.dt
             print(src_field)
             ref_dense = get_k_error(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             #print(ref_dense)
@@ -84,13 +84,45 @@ def create_parametrized_datasets(cfg):
             T = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             x = cfg.x_nodes
             y = cfg.y_nodes
-            sigma = 0.5*(
+            sigma = 0.5*cfg.dx( # Okay to not use indexing since all grid cells are square and same size.
                 ((eps_k[2:,1:-1]   + eps_k[1:-1,1:-1])*(T[2:,1:-1]   - T[1:-1,1:-1])/(x[2:]   - x[1:-1])) \
                 - ((eps_k[1:-1,1:-1] + eps_k[:-2,1:-1]) *(T[1:-1,1:-1] - T[:-2,1:-1]) /(x[1:-1] - x[:-2])) \
                 + ((eps_k[1:-1,2:]   + eps_k[1:-1,1:-1])*(T[1:-1,2:]   - T[1:-1,1:-1])/(y[2:]   - y[1:-1])) \
                 - ((eps_k[1:-1,1:-1] + eps_k[1:-1,:-2]) *(T[1:-1,1:-1] - T[1:-1,:-2]) /(y[1:-1] - y[:-2])) 
             )
             print(sigma)
+            
+            tol = 0.001
+            minmin = np.min([np.amin(src_field), np.amin(sigma)]) - tol
+            maxmax = np.min([np.amax(src_field), np.amax(sigma)]) + tol
+            
+            fig, axs = plt.subplots(1, 2)
+            
+            surf = axs[0].contourf(cfg.x_nodes, cfg.y_nodes, np.swapaxes(sigma, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
+            for c in surf.collections:
+                c.set_edgecolor("face")
+                
+            im2 = axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
+                             extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+            asp = np.diff(axs[1].get_xlim())[0] / np.diff(axs[1].get_ylim())[0]
+            axs[1].set_aspect(asp)
+            for ax in fig.get_axes():
+                ax.set_xlim((cfg.x_a, cfg.x_b))
+                ax.set_ylim((cfg.y_c, cfg.y_d))
+                ax.set_xlabel(r'$x$ (m)')
+                ax.set_ylabel(r'$y$ (m)')
+                ax.label_outer()
+                ax.set(adjustable='box', aspect='equal')
+            maxabs = max(abs(minmin), abs(maxmax))
+            ticks = np.linspace(-np.round(0.9*maxabs), np.round(0.9*maxabs), 5, endpoint=True)
+            fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
+            fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
+
+            plt.tight_layout()
+            plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
+                        bbox_inches='tight')
+            plt.close()
             
             aE = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
             aW = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
@@ -147,7 +179,7 @@ def create_parametrized_datasets(cfg):
             #for i in range(cfg.N_x):
             #    for j in range(cfg.N_y):
             #        eps_matrix[i][j] = eps_vec[i*cfg.N_x + j]
-            
+            """
             tol = 0.001
             minmin = np.min([np.amin(src_field), np.amin(ref_dense)]) - tol
             maxmax = np.min([np.amax(src_field), np.amax(ref_dense)]) + tol
@@ -179,6 +211,7 @@ def create_parametrized_datasets(cfg):
             plt.savefig(os.path.join(cfg.run_dir, "src_profiles_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
                         bbox_inches='tight')
             plt.close()
+            """
 
     # Store data
     simulation_data = {
