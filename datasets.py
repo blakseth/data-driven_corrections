@@ -129,7 +129,8 @@ def create_parametrized_datasets(cfg):
                 ax.set(adjustable='box', aspect='equal')
             maxabs = max(abs(minmin), abs(maxmax))
             ticks = np.linspace(-np.round(0.9*maxabs), np.round(0.9*maxabs), 5, endpoint=True)
-            plt.clim(minmin,maxmax)
+            for im in gca().get_images():
+                im.set_clim(minmin,maxmax)
             fig.colorbar(im1, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
             fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
 
