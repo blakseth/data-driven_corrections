@@ -84,7 +84,7 @@ def create_parametrized_datasets(cfg):
             T = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, cfg.t_end, alpha)
             x = cfg.x_nodes
             y = cfg.y_nodes
-            sigma = 0.5*cfg.dx( # Okay to not use indexing since all grid cells are square and same size.
+            sigma = 0.5*cfg.dx*( # Okay to not use indexing since all grid cells are square and same size.
                 ((eps_k[2:,1:-1]   + eps_k[1:-1,1:-1])*(T[2:,1:-1]   - T[1:-1,1:-1])/(x[2:]   - x[1:-1])) \
                 - ((eps_k[1:-1,1:-1] + eps_k[:-2,1:-1]) *(T[1:-1,1:-1] - T[:-2,1:-1]) /(x[1:-1] - x[:-2])) \
                 + ((eps_k[1:-1,2:]   + eps_k[1:-1,1:-1])*(T[1:-1,2:]   - T[1:-1,1:-1])/(y[2:]   - y[1:-1])) \
