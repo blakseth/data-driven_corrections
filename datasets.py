@@ -34,6 +34,16 @@ def create_parametrized_datasets(cfg):
     data_tag = cfg.data_tag
 
     print("ALPHAS:", cfg.alphas)
+    
+    # sample the colormaps that you want to use. Use 128 from each so we get 256
+    # colors in total
+    colors1 = plt.cm.hot(np.linspace(0, 1, 128))
+    colorsmid = plt.cm.RdGy(np.linspace(0.5, 0.6, 25))
+    colors2 = plt.cm.twilight(np.linspace(0, 0.4, 103))
+
+    # combine them and build a new colormap
+    colors = np.vstack((colors1, colorsmid, colors2))
+    mymap = cs.LinearSegmentedColormap.from_list('my_colormap', colors).reversed()
 
     unc_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
     ref_Ts = np.zeros((cfg.alphas.shape[0], cfg.N_t, cfg.N_x + 2, cfg.N_y + 2))
@@ -98,13 +108,15 @@ def create_parametrized_datasets(cfg):
             
             fig, axs = plt.subplots(1, 2)
             
-            surf = axs[0].contourf(cfg.x_nodes[1:-1], cfg.y_nodes[1:-1], np.swapaxes(sigma, 0, 1), vmin=minmin, vmax=maxmax, levels=100)
-            for c in surf.collections:
-                c.set_edgecolor("face")
+            im1 = axs[0].imshow(np.flip(np.swapaxes(sigma, 0, 1), 0), vmin=minmin, vmax=maxmax,
+                             extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy], cmap=mymap)
+            #for c in surf.collections:
+            #    c.set_edgecolor("face")
                 
             im2 = axs[1].imshow(np.flip(np.swapaxes(src_field, 0, 1), 0), vmin=minmin, vmax=maxmax,
                              extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
-                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+                                     cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy], cmap=mymap)
             asp = np.diff(axs[1].get_xlim())[0] / np.diff(axs[1].get_ylim())[0]
             axs[1].set_aspect(asp)
             for ax in fig.get_axes():
@@ -116,7 +128,8 @@ def create_parametrized_datasets(cfg):
                 ax.set(adjustable='box', aspect='equal')
             maxabs = max(abs(minmin), abs(maxmax))
             ticks = np.linspace(-np.round(0.9*maxabs), np.round(0.9*maxabs), 5, endpoint=True)
-            fig.colorbar(surf, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
+            plt.clim(minmin,maxmax)
+            fig.colorbar(im1, ax=axs[0], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
             fig.colorbar(im2,  ax=axs[1], shrink=0.9, fraction=0.046, pad=0.04, ticks=ticks)
 
             plt.tight_layout()
