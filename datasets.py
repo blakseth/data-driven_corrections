@@ -114,7 +114,7 @@ def create_parametrized_datasets(cfg):
             print("ref_dense.shape:", ref_dense.shape)
             print("src_field.shape:", src_field.shape)
             plt.figure()
-            plt.imshow(np.flip(np.swapaxes(src_field-ref_dense[1:-1][1:-1], 0, 1), 0),
+            plt.imshow(np.flip(np.swapaxes(src_field-ref_dense[1:-1,1:-1], 0, 1), 0),
                        extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
                                cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
             plt.colorbar()
