@@ -147,6 +147,7 @@ def create_parametrized_datasets(cfg):
             plt.savefig(os.path.join(cfg.run_dir, "src_diff_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
                         bbox_inches='tight')
             plt.close()
+            print("diff:", src_field - sigma)
             
             aE = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
             aW = [[0 for j in range(cfg.N_y)] for i in range(cfg.N_x)]
