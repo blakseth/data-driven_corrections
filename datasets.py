@@ -113,10 +113,14 @@ def create_parametrized_datasets(cfg):
             
             print("ref_dense.shape:", ref_dense.shape)
             print("src_field.shape:", src_field.shape)
-            #plt.figure()
-            #ply.imshow(np.flip(np.swapaxes(src_field-ref_dense, 0, 1), 0),
-            #           extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
-            #                   cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+            plt.figure()
+            plt.imshow(np.flip(np.swapaxes(src_field-ref_dense[1:-1][1:-1], 0, 1), 0),
+                       extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+                               cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+            plt.colorbar()
+            plt.savefig(os.path.join(cfg.run_dir, "src_diff_alpha" + str(np.around(alpha, decimals=5)) + "t" + str(np.around(cfg.t_end, decimals=5)) + ".pdf"),
+                        bbox_inches='tight')
+            plt.close()
             
 
     # Store data
