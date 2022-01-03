@@ -111,6 +111,13 @@ def create_parametrized_datasets(cfg):
                         bbox_inches='tight')
             plt.close()
             
+            ptint("ref_dense.shape:", ref_dense.shape)
+            print("src_field.shape:", src_field.shape)
+            #plt.figure()
+            #ply.imshow(np.flip(np.swapaxes(src_field-ref_dense, 0, 1), 0),
+            #           extent=[cfg.x_a - 0.5*cfg.dx, cfg.x_b + 0.5*cfg.dx,
+            #                   cfg.y_c - 0.5*cfg.dy, cfg.y_d + 0.5*cfg.dy])
+            
 
     # Store data
     simulation_data = {
