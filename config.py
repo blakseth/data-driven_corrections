@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-11-07_debug_2D_src_visualization"
+group_name = "2022-01-03_debug_2D_src_visualization"
 run_names  = [["datasetP2"]]
 systems    = ["4"]
 data_tags  = ["2D_s4_src_vis"]
