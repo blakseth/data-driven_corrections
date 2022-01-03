@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2021-11-08_source_visualization"
+group_name = "2021-01-03_source_visualization"
 run_names  = [["k1"]]
 systems    = ["k1"]
 data_tags  = ["k1_vis"]
