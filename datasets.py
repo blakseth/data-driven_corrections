@@ -17,6 +17,8 @@ import joblib
 import torch
 import torch.utils.data
 
+from numpy.random import normal as gaussian_noise
+
 ########################################################################################################################
 # File imports.
 
@@ -55,7 +57,7 @@ def create_parametrized_datasets(cfg):
                 np.zeros((cfg.x_nodes[1:-1].shape[0], cfg.y_nodes[1:-1].shape[0]))
             )
             if cfg.exact_solution_available:
-                ref_Ts[a][i] = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, new_time, alpha)
+                ref_Ts[a][i] = cfg.get_T_exact(cfg.x_nodes, cfg.y_nodes, new_time, alpha) + gaussian_noise(0, cfg.noise_std, (ref_Ts.shape[2], ref_Ts.shape[3]))
             else:
                 raise Exception("Parametrized datasets currently requires the exact solution to be available.")
             res_Ts[a][i] = ref_Ts[a][i] - unc_Ts[a][i]
