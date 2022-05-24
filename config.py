@@ -25,10 +25,10 @@ torch.backends.cudnn.benchmark = False
 # Configuration parameters
 
 use_GPU    = True
-group_name = "2022-01-03_debug_2D_src_visualization"
-run_names  = [["datasetP2"]]
-systems    = ["4"]
-data_tags  = ["2D_s4_src_vis"]
+group_name = "2022-05-24_noise_test_0.01"
+run_names  = [["noise"]]
+systems    = ["1"]
+data_tags  = ["2D_s1_noise"]
 model_type = 'hybrid'
 model_keys = [5]
 assert len(systems) == len(data_tags) == len(run_names[0])
