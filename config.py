@@ -465,6 +465,8 @@ class Config:
         print("N_train_alphas", self.N_train_alphas)
         print("N_val_alphas", self.N_val_alphas)
         print("N_test_alphas", self.N_test_alphas)
+        
+        self.noise_std = 0.01
 
         # Parameters for shift data augmentation.
         self.N_shift_steps = 5
