@@ -1,7 +1,8 @@
 # Data-driven corrections of the 1D heat equation
 
-This repository contains the code used for my master's thesis [Introducing CoSTA: A Deep Neural Network Enabled Approach to Improving Physics-Based Numerical Simulations](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2826627)
-Please cite the master's thesis or the related article [Deep neural network enabled corrective source term approach to hybrid analysis and modeling](https://www.sciencedirect.com/science/article/pii/S0893608021004494)
+This repository contains the code used for my master's thesis [Introducing CoSTA: A Deep Neural Network Enabled Approach to Improving Physics-Based Numerical Simulations](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2826627).
+
+Please cite the master's thesis or the related article [Deep neural network enabled corrective source term approach to hybrid analysis and modeling](https://www.sciencedirect.com/science/article/pii/S0893608021004494) if you publish academic works utilizing code from this repository.
 
 File overview:
 
