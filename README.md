@@ -1,8 +1,9 @@
 # Data-driven corrections of the 1D heat equation
 
-This repository contains the code used for my master's thesis.
+This repository contains the code used for my master's thesis [Introducing CoSTA: A Deep Neural Network Enabled Approach to Improving Physics-Based Numerical Simulations](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2826627)
+Please cite the master's thesis or the related article [Deep neural network enabled corrective source term approach to hybrid analysis and modeling](https://www.sciencedirect.com/science/article/pii/S0893608021004494)
 
-###File overview:
+File overview:
 
 - config.py: Main configuration file.
 - datasets.py: Used for creating training, validation and test sets.
